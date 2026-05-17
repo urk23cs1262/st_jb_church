@@ -283,11 +283,11 @@ export default function Donate() {
                           onClick={openUpiApp}
                           className="flex items-center justify-center gap-3 bg-[#1e3a8a] text-white w-full py-4 rounded-2xl font-bold shadow-lg hover:scale-[1.02] transition-all active:scale-95"
                         >
-                          📱 Open UPI Apps (PhonePe / GPay)
+                          Open UPI Apps
                         </button>
 
                         {/* Individual UPI app deep links */}
-                        <div className="grid grid-cols-3 gap-2">
+                        {/* <div className="grid grid-cols-3 gap-2">
                           <a 
                             href={`phonepe://pay?pa=${UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${formData?.amount}&cu=INR&tn=${encodeURIComponent(selectedType)}`}
                             onClick={() => setUpiLaunched(true)}
@@ -309,7 +309,7 @@ export default function Donate() {
                           >
                             <span className="text-2xl">🔷</span> Paytm
                           </a>
-                        </div>
+                        </div> */}
 
                         {/* Troubleshooting */}
                         <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl text-left">
