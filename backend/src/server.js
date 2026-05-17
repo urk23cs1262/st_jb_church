@@ -14,8 +14,20 @@ connectDB();
 
 // Security
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+
+// ✅ FIX: Allow both localhost AND Vercel in production
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
+  },
   credentials: true,
 }));
 
@@ -30,7 +42,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan('dev'));
 
-// Static files (uploads)
+// Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
@@ -52,14 +64,25 @@ app.use('/api/mass-reading', require('./routes/massReading'));
 app.use('/api/daily-reading', require('./routes/dailyReading'));
 app.use('/api/daily-saint', require('./routes/saint'));
 
-// Initialize Background Services
+// Background Services
 require('./services/saintService');
 require('./services/birthdayService');
 
-// Health check
-app.get('/api/health', (req, res) => res.json({ success: true, message: "St. John de Britto's Church API is running", timestamp: new Date() }));
+// ✅ Health check (used by cron-job.org to prevent cold starts)
+app.get('/api/health', (req, res) => res.json({
+  success: true,
+  message: "St. John de Britto's Church API is running",
+  timestamp: new Date(),
+  uptime: process.uptime(),
+}));
 
-// 404 handler
+// ✅ Root route (stops Render showing "Cannot GET /")
+app.get('/', (req, res) => res.json({
+  success: true,
+  message: "St. John de Britto's Church API",
+}));
+
+// 404
 app.use((req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
 
 // Error handler
@@ -71,8 +94,9 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`\n✝️  St. John de Britto's Church API`);
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📋 Health: http://localhost:${PORT}/api/health\n`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 Allowed origins: ${allowedOrigins.join(', ')}`);
+  console.log(`📋 Health: /api/health\n`);
 });
 
 module.exports = app;
