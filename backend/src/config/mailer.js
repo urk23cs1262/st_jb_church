@@ -29,8 +29,9 @@ const sendMail = async ({ to, subject, html, attachments = [] }) => {
     return { success: false, error: 'SMTP not configured' };
   }
   try {
+    const fromEmail = process.env.SMTP_FROM || 'arndas777@gmail.com';
     const info = await transporter.sendMail({
-      from: `"St. John de Britto's Church" <arndas777@gmail.com>`,
+      from: `"St. John de Britto's Church" <${fromEmail}>`,
       to,
       subject,
       html,
