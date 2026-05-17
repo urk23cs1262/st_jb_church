@@ -247,6 +247,11 @@ export default function AdminSettings() {
         <p className="text-gray-500 text-sm ml-13">Manage website media, videos, and branding files.</p>
       </div>
 
+      <div className="mt-5 mb-5 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-700">
+        <strong>Note:</strong> After updating an image or audio file, users may need to refresh the website to see the new content.
+        The Tamil Rosary audio and home page images will update instantly for new visitors.
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <FiLoader className="animate-spin text-church-gold text-3xl" />
@@ -259,10 +264,7 @@ export default function AdminSettings() {
         </div>
       )}
 
-      <div className="mt-8 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-700">
-        <strong>Note:</strong> After updating an image or audio file, users may need to refresh the website to see the new content.
-        The Tamil Rosary audio and home page images will update instantly for new visitors.
-      </div>
+      
     </div>
   );
 }
