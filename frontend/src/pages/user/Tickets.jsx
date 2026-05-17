@@ -42,7 +42,7 @@ export default function Tickets() {
   };
 
   return (
-    <div className="min-h-screen pt-10 bg-church-cream ">
+    <div className="min-h-screen pt-24 bg-church-cream ">
       <div className="bg-gray-600 py-10">
         <div className="max-w-5xl mx-auto px-4">
           <Link to="/dashboard" className="text-gold-400 text-sm hover:underline flex items-center gap-1 mb-3"><FiArrowLeft /> Back</Link>

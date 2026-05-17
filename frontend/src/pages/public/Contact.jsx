@@ -30,7 +30,7 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-screen pt-10 bg-church-cream ">
+    <div className="min-h-screen pt-28 bg-church-cream ">
       <PageHero title={<>{t('nav.contact')}</>} subtitle={<>Get In Touch</>} />
 
       <section className="py-16">
@@ -63,7 +63,7 @@ export default function Contact() {
               </div>
 
               {/* WhatsApp */}
-              <a href="https://wa.me/91XXXXXXXXXX?text=Hello%20St.%20John%20de%20Britto's%20Church" target="_blank" rel="noreferrer"
+              <a href="https://wa.me/7639520006?text=Hello%20St.%20John%20de%20Britto's%20Church" target="_blank" rel="noreferrer"
                 className="flex items-center gap-3 bg-green-500 text-white px-6 py-4 rounded-2xl hover:bg-green-600 transition-all shadow-lg mb-6 font-semibold">
                 <FaWhatsapp className="text-2xl" /> Chat with us on WhatsApp
               </a>

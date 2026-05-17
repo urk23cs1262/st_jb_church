@@ -63,6 +63,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/mass-reading', require('./routes/massReading'));
 app.use('/api/daily-reading', require('./routes/dailyReading'));
 app.use('/api/daily-saint', require('./routes/saint'));
+app.use('/api/settings', require('./routes/settings'));
 
 // Background Services
 require('./services/saintService');

@@ -193,7 +193,7 @@
     "quickLinks": "Quick Links",
     "services": "Services",
     "follow": "Follow Us",
-    "copyright": "© 2024 St. John de Britto's Church. All rights reserved.",
+    "copyright": "© {{year}} St. John de Britto's Church. All rights reserved.",
     "madeWith": "Made with ✝️ for God's Glory"
   }
 }

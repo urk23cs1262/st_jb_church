@@ -34,7 +34,7 @@ export default function AdminDonations() {
   };
 
   return (
-    <div className="min-h-screen bg-church-cream  pt-20 lg:pl-64">
+    <div className="w-full">
       <div className="p-6">
         <h1 className="font-display text-2xl font-bold text-church-royal-blue  mb-6">Manage Donations</h1>
 

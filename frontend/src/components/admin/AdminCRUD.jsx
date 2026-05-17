@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { FiPlus, FiTrash2, FiEdit, FiX } from 'react-icons/fi';
-import api from '../../services/api';
+import api, { UPLOADS_URL } from '../../services/api';
 import { SectionLoader } from '../common/Loader';
 
 export default function AdminCRUD({ resource, title, fields, hasImage }) {
@@ -58,7 +58,7 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
   const displayValue = (item) => item.title || item.name || item.subject || item._id;
 
   return (
-    <div className="min-h-screen bg-church-cream  pt-20 lg:pl-64">
+    <div className="w-full">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-2xl font-bold text-church-royal-blue ">Manage {title} ({total})</h1>
@@ -85,7 +85,16 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
                       className="border-b border-gray-50  hover:bg-gold-50  transition-colors">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          {(hasImage && item.imageUrl) && <img src={item.imageUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />}
+                          {(hasImage && (item.imageUrl || item.photo || item.image)) && (
+                            <img 
+                              src={(item.imageUrl || item.photo || item.image).startsWith('http') 
+                                ? (item.imageUrl || item.photo || item.image) 
+                                : `${UPLOADS_URL.replace('/uploads', '')}${(item.imageUrl || item.photo || item.image).startsWith('/') ? '' : '/'}${item.imageUrl || item.photo || item.image}`
+                              } 
+                              alt="" 
+                              className="w-10 h-10 rounded-lg object-cover" 
+                            />
+                          )}
                           <p className="font-semibold text-gray-800  text-sm truncate max-w-xs">{displayValue(item)}</p>
                         </div>
                       </td>

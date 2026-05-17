@@ -45,7 +45,7 @@ export default function AdminPrayers() {
   };
 
   return (
-    <div className="min-h-screen bg-church-cream pt-20 lg:pl-64">
+    <div className="w-full">
       <div className="p-6">
         <div className="flex items-center justify-between mb-8">
           <div>

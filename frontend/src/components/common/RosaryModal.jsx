@@ -1,9 +1,27 @@
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiHeadphones } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
+import api, { UPLOADS_URL } from '../../services/api';
+import defaultRosaryAudio from '../../assets/rosary.mp3';
 
-export default function RosaryModal({ isOpen, onClose, t, rosaryAudio }) {
+export default function RosaryModal({ isOpen, onClose, t }) {
+  const [audioSrc, setAudioSrc] = useState(defaultRosaryAudio);
+
+  useEffect(() => {
+    api.get('/settings/rosaryAudio')
+      .then(r => {
+        if (r.data.value) {
+          const src = r.data.value.startsWith('http')
+            ? r.data.value
+            : `${UPLOADS_URL.replace('/uploads', '')}${r.data.value}`;
+          setAudioSrc(src);
+        }
+      })
+      .catch(() => {}); // fall back to bundled audio
+  }, []);
+
   if (!isOpen) return null;
 
   return createPortal(
@@ -46,11 +64,12 @@ export default function RosaryModal({ isOpen, onClose, t, rosaryAudio }) {
               </div>
 
               <audio
+                key={audioSrc}
                 autoPlay
                 controls
                 className="w-full h-12 custom-audio-player"
               >
-                <source src={rosaryAudio} type="audio/mpeg" />
+                <source src={audioSrc} type="audio/mpeg" />
               </audio>
 
               <div className="mt-6 flex flex-col items-center gap-1">

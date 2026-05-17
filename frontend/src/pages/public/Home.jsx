@@ -11,7 +11,7 @@ import { FiCalendar, FiClock, FiMapPin, FiArrowRight, FiVolume2 } from 'react-ic
 import { MdNotifications } from 'react-icons/md';
 import { FaCalendarAlt } from "react-icons/fa";
 import { GiPrayerBeads, GiHolyGrail, GiAngelWings } from "react-icons/gi";
-import api from '../../services/api';
+import api, { UPLOADS_URL } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import heroBgImage from '../../assets/image.png';
 import stJohnImage from '../../assets/image copy 2.png';
@@ -77,6 +77,16 @@ export default function Home() {
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const isTamil = i18n.language === 'ta';
+  const [dynamicImages, setDynamicImages] = useState({});
+
+  const resolveUrl = (val) => {
+    if (!val) return null;
+    return val.startsWith('http') ? val : `${UPLOADS_URL.replace('/uploads', '')}${val}`;
+  };
+
+  const heroSrc = resolveUrl(dynamicImages.heroImage) || heroBgImage;
+  const stJohnSrc = resolveUrl(dynamicImages.stJohnImage) || stJohnImage;
+  const priestSrc = resolveUrl(dynamicImages.priestImage) || priestImage;
 
   useEffect(() => {
     // Rotate daily verse
@@ -85,6 +95,8 @@ export default function Home() {
     // Fetch data
     api.get('/events?upcoming=true&limit=3').then(r => setEvents(r.data.events || [])).catch(() => { });
     api.get('/announcements?limit=4').then(r => setAnnouncements(r.data.announcements || [])).catch(() => { });
+    // Fetch dynamic images from settings
+    api.get('/settings').then(r => setDynamicImages(r.data.settings || {})).catch(() => {});
   }, []);
 
   const verse = BIBLE_VERSES[verseIdx];
@@ -97,7 +109,7 @@ export default function Home() {
         <motion.div style={{ y }} className="absolute inset-0 z-0">
           <div
             className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${heroBgImage})` }}
+            style={{ backgroundImage: `url(${heroSrc})` }}
           />
           <div className="absolute inset-0 bg-church-gradient opacity-80 mix-blend-multiply" />
           {/* Animated cross decorations */}
@@ -132,7 +144,7 @@ export default function Home() {
             className="mb-6 flex justify-center"
           >
             <div className="w-60 h-60 rounded-full bg-white/10 backdrop-blur-sm border-2 border-gold-400/50 flex items-center justify-center animate-float shadow-gold-lg overflow-hidden p-1">
-              <img src={stJohnImage} alt="Logo" className="w-full h-full object-cover object-[center_10%] rounded-full" />
+              <img src={stJohnSrc} alt="Logo" className="w-full h-full object-cover object-[center_10%] rounded-full" />
             </div>
           </motion.div>
 
@@ -386,7 +398,7 @@ export default function Home() {
           >
             <div className="flex-shrink-0">
               <div className="w-40 h-40 rounded-full bg-white/10 backdrop-blur-sm border-4 border-gold-300/50 flex items-center justify-center shadow-gold-lg overflow-hidden p-1">
-                <img src={priestImage} alt="Logo" className="w-full h-full object-cover object-[center_5%] rounded-full" />
+                <img src={priestSrc} alt="Logo" className="w-full h-full object-cover object-[center_5%] rounded-full" />
               </div>
             </div>
             <div>
@@ -410,7 +422,10 @@ export default function Home() {
             style={{ backgroundImage: `url(${heroBgImage})` }}
           />
         <div className="absolute inset-0 bg-church-gradient opacity-80 mix-blend-multiply" />
-        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+        {/* Fade into footer */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-church-dark pointer-events-none" />
+        
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-10 py-10">
           
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <h2 className="text-white font-display text-3xl md:text-4xl font-bold mb-4">Come & Be Part of Our Community</h2>

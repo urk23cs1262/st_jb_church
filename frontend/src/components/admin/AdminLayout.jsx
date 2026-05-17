@@ -1,0 +1,137 @@
+import { useState } from 'react';
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import { FiUsers, FiCalendar, FiFileText, FiMessageSquare, FiDollarSign, FiImage, FiBell, FiMenu, FiX, FiLogOut, FiArrowLeft, FiSettings } from 'react-icons/fi';
+import { GiChurch, GiCrucifix, GiPrayer } from 'react-icons/gi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import churchLogo from '../../assets/image copy.png';
+
+const NAV_ITEMS = [
+  { icon: <FiUsers />, label: 'Users', path: '/admin/users', color: 'bg-blue-500' },
+  { icon: <GiChurch />, label: 'Priests', path: '/admin/priests', color: 'bg-amber-600' },
+  { icon: <FiCalendar />, label: 'Events', path: '/admin/events', color: 'bg-green-600' },
+  { icon: <FiImage />, label: 'Gallery', path: '/admin/gallery', color: 'bg-purple-600' },
+  { icon: <FiBell />, label: 'Announcements', path: '/admin/announcements', color: 'bg-orange-500' },
+  { icon: <GiCrucifix />, label: 'Bookings', path: '/admin/bookings', color: 'bg-indigo-600' },
+  { icon: <FiFileText />, label: 'Documents', path: '/admin/documents', color: 'bg-teal-600' },
+  { icon: <FiDollarSign />, label: 'Donations', path: '/admin/donations', color: 'bg-yellow-600' },
+  { icon: <FiMessageSquare />, label: 'Tickets', path: '/admin/tickets', color: 'bg-rose-600' },
+  { icon: <GiPrayer />, label: 'Prayers', path: '/admin/prayers', color: 'bg-church-gold' },
+  { icon: <FiSettings />, label: 'Settings', path: '/admin/settings', color: 'bg-gray-600' },
+];
+
+export default function AdminLayout() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const { logout } = useAuth();
+  const location = useLocation();
+
+  return (
+    <div className="min-h-screen bg-church-cream flex">
+      {/* Mobile overlay */}
+      {mobileOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />}
+      
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 ${desktopOpen ? 'w-64' : 'w-20'} bg-church-royal-blue z-50 transform transition-all duration-300 lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
+        <div className={`px-3 py-2.5 border-b border-white/10 flex items-center ${desktopOpen ? 'justify-between' : 'justify-center'} relative bg-white/5`}>
+          <div className="flex items-center gap-2.5">
+            <div className="w-12 h-12 rounded-full bg-white ring-2 ring-church-gold/40 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+              <img src={churchLogo} alt="Logo" className="w-full h-full object-cover object-[center_15%] rounded-full" />
+            </div>
+            {desktopOpen && (
+              <div className="overflow-hidden whitespace-nowrap">
+                <p className="text-white font-bold text-sm leading-tight">Admin Panel</p>
+                <p className="text-church-gold text-[10px] leading-tight font-medium">St. John de Britto</p>
+              </div>
+            )}
+          </div>
+          <button className="lg:hidden text-white/70 hover:text-white" onClick={() => setMobileOpen(false)}>
+            <FiX size={18} />
+          </button>
+        </div>
+
+        {/* Desktop Toggle Button */}
+        <button 
+          onClick={() => setDesktopOpen(!desktopOpen)} 
+          className="hidden lg:flex absolute top-4 -right-3 w-6 h-6 bg-white border border-gray-200 rounded-full items-center justify-center text-church-royal-blue z-50 hover:bg-gray-50 shadow-md"
+        >
+          <FiArrowLeft className={`transition-transform duration-300 ${!desktopOpen ? 'rotate-180' : ''}`} size={12} />
+        </button>
+        
+        <nav className="flex-1 px-2 py-1 flex flex-col justify-evenly">
+          <Link to="/admin" onClick={() => setMobileOpen(false)} className={`flex items-center ${desktopOpen ? 'gap-2.5 px-2.5' : 'justify-center'} py-1 rounded-lg font-semibold text-xs transition-all ${location.pathname === '/admin' ? 'bg-church-gold text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'} group relative`}>
+            <span className={`w-6 h-6 rounded-md flex items-center justify-center text-white text-xs flex-shrink-0 ${location.pathname === '/admin' ? 'bg-white/20' : 'bg-church-gold'}`}>
+              <GiCrucifix className="text-sm" />
+            </span>
+            {desktopOpen ? <span>Dashboard</span> : (
+              <span className="absolute left-12 bg-gray-900 text-white px-2 py-1 rounded-md text-xs opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity shadow-lg">Dashboard</span>
+            )}
+          </Link>
+          {NAV_ITEMS.map((item, i) => (
+            <Link key={i} to={item.path} onClick={() => setMobileOpen(false)} className={`flex items-center ${desktopOpen ? 'gap-2.5 px-2.5' : 'justify-center'} py-1 rounded-lg font-semibold text-xs transition-all ${location.pathname === item.path ? 'bg-church-gold text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'} group relative`}>
+              <span className={`w-6 h-6 rounded-md ${location.pathname === item.path ? 'bg-white/20' : item.color} flex items-center justify-center text-white text-xs flex-shrink-0`}>{item.icon}</span>
+              {desktopOpen ? <span>{item.label}</span> : (
+                <span className="absolute left-12 bg-gray-900 text-white px-2 py-1 rounded-md text-xs opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity shadow-lg">{item.label}</span>
+              )}
+            </Link>
+          ))}
+        </nav>
+        
+        <div className={`px-2 py-2 border-t border-white/10 flex flex-col gap-1.5 ${!desktopOpen && 'items-center'} flex-shrink-0`}>
+          <Link to="/" className={`flex items-center ${desktopOpen ? 'gap-2 px-3' : 'justify-center'} bg-church-gold hover:brightness-110 text-white text-xs font-bold transition-all py-2 rounded-lg w-full shadow-gold-sm group relative`}>
+            <FiArrowLeft className="flex-shrink-0" />
+            {desktopOpen ? <span>Back to Website</span> : (
+              <span className="absolute left-12 bg-gray-900 text-white px-2 py-1 rounded-md text-xs opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity shadow-lg">Back to Website</span>
+            )}
+          </Link>
+          <button onClick={() => setShowLogoutConfirm(true)} className={`flex items-center ${desktopOpen ? 'gap-2 px-3' : 'justify-center'} bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors py-2 rounded-lg w-full shadow-sm group relative`}>
+            <FiLogOut className="flex-shrink-0" />
+            {desktopOpen ? <span>Logout</span> : (
+              <span className="absolute left-12 bg-gray-900 text-white px-2 py-1 rounded-md text-xs opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity shadow-lg">Logout</span>
+            )}
+          </button>
+        </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className={`flex-1 transition-all duration-300 ${desktopOpen ? 'lg:ml-64' : 'lg:ml-20'} flex flex-col min-h-screen relative w-full`}>
+        {/* Mobile Header */}
+        <div className="lg:hidden bg-church-royal-blue text-white p-4 flex items-center gap-3 sticky top-0 z-30 shadow-md">
+          <button onClick={() => setMobileOpen(true)}><FiMenu size={24} /></button>
+          <span className="font-bold">Admin Panel</span>
+        </div>
+        
+        {/* Outlet Content */}
+        <div className="flex-1 overflow-x-hidden">
+          <Outlet />
+        </div>
+      </div>
+
+      {/* Logout Confirmation Modal */}
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4" onClick={() => setShowLogoutConfirm(false)}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()} 
+              className="bg-white rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl"
+            >
+              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
+                <FiLogOut className="text-3xl -ml-1" />
+              </div>
+              <h2 className="font-display text-xl font-bold text-church-royal-blue mb-2">Log Out</h2>
+              <p className="text-gray-500 text-sm mb-6 px-2">Are you sure you want to Log out of the Admin Panel?</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={() => setShowLogoutConfirm(false)} className="px-5 py-2.5 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors flex-1">Cancel</button>
+                <button onClick={logout} className="px-5 py-2.5 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors flex-1 shadow-md">Log Out</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

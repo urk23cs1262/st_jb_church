@@ -57,8 +57,14 @@ const updateProfile = async (req, res) => {
 // PUT /api/users/:id — admin
 const updateUser = async (req, res) => {
   try {
-    const { role, isActive, isVerified } = req.body;
-    const user = await User.findByIdAndUpdate(req.params.id, { role, isActive, isVerified }, { new: true }).select('-passwordHash');
+    const { role, isActive, isVerified, name, email, phone, parishMemberId } = req.body;
+    const updateData = { role, isActive, isVerified };
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email === "" ? undefined : email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (parishMemberId !== undefined) updateData.parishMemberId = parishMemberId;
+    
+    const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-passwordHash');
     res.json({ success: true, user });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };

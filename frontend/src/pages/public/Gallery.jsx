@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { FiX, FiChevronLeft, FiChevronRight, FiGrid } from 'react-icons/fi';
 import { GiChurch } from 'react-icons/gi';
-import api from '../../services/api';
+import api, { UPLOADS_URL } from '../../services/api';
 import { SectionLoader } from '../../components/common/Loader';
 import PageHero from '../../components/common/PageHero';
 
@@ -72,7 +72,7 @@ export default function Gallery() {
                   className="break-inside-avoid cursor-pointer group rounded-2xl overflow-hidden shadow-card hover:shadow-gold-lg transition-all duration-300"
                 >
                   <div className="relative overflow-hidden">
-                    <img src={item.imageUrl} alt={item.title} className="w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <img src={item.imageUrl.startsWith('http') ? item.imageUrl : `${UPLOADS_URL.replace('/uploads', '')}${item.imageUrl.startsWith('/') ? '' : '/'}${item.imageUrl}`} alt={item.title} className="w-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-end">
                       <p className="text-white text-sm font-semibold p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">{item.title}</p>
                     </div>
@@ -104,7 +104,7 @@ export default function Gallery() {
               key={lightbox}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              src={filtered[lightbox]?.imageUrl}
+              src={filtered[lightbox]?.imageUrl.startsWith('http') ? filtered[lightbox]?.imageUrl : `${UPLOADS_URL.replace('/uploads', '')}${filtered[lightbox]?.imageUrl.startsWith('/') ? '' : '/'}${filtered[lightbox]?.imageUrl}`}
               alt={filtered[lightbox]?.title}
               className="max-h-[85vh] max-w-[90vw] object-contain rounded-2xl"
               onClick={(e) => e.stopPropagation()}

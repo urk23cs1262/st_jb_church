@@ -41,7 +41,7 @@ export default function AdminTickets() {
   };
 
   return (
-    <div className="min-h-screen bg-church-cream  pt-20 lg:pl-64">
+    <div className="w-full">
       <div className="p-6 flex gap-6" style={{ height: 'calc(100vh - 80px)' }}>
         {/* Ticket list */}
         <div className="w-80 flex-shrink-0 flex flex-col gap-3">

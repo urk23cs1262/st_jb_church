@@ -12,11 +12,15 @@ function getTodayKey() {
 
 async function fetchTamilMassReading(dateStr) {
   const [year, month, day] = dateStr.split('-');
-  const urlDate = `${day}-${month}-${year}`;
+  
+  // Format for Catholic Gallery is tr-DDMMYY where YY is last 2 digits of year
+  const yy = year.substring(2);
+  const urlDate = `tr-${day}${month}${yy}`;
 
   const urls = [
-    `https://www.tamilcatholicdaily.com/dailyverse/${urlDate}/`,
-    `https://www.tamilcatholicdaily.com/dailyverse/`,
+    `https://bible.catholicgallery.org/tamil-mass-reading/${urlDate}/`,
+    `https://bible.catholicgallery.org/ta-mass-reading/${urlDate}/`,
+    `https://www.tamilcatholicdaily.com/dailyverse/${day}-${month}-${year}/` // Fallback
   ];
 
   let html = null;
@@ -36,7 +40,7 @@ async function fetchTamilMassReading(dateStr) {
     }
   }
 
-  if (!html) throw new Error('Could not fetch from Tamil Catholic Daily');
+  if (!html) throw new Error('Could not fetch Tamil mass reading from any source');
 
   const $ = cheerio.load(html);
 
@@ -58,8 +62,11 @@ async function fetchTamilMassReading(dateStr) {
   });
 
   let fullText = '';
-  $('.entry-content p').each((_, el) => {
-    fullText += $(el).text().trim() + '\n\n';
+  $('.entry-content p, .entry-content div').each((_, el) => {
+    const text = $(el).text().trim();
+    if (text && !text.includes('Share:')) {
+      fullText += text + '\n\n';
+    }
   });
 
   return {

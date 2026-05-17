@@ -221,7 +221,7 @@ export default function BibleVerse() {
           {/* ── Section header ────────────────────────────────────────── */}
           <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
-              <p className="section-subtitle mb-1">Catholic Gallery</p>
+              {/* <p className="section-subtitle mb-1">Catholic Gallery</p> */}
               <h2 className="section-title">Daily Mass Readings</h2>
             </div>
 

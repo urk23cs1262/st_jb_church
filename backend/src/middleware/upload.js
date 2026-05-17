@@ -20,16 +20,18 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowed = /jpeg|jpg|png|gif|webp|pdf|mp4|mov/;
+  const allowed = /jpeg|jpg|png|gif|webp|pdf|mp4|mov|mp3|mpeg|ogg|wav/;
   const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-  const mime = allowed.test(file.mimetype);
+  // Allow audio mime types too
+  const allowedMimes = /image\/|audio\/|video\/|application\/pdf/;
+  const mime = allowedMimes.test(file.mimetype);
   if (ext && mime) return cb(null, true);
   cb(new Error('File type not allowed'));
 };
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for audio files
   fileFilter,
 });
 

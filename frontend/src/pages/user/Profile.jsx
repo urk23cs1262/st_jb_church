@@ -4,7 +4,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { FiUser, FiArrowLeft, FiSave, FiPlus, FiTrash2 } from 'react-icons/fi';
-import api from '../../services/api';
+import api, { UPLOADS_URL } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 const SUB_STATIONS = [
@@ -86,7 +86,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen pt-10 bg-church-cream ">
+    <div className="min-h-screen pt-24 bg-church-cream ">
       <div className="bg-gray-600 py-10">
         <div className="max-w-4xl mx-auto px-4">
           <Link to="/dashboard" className="text-gold-400 text-sm hover:underline flex items-center gap-1 mb-3">
@@ -106,7 +106,7 @@ export default function Profile() {
                   {photo ? (
                     <img src={URL.createObjectURL(photo)} className="w-full h-full object-cover" />
                   ) : user?.profilePhoto ? (
-                    <img src={user.profilePhoto} className="w-full h-full object-cover" />
+                    <img src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`} className="w-full h-full object-cover" />
                   ) : (
                     <FiUser className="text-white text-4xl" />
                   )}

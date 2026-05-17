@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FiSearch, FiTrash2, FiEdit, FiUserCheck, FiUserX } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiSearch, FiTrash2, FiEdit, FiUserCheck, FiUserX, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { SectionLoader } from '../../components/common/Loader';
+import { useForm } from 'react-hook-form';
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -11,6 +12,8 @@ export default function AdminUsers() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [editingUser, setEditingUser] = useState(null);
+  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm();
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -33,12 +36,24 @@ export default function AdminUsers() {
     } catch { toast.error('Failed'); }
   };
 
-  const promoteAdmin = async (user) => {
+  const openEditModal = (user) => {
+    setEditingUser(user);
+    setValue('name', user.name || '');
+    setValue('email', user.email || '');
+    setValue('phone', user.phone || '');
+    setValue('parishMemberId', user.parishMemberId || '');
+    setValue('role', user.role || 'user');
+  };
+
+  const onUpdateUser = async (data) => {
     try {
-      await api.put(`/users/${user._id}`, { role: user.role === 'admin' ? 'user' : 'admin' });
-      setUsers(prev => prev.map(u => u._id === user._id ? { ...u, role: u.role === 'admin' ? 'user' : 'admin' } : u));
-      toast.success('Role updated');
-    } catch { toast.error('Failed'); }
+      await api.put(`/users/${editingUser._id}`, data);
+      setUsers(prev => prev.map(u => u._id === editingUser._id ? { ...u, ...data } : u));
+      toast.success('User details updated');
+      setEditingUser(null);
+    } catch {
+      toast.error('Failed to update user');
+    }
   };
 
   const deleteUser = async (id) => {
@@ -51,7 +66,7 @@ export default function AdminUsers() {
   };
 
   return (
-    <div className="min-h-screen bg-church-cream  pt-20 lg:pl-64">
+    <div className="w-full">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-2xl font-bold text-church-royal-blue ">Manage Users ({total})</h1>
@@ -100,8 +115,8 @@ export default function AdminUsers() {
                         <button onClick={() => toggleActive(u)} className="p-1.5 rounded-lg hover:bg-gray-100  text-gray-500 transition-colors" title={u.isActive ? 'Deactivate' : 'Activate'}>
                           {u.isActive ? <FiUserX className="text-red-500" /> : <FiUserCheck className="text-green-500" />}
                         </button>
-                        <button onClick={() => promoteAdmin(u)} className="p-1.5 rounded-lg hover:bg-gray-100  text-gray-500 transition-colors" title="Toggle admin">
-                          <FiEdit className={u.role === 'admin' ? 'text-church-gold' : 'text-gray-400'} />
+                        <button onClick={() => openEditModal(u)} className="p-1.5 rounded-lg hover:bg-gray-100  text-gray-500 transition-colors" title="Edit User">
+                          <FiEdit className="text-gray-400 hover:text-church-royal-blue" />
                         </button>
                         <button onClick={() => deleteUser(u._id)} className="p-1.5 rounded-lg hover:bg-red-50  text-red-500 transition-colors" title="Delete">
                           <FiTrash2 />
@@ -126,6 +141,50 @@ export default function AdminUsers() {
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {editingUser && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setEditingUser(null)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white rounded-2xl p-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-display text-xl font-bold text-church-royal-blue">Edit User Details</h2>
+                <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-gray-600"><FiX size={20} /></button>
+              </div>
+              
+              <form onSubmit={handleSubmit(onUpdateUser)} className="space-y-4">
+                <div>
+                  <label className="church-label">Full Name *</label>
+                  <input {...register('name', { required: true })} className="church-input" placeholder="Name" />
+                </div>
+                <div>
+                  <label className="church-label">Phone Number *</label>
+                  <input {...register('phone', { required: true })} className="church-input" placeholder="Phone" />
+                </div>
+                <div>
+                  <label className="church-label">Email Address</label>
+                  <input {...register('email')} type="email" className="church-input" placeholder="Email" />
+                </div>
+                <div>
+                  <label className="church-label">Parish Member ID</label>
+                  <input {...register('parishMemberId')} className="church-input" placeholder="e.g. M-12345" />
+                </div>
+                <div>
+                  <label className="church-label">User Role *</label>
+                  <select {...register('role', { required: true })} className="church-select">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div className="pt-4">
+                  <button type="submit" disabled={isSubmitting} className="btn-gold w-full justify-center py-3">
+                    {isSubmitting ? 'Saving...' : 'Update Details'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

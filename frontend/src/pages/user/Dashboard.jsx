@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { FiUser, FiCalendar, FiFileText, FiMessageSquare, FiBell, FiEdit, FiDownload, FiCheckCircle, FiX, FiInfo } from 'react-icons/fi';
 import { FaDonate } from "react-icons/fa";
 import { GiChurch, GiCrucifix, GiPrayer, GiHeartBottle } from 'react-icons/gi';
-import api from '../../services/api';
+import api, { UPLOADS_URL } from '../../services/api';
 import { SectionLoader } from '../../components/common/Loader';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -92,6 +92,28 @@ export default function UserDashboard() {
     }, 500);
   };
 
+  const forceFileDownload = async (e, fileUrl, type) => {
+    e.preventDefault();
+    try {
+      toast.loading("Starting download...", { id: "download" });
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const ext = fileUrl.split('.').pop() || 'pdf';
+      link.download = `${type?.replace('_', '-')}-document.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success("Download complete", { id: "download" });
+    } catch (err) {
+      toast.error("Download failed, opening directly.", { id: "download" });
+      window.open(fileUrl, '_blank');
+    }
+  };
+
   const QUICK_ACTIONS = [
     { icon: <FiCalendar />, label: 'Book a Mass', path: '/dashboard/booking', color: 'bg-blue-500' },
     { icon: <FiFileText />, label: 'Request Document', path: '/dashboard/documents', color: 'bg-green-500' },
@@ -102,13 +124,13 @@ export default function UserDashboard() {
   if (loading) return <div className="min-h-screen pt-20 flex items-center justify-center"><SectionLoader /></div>;
 
   return (
-    <div className="min-h-screen pt-10 bg-church-cream ">
+    <div className="min-h-screen pt-24 bg-church-cream ">
       {/* Header */}
       <div className="bg-gray-600 py-12">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0">
-              {user?.profilePhoto ? <img src={user.profilePhoto} alt="profile" className="w-full h-full object-cover rounded-full" /> : <span className="text-white text-2xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>}
+              {user?.profilePhoto ? <img src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`} alt="profile" className="w-full h-full object-cover rounded-full" /> : <span className="text-white text-2xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>}
             </div>
             <div>
               <p className="text-gold-400 text-sm">Welcome back</p>
@@ -251,9 +273,9 @@ export default function UserDashboard() {
                     <div className="flex justify-between items-center mt-3">
                       <p className="text-[10px] text-gray-400 font-medium">{new Date(d.createdAt).toLocaleDateString()}</p>
                       {d.status === 'approved' && d.uploadedFile && (
-                        <a href={d.uploadedFile} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-church-gold text-[10px] font-bold hover:underline">
+                        <button onClick={(e) => forceFileDownload(e, d.uploadedFile.startsWith('http') ? d.uploadedFile : `${UPLOADS_URL.replace('/uploads', '')}${d.uploadedFile.startsWith('/') ? '' : '/'}${d.uploadedFile}`, d.type)} className="flex items-center gap-1 text-church-gold text-[10px] font-bold hover:underline">
                           <FiDownload /> Get File
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>

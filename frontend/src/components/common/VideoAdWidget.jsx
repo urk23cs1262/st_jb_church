@@ -1,11 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiMaximize2, FiChevronLeft } from 'react-icons/fi';
+import { FiX, FiChevronLeft, FiPlay, FiYoutube } from 'react-icons/fi';
+import api from '../../services/api';
+
+// Update this default to any working public YouTube video ID
+const DEFAULT_VIDEO_ID = 'TiMeJqpETis';
 
 export default function VideoAdWidget() {
   const [isOpen, setIsOpen] = useState(true);
   const [isMaximized, setIsMaximized] = useState(false);
-  const videoId = "i1dEoV-p03k";
+  const [videoId, setVideoId] = useState(DEFAULT_VIDEO_ID);
+  const [videoError, setVideoError] = useState(false);
+  const [openKey, setOpenKey] = useState(0); // increments each time user opens maximized view
+
+  useEffect(() => {
+    api.get('/settings/videoAdId')
+      .then(r => {
+        if (r.data.value) {
+          setVideoId(r.data.value);
+          setVideoError(false);
+        }
+      })
+      .catch(() => { }); // silently fall back to default
+  }, []);
 
   if (!isOpen) {
     return (
@@ -21,20 +38,24 @@ export default function VideoAdWidget() {
 
   if (isMaximized) {
     return (
-      <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div className="relative w-full max-w-4xl aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
-          <button 
+      <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col items-center justify-center p-4 backdrop-blur-sm">
+        {/* Close button ABOVE the video */}
+        <div className="w-full max-w-4xl flex justify-end mb-2">
+          <button
             onClick={() => setIsMaximized(false)}
-            className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/20 hover:bg-white/40 rounded-full flex items-center justify-center text-white transition-colors"
+            className="w-10 h-10 bg-white/20 hover:bg-white/90 hover:text-gray-800 rounded-full flex items-center justify-center text-white transition-colors shadow-lg border border-white/30"
           >
             <FiX className="text-xl" />
           </button>
-          <iframe 
+        </div>
+        <div className="relative w-full max-w-4xl aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
+          <iframe
+            key={`max-${videoId}-${openKey}`}
             className="w-full h-full"
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1`} 
-            title="YouTube video player" 
-            frameBorder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&start=0&rel=0&modestbranding=1&playsinline=1`}
+            title="YouTube video player"
+            frameBorder="0"
+            allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen>
           </iframe>
         </div>
@@ -44,30 +65,54 @@ export default function VideoAdWidget() {
 
   return (
     <AnimatePresence>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 50, scale: 0.9 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, scale: 0.9 }}
-        className="fixed bottom-6 right-6 z-50 w-64 md:w-80 shadow-2xl rounded-xl overflow-hidden cursor-pointer border-2 border-church-gold"
-        onClick={() => setIsMaximized(true)}
+        className="fixed bottom-6 right-6 z-50 w-64 md:w-72 shadow-2xl"
       >
-        <button 
-          onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
-          className="absolute top-2 right-2 z-10 w-6 h-6 bg-black/50 hover:bg-black/80 rounded-full flex items-center justify-center text-white transition-colors"
-        >
-          <FiX className="text-sm" />
-        </button>
-        <div className="absolute inset-0 z-0 bg-black/20 group-hover:bg-transparent transition-colors flex items-center justify-center pointer-events-none">
-          <FiMaximize2 className="text-white text-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
+        {/* Close button sits ABOVE the video card */}
+        <div className="flex justify-end mb-1.5">
+          <button
+            onClick={() => setIsOpen(false)}
+            className="w-7 h-7 bg-gray-800 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors shadow-lg"
+            title="Close Video"
+          >
+            <FiX className="text-sm" />
+          </button>
         </div>
-        <div className="aspect-video bg-black pointer-events-none">
-          <iframe 
-            className="w-full h-full pointer-events-none"
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0`} 
-            title="YouTube video player" 
-            frameBorder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
-          </iframe>
+
+        {/* Video card */}
+        <div
+          className="rounded-xl overflow-hidden cursor-pointer border-2 border-church-gold"
+          onClick={() => {
+            if (!videoError) {
+              setOpenKey(k => k + 1); // force iframe remount → play from start
+              setIsMaximized(true);
+            }
+          }}
+        >
+          {videoError ? (
+            /* Placeholder when video is unavailable */
+            <div className="aspect-video bg-gray-900 flex flex-col items-center justify-center gap-3 p-4 text-center">
+              <FiYoutube className="text-4xl text-red-500" />
+              <p className="text-white text-xs font-medium leading-tight">No video configured</p>
+              <p className="text-gray-400 text-[10px]">Set a YouTube video in Admin → Settings</p>
+            </div>
+          ) : (
+            <div className="relative aspect-video bg-black">
+              {/* Muted autoplay preview */}
+              <iframe
+                key={videoId + '-mini'}
+                className="w-full h-full pointer-events-none"
+                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&modestbranding=1`}
+                title="YouTube video player"
+                frameBorder="0"
+                allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                onError={() => setVideoError(true)}
+              />
+            </div>
+          )}
         </div>
       </motion.div>
     </AnimatePresence>

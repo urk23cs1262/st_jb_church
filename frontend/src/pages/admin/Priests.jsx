@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { FiPlus, FiTrash2, FiEdit, FiX } from 'react-icons/fi';
 import { GiChurch } from 'react-icons/gi';
-import api from '../../services/api';
+import api, { UPLOADS_URL } from '../../services/api';
 import { SectionLoader } from '../../components/common/Loader';
 
 export default function AdminPriests() {
@@ -45,7 +45,7 @@ export default function AdminPriests() {
   };
 
   return (
-    <div className="min-h-screen bg-church-cream  pt-20 lg:pl-64">
+    <div className="w-full">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-2xl font-bold text-church-royal-blue ">Manage Priests</h1>
@@ -58,7 +58,7 @@ export default function AdminPriests() {
               <motion.div key={p._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="church-card">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-14 h-14 rounded-full bg-church-gradient flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {p.photo ? <img src={p.photo} alt={p.name} className="w-full h-full object-cover" /> : <GiChurch className="text-white text-2xl" />}
+                    {p.photo ? <img src={p.photo.startsWith('http') ? p.photo : `${UPLOADS_URL.replace('/uploads', '')}${p.photo.startsWith('/') ? '' : '/'}${p.photo}`} alt={p.name} className="w-full h-full object-cover" /> : <GiChurch className="text-white text-2xl" />}
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-800  text-sm">{p.name}</h3>

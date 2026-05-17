@@ -24,7 +24,7 @@ export default function AdminBookings() {
   };
 
   return (
-    <div className="min-h-screen bg-church-cream  pt-20 lg:pl-64">
+    <div className="w-full">
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="font-display text-2xl font-bold text-church-royal-blue ">Manage Bookings</h1>

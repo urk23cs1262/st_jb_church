@@ -26,6 +26,8 @@ const CatholicCalendar = lazy(() => import('./pages/public/CatholicCalendar'));
 const FAQ = lazy(() => import('./pages/public/FAQ'));
 const ParishCouncil = lazy(() => import('./pages/public/ParishCouncil'));
 
+import AdminLayout from './components/admin/AdminLayout';
+
 // Auth pages
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
@@ -48,8 +50,8 @@ const AdminBookings = lazy(() => import('./pages/admin/Bookings'));
 const AdminDocuments = lazy(() => import('./pages/admin/Documents'));
 const AdminDonations = lazy(() => import('./pages/admin/Donations'));
 const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
-const AdminRegistrations = lazy(() => import('./pages/admin/Registrations'));
 const AdminPrayers = lazy(() => import('./pages/admin/Prayers'));
+const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 
 // Route guards
 const ProtectedRoute = ({ children }) => {
@@ -103,18 +105,20 @@ function AppRoutes() {
           <Route path="/register" element={<Register />} />
 
           {/* Admin dashboard routes */}
-          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-          <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-          <Route path="/admin/priests" element={<AdminRoute><AdminPriests /></AdminRoute>} />
-          <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
-          <Route path="/admin/gallery" element={<AdminRoute><AdminGallery /></AdminRoute>} />
-          <Route path="/admin/announcements" element={<AdminRoute><AdminAnnouncements /></AdminRoute>} />
-          <Route path="/admin/bookings" element={<AdminRoute><AdminBookings /></AdminRoute>} />
-          <Route path="/admin/documents" element={<AdminRoute><AdminDocuments /></AdminRoute>} />
-          <Route path="/admin/donations" element={<AdminRoute><AdminDonations /></AdminRoute>} />
-          <Route path="/admin/tickets" element={<AdminRoute><AdminTickets /></AdminRoute>} />
-          <Route path="/admin/registrations" element={<AdminRoute><AdminRegistrations /></AdminRoute>} />
-          <Route path="/admin/prayers" element={<AdminRoute><AdminPrayers /></AdminRoute>} />
+          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="priests" element={<AdminPriests />} />
+            <Route path="events" element={<AdminEvents />} />
+            <Route path="gallery" element={<AdminGallery />} />
+            <Route path="announcements" element={<AdminAnnouncements />} />
+            <Route path="bookings" element={<AdminBookings />} />
+            <Route path="documents" element={<AdminDocuments />} />
+            <Route path="donations" element={<AdminDonations />} />
+            <Route path="tickets" element={<AdminTickets />} />
+            <Route path="prayers" element={<AdminPrayers />} />
+            <Route path="settings" element={<AdminSettings />} />
+          </Route>
 
           {/* 404 */}
           <Route path="*" element={<Navigate to="/" replace />} />

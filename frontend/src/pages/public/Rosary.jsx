@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { GiCrucifix } from 'react-icons/gi';
 import { FiVolume2, FiBookOpen } from 'react-icons/fi';
 import PageHero from '../../components/common/PageHero';
-import rosaryAudio from '../../assets/rosary.mp3';
+import defaultRosaryAudio from '../../assets/rosary.mp3';
+import api, { UPLOADS_URL } from '../../services/api';
 
 const PRAYERS = {
   EN: {
@@ -73,6 +75,21 @@ const MYSTERIES = [
 ];
 
 export default function Rosary() {
+  const [tamilAudioSrc, setTamilAudioSrc] = useState(defaultRosaryAudio);
+
+  useEffect(() => {
+    api.get('/settings/rosaryAudio')
+      .then(r => {
+        if (r.data.value) {
+          const src = r.data.value.startsWith('http')
+            ? r.data.value
+            : `${UPLOADS_URL.replace('/uploads', '')}${r.data.value}`;
+          setTamilAudioSrc(src);
+        }
+      })
+      .catch(() => {}); // fall back to bundled audio
+  }, []);
+
   return (
     <div className="min-h-screen pt-20 bg-church-cream">
       <PageHero title={<>The Holy Rosary / புனித ஜெபமாலை</>} subtitle={<>53 Beads of Prayer / 53 மணி செபம்</>} />
@@ -102,8 +119,8 @@ export default function Rosary() {
                   <FiVolume2 className="text-church-maroon" /> தமிழ் ஜெபமாலை ஆடியோ
                 </h3>
                 <div className="bg-white/50 p-2 rounded-xl border border-church-maroon/10">
-                  <audio controls className="w-full h-10">
-                    <source src={rosaryAudio} type="audio/mpeg" />
+                  <audio key={tamilAudioSrc} controls className="w-full h-10">
+                    <source src={tamilAudioSrc} type="audio/mpeg" />
                   </audio>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-3 italic uppercase tracking-widest font-tamil">மகிழ்ச்சி நிறை இரகசியங்கள்</p>

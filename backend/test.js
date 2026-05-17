@@ -1,0 +1,1 @@
+const axios = require('axios'); const cheerio = require('cheerio'); axios.get('https://bible.catholicgallery.org/tamil-mass-reading/tr-180526/').then(r => { const c = cheerio.load(r.data); c('h1, h2, h3, h4, h5, h6, strong').each((i, el) => console.log(c(el).text())); });

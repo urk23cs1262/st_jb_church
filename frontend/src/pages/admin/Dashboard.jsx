@@ -41,47 +41,13 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-church-cream ">
-      {/* Sidebar + Main layout */}
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="hidden lg:flex flex-col w-64 min-h-screen bg-church-royal-blue pt-20 fixed left-0 top-0 overflow-y-auto z-40">
-          <div className="px-4 py-6 border-b border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-church-gradient flex items-center justify-center">
-                <GiChurch className="text-gold-300 text-xl" />
-              </div>
-              <div>
-                <p className="text-white font-bold text-sm">Admin Panel</p>
-                <p className="text-gold-400 text-xs">St. John de Britto's</p>
-              </div>
-            </div>
-          </div>
-          <nav className="flex-1 px-3 py-4 space-y-1">
-            <Link to="/admin" className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/10 text-white font-medium text-sm">
-              <GiCrucifix className="text-gold-300" /> Dashboard
-            </Link>
-            {NAV_ITEMS.map((item, i) => (
-              <Link key={i} to={item.path} className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-300 hover:bg-white/10 hover:text-white transition-all text-sm">
-                <span className={`w-6 h-6 rounded-md ${item.color} flex items-center justify-center text-white text-xs`}>{item.icon}</span>
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="px-3 py-4 border-t border-white/10">
-            <Link to="/" className="flex items-center gap-2 text-gray-400 hover:text-white text-sm transition-colors px-3">← Back to Website</Link>
-          </div>
+    <div className="w-full">
+      {/* Top bar */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <h1 className="font-display text-2xl font-bold text-church-royal-blue">Admin Dashboard</h1>
+        <div className="flex items-center gap-3">
         </div>
-
-        {/* Main content */}
-        <div className="flex-1 lg:ml-64 pt-20">
-          {/* Top bar */}
-          <div className="bg-white  border-b border-gray-200  px-6 py-4 flex items-center justify-between">
-            <h1 className="font-display text-2xl font-bold text-church-royal-blue ">Admin Dashboard</h1>
-            <div className="flex items-center gap-3">
-              <Link to="/" className="text-sm text-gray-500 hover:text-church-gold">← Website</Link>
-            </div>
-          </div>
+      </div>
 
           <div className="p-6">
             {loading ? <SectionLoader /> : (
@@ -184,13 +150,11 @@ export default function AdminDashboard() {
                       ))}
                       {(!stats?.upcomingEvents || stats.upcomingEvents.length === 0) && <p className="text-gray-400 text-sm">No upcoming events</p>}
                     </div>
+                    </div>
                   </div>
-                </div>
               </>
             )}
           </div>
-        </div>
-      </div>
     </div>
   );
 }

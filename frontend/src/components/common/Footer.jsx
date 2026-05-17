@@ -127,7 +127,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-white/10 bg-black/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-gray-400 text-xs">{t('footer.copyright')}</p>
+          <p className="text-gray-400 text-xs">{t('footer.copyright', { year: new Date().getFullYear() })}</p>
           <p className="text-gray-400 text-xs">{t('footer.madeWith')}</p>
         </div>
       </div>

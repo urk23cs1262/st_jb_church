@@ -3,14 +3,14 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { UPLOADS_URL } from '../../services/api';
 
 import {
   FiMenu, FiX, FiUser, FiLogOut,
-  FiSettings, FiBell, FiGlobe, FiVolume2, FiVolumeX, FiMusic, FiHeadphones
+  FiSettings, FiBell, FiGlobe, FiVolume2, FiVolumeX, FiMusic, FiHeadphones, FiChevronDown
 } from 'react-icons/fi';
 import { GiChurch, GiCrucifix } from 'react-icons/gi';
 import churchLogo from '../../assets/image copy.png';
-import rosaryAudio from '../../assets/rosary.mp3';
 import DailySaintTicker from './DailySaintTicker';
 import RosaryModal from './RosaryModal';
 
@@ -18,11 +18,13 @@ const navLinks = [
   { key: 'rosary', path: '/rosary' },
   { key: 'home', path: '/' },
   { key: 'about', path: '/about' },
-  { key: 'priests', path: '/priests' },
-  { key: 'gallery', path: '/gallery' },
-  { key: 'live', path: '/live' },
-  { key: 'contact', path: '/contact' },
 ];
+const MORE_LINKS = [
+  { key: 'priests', path: '/priests', label: 'Priests' },
+  { key: 'gallery', path: '/gallery', label: 'Gallery' },
+  { key: 'live', path: '/live', label: 'Live Stream' },
+];
+
 
 export default function Navbar() {
   const { t, i18n } = useTranslation();
@@ -34,6 +36,7 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(window.scrollY > 20);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showRosaryModal, setShowRosaryModal] = useState(false);
+  const [moreInfoOpen, setMoreInfoOpen] = useState(false);
   const [isTamil, setIsTamil] = useState(
     document.cookie.includes('googtrans=/en/ta')
   );
@@ -120,7 +123,7 @@ export default function Navbar() {
                 <div key={link.key} className="relative group">
                   {link.key === 'rosary' ? (
                     <button
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 text-gray-200 hover:text-gold-300 hover:bg-white/10`}
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 text-gray-200 hover:text-church-gold hover:bg-white/10`}
                       onClick={toggleRosaryAudio}
                     >
                       <FiHeadphones />
@@ -132,7 +135,7 @@ export default function Navbar() {
                       className={({ isActive }) =>
                         `px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${isActive
                           ? 'bg-church-gold text-white shadow-gold'
-                          : 'text-gray-200 hover:text-gold-300 hover:bg-white/10'
+                          : 'text-gray-200 hover:text-church-gold hover:bg-white/10'
                         }`
                       }
                     >
@@ -141,6 +144,60 @@ export default function Navbar() {
                   )}
                 </div>
               ))}
+
+              {/* More Info Dropdown */}
+              <div className="relative" onMouseEnter={() => setMoreInfoOpen(true)} onMouseLeave={() => setMoreInfoOpen(false)}>
+                <button
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
+                    moreInfoOpen ? 'text-church-gold bg-white/10' : 'text-gray-200 hover:text-church-gold hover:bg-white/10'
+                  }`}
+                >
+                  More Info
+                  <FiChevronDown className={`transition-transform duration-200 ${moreInfoOpen ? 'rotate-180 text-church-gold' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                  {moreInfoOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-1 w-44 bg-white/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50"
+                    >
+                      {MORE_LINKS.map((item, i) => (
+                        <NavLink
+                          key={item.key}
+                          to={item.path}
+                          onClick={() => setMoreInfoOpen(false)}
+                          className={({ isActive }) =>
+                            `flex items-center gap-2 px-4 py-3 text-sm font-medium transition-all duration-150 border-b border-white/5 last:border-0 ${
+                              isActive
+                                ? 'bg-church-gold text-black'
+                                : 'text-black hover:text-church-gold hover:bg-white/10'
+                            }`
+                          }
+                        >
+                          {item.label}
+                        </NavLink>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Contact — after More Info */}
+              <NavLink
+                to="/contact"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${isActive
+                    ? 'bg-church-gold text-white shadow-gold'
+                    : 'text-gray-200 hover:text-church-gold hover:bg-white/10'
+                  }`
+                }
+              >
+                {t('nav.contact')}
+              </NavLink>
             </div>
 
             {/* Actions */}
@@ -174,8 +231,16 @@ export default function Navbar() {
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                     className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl transition-all duration-200"
                   >
-                    <div className="w-7 h-7 rounded-full bg-church-gold flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">{user?.name?.[0]?.toUpperCase()}</span>
+                    <div className="w-7 h-7 rounded-full bg-church-gold flex items-center justify-center overflow-hidden border border-gold-400/50">
+                      {user?.profilePhoto ? (
+                        <img 
+                          src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`} 
+                          alt="profile" 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <span className="text-white text-xs font-bold">{user?.name?.[0]?.toUpperCase()}</span>
+                      )}
                     </div>
                     <span className="hidden sm:block text-sm font-medium max-w-[80px] truncate">{user?.name}</span>
                   </button>
@@ -262,6 +327,24 @@ export default function Navbar() {
                     )}
                   </div>
                 ))}
+
+                {/* More Info links in mobile */}
+                <div className="pt-1">
+                  <p className="px-4 text-[10px] text-church-gold/70 font-bold uppercase tracking-widest mb-1">More Info</p>
+                  {MORE_LINKS.map(item => (
+                    <NavLink
+                      key={item.key}
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      className={({ isActive }) =>
+                        `block px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-church-gold text-white' : 'text-gray-200 hover:text-church-gold hover:bg-white/10'}`
+                      }
+                    >
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </div>
+
                 <div className="h-px bg-white/10 my-2" />
 
                 {/* Google Translate Mobile Hidden */}
@@ -279,7 +362,7 @@ export default function Navbar() {
           )}
         </AnimatePresence>
 
-        {!mobileOpen && !location.pathname.includes('/dashboard') && !location.pathname.startsWith('/admin') && <DailySaintTicker />}
+        {!mobileOpen && !location.pathname.startsWith('/admin') && <DailySaintTicker />}
       </motion.nav>
 
       {/* Rosary Audio Modal */}
@@ -287,7 +370,6 @@ export default function Navbar() {
         isOpen={showRosaryModal} 
         onClose={() => setShowRosaryModal(false)} 
         t={t} 
-        rosaryAudio={rosaryAudio} 
       />
     </>
   );

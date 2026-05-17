@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { FiFileText, FiArrowLeft, FiDownload } from 'react-icons/fi';
-import api from '../../services/api';
+import api, { UPLOADS_URL } from '../../services/api';
 import { SectionLoader } from '../../components/common/Loader';
 
 const DOC_TYPES = [
@@ -36,8 +36,30 @@ export default function Documents() {
 
   const statusColor = (s) => ({ pending: 'badge-gold', processing: 'badge-blue', approved: 'badge-green', rejected: 'badge-red' }[s] || 'badge-gray');
 
+  const forceFileDownload = async (e, fileUrl, type) => {
+    e.preventDefault();
+    try {
+      toast.loading("Starting download...", { id: "download" });
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const ext = fileUrl.split('.').pop() || 'pdf';
+      link.download = `${type?.replace('_', '-')}-document.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success("Download complete", { id: "download" });
+    } catch (err) {
+      toast.error("Download failed, opening directly.", { id: "download" });
+      window.open(fileUrl, '_blank');
+    }
+  };
+
   return (
-    <div className="min-h-screen pt-10 bg-church-cream ">
+    <div className="min-h-screen pt-24 bg-church-cream ">
       <div className="bg-gray-600 py-10">
         <div className="max-w-4xl mx-auto px-4">
           <Link to="/dashboard" className="text-gold-400 text-sm hover:underline flex items-center gap-1 mb-3"><FiArrowLeft /> Back</Link>
@@ -89,7 +111,7 @@ export default function Documents() {
                   <div className="flex flex-col items-end gap-2">
                     <span className={`badge ${statusColor(d.status)} capitalize`}>{d.status}</span>
                     {d.status === 'approved' && d.uploadedFile && (
-                      <a href={d.uploadedFile} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-church-gold text-sm hover:underline"><FiDownload /> Download</a>
+                      <button onClick={(e) => forceFileDownload(e, d.uploadedFile.startsWith('http') ? d.uploadedFile : `${UPLOADS_URL.replace('/uploads', '')}${d.uploadedFile.startsWith('/') ? '' : '/'}${d.uploadedFile}`, d.type)} className="flex items-center gap-1 text-church-gold text-sm hover:underline"><FiDownload /> Download</button>
                     )}
                   </div>
                 </div>
