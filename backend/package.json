@@ -32,6 +32,7 @@
     "node-fetch": "^2.7.0",
     "nodemailer": "^6.9.13",
     "pdfkit": "^0.18.0",
+    "resend": "^6.12.3",
     "twilio": "^6.0.1"
   },
   "devDependencies": {
