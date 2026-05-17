@@ -33,6 +33,8 @@ export default function Donate() {
   const [isMobile, setIsMobile] = useState(false);
   const [finalDonation, setFinalDonation] = useState(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [txnId, setTxnId] = useState('');
+  const [upiLaunched, setUpiLaunched] = useState(false);
   const receiptRef = useRef(null);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
 
@@ -41,13 +43,51 @@ export default function Donate() {
     checkMobile();
   }, []);
 
+  // ✅ FIX: Listen for UPI app return and auto-extract transaction ID from URL
+  useEffect(() => {
+    if (!upiLaunched) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // User returned from UPI app — check URL params for transaction details
+        const urlParams = new URLSearchParams(window.location.search);
+        const txn = urlParams.get('txnId') || urlParams.get('txnid') || urlParams.get('transactionId');
+        const status = urlParams.get('Status') || urlParams.get('status');
+
+        if (txn) {
+          setTxnId(txn);
+          toast.success('Transaction ID detected! Please verify and submit.');
+        } else if (status === 'SUCCESS' || status === 'success') {
+          toast.success('Payment successful! Please enter your Transaction ID from the UPI app.');
+        } else {
+          toast('Please enter your Transaction ID from your UPI app below.', { icon: 'ℹ️' });
+        }
+        setUpiLaunched(false);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [upiLaunched]);
+
   const onDetailsSubmit = (data) => {
     setFormData(data);
     setStep(3);
   };
 
-  const finalizeDonation = async (transactionId = '') => {
-    if (!transactionId) {
+  // ✅ FIX: Open UPI app and set launched state
+  const openUpiApp = () => {
+    setUpiLaunched(true);
+    window.location.href = upiUrl;
+    // Fallback toast after 3 seconds if app doesn't open
+    setTimeout(() => {
+      toast('If the app didn\'t open, copy the UPI ID and pay manually.', { icon: '📱', duration: 5000 });
+    }, 3000);
+  };
+
+  const finalizeDonation = async (transactionIdInput) => {
+    const finalTxnId = transactionIdInput || txnId;
+    if (!finalTxnId || finalTxnId.trim() === '') {
       toast.error('Please enter the UPI Transaction ID to complete');
       return;
     }
@@ -56,7 +96,7 @@ export default function Donate() {
       const res = await api.post('/donations', { 
         ...formData, 
         type: selectedType, 
-        transactionId: transactionId,
+        transactionId: finalTxnId.trim(),
         paymentMethod: 'upi'
       });
       setFinalDonation(res.data.donation);
@@ -69,49 +109,32 @@ export default function Donate() {
 
   const downloadReceipt = async () => {
     if (!finalDonation || !receiptRef.current) return;
-
     setIsGeneratingPDF(true);
-
     try {
       const element = receiptRef.current;
-
       const canvas = await html2canvas(element, {
         scale: 3,
         useCORS: true,
         backgroundColor: "#ffffff",
         scrollY: -window.scrollY,
       });
-
       const imgData = canvas.toDataURL("image/png");
-
       const pdf = new jsPDF("p", "mm", "a4");
-
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-
       const imgWidth = pageWidth;
-
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
       let heightLeft = imgHeight;
       let position = 0;
-
-      // First page
       pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
-
-      // Extra pages if content exceeds
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
-
-      pdf.save(
-        `Donation_Receipt_${finalDonation._id.slice(-6).toUpperCase()}.pdf`
-      );
-
+      pdf.save(`Donation_Receipt_${finalDonation._id.slice(-6).toUpperCase()}.pdf`);
       toast.success("Receipt downloaded!");
     } catch (e) {
       console.error(e);
@@ -121,9 +144,11 @@ export default function Donate() {
     }
   };
 
-    const trId = `SJBC${Date.now()}`;
-    const upiUrl = formData ? `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${formData.amount}&cu=INR&tr=${trId}&tn=${encodeURIComponent(selectedType + ' Offering')}` : '';
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;
+  const trId = `SJBC${Date.now()}`;
+  const upiUrl = formData
+    ? `upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${formData.amount}&cu=INR&tr=${trId}&tn=${encodeURIComponent(selectedType + ' Offering')}`
+    : '';
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&data=${encodeURIComponent(upiUrl)}`;
 
   const copyUpi = () => {
     navigator.clipboard.writeText(UPI_ID);
@@ -223,7 +248,7 @@ export default function Donate() {
               </motion.div>
             )}
 
-            {/* STEP 3: PAYMENT */}
+            {/* STEP 3: PAYMENT — FIXED */}
             {step === 3 && (
               <motion.div key="step3" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-md mx-auto text-center">
                 <div className="glass-card p-8 border border-gold-200">
@@ -234,9 +259,14 @@ export default function Donate() {
                   <div className="space-y-6">
                     <h2 className="text-xl font-bold text-church-royal-blue mb-2">Payment Details</h2>
                     
-                    {/* QR Code Section */}
+                    {/* QR Code — ✅ Higher error correction (H) for better scanning */}
                     <div className="bg-white p-6 rounded-3xl border-4 border-gold-300 shadow-gold mx-auto inline-block">
-                       <img src={qrUrl} alt="UPI QR Code" className="w-56 h-56" />
+                      <img 
+                        src={qrUrl} 
+                        alt="UPI QR Code" 
+                        className="w-56 h-56"
+                        onError={(e) => { e.target.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&ecc=H&data=${encodeURIComponent(`upi://pay?pa=${UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&cu=INR`)}`; }}
+                      />
                     </div>
                     
                     <div className="mt-4">
@@ -246,40 +276,93 @@ export default function Donate() {
                       </button>
                     </div>
 
+                    {/* ✅ FIX: Open UPI Apps button with proper handler */}
                     {isMobile && (
-                      <div className="pt-4">
-                        <a href={upiUrl} className="flex items-center justify-center gap-3 bg-[#1e3a8a] text-white w-full py-4 rounded-2xl font-bold shadow-lg hover:scale-[1.02] transition-all">
-                           Open UPI Apps
-                        </a>
-                        
-                        {/* Troubleshooting Box */}
-                        <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-2xl text-left">
+                      <div className="pt-4 space-y-3">
+                        <button 
+                          onClick={openUpiApp}
+                          className="flex items-center justify-center gap-3 bg-[#1e3a8a] text-white w-full py-4 rounded-2xl font-bold shadow-lg hover:scale-[1.02] transition-all active:scale-95"
+                        >
+                          📱 Open UPI Apps (PhonePe / GPay)
+                        </button>
+
+                        {/* Individual UPI app deep links */}
+                        <div className="grid grid-cols-3 gap-2">
+                          <a 
+                            href={`phonepe://pay?pa=${UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${formData?.amount}&cu=INR&tn=${encodeURIComponent(selectedType)}`}
+                            onClick={() => setUpiLaunched(true)}
+                            className="flex flex-col items-center gap-1 p-3 bg-purple-50 rounded-xl border border-purple-100 text-purple-700 text-xs font-bold hover:bg-purple-100 transition-colors"
+                          >
+                            <span className="text-2xl">💜</span> PhonePe
+                          </a>
+                          <a 
+                            href={`tez://upi/pay?pa=${UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${formData?.amount}&cu=INR&tn=${encodeURIComponent(selectedType)}`}
+                            onClick={() => setUpiLaunched(true)}
+                            className="flex flex-col items-center gap-1 p-3 bg-blue-50 rounded-xl border border-blue-100 text-blue-700 text-xs font-bold hover:bg-blue-100 transition-colors"
+                          >
+                            <span className="text-2xl">🔵</span> GPay
+                          </a>
+                          <a 
+                            href={`paytmmp://pay?pa=${UPI_ID}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${formData?.amount}&cu=INR&tn=${encodeURIComponent(selectedType)}`}
+                            onClick={() => setUpiLaunched(true)}
+                            className="flex flex-col items-center gap-1 p-3 bg-sky-50 rounded-xl border border-sky-100 text-sky-700 text-xs font-bold hover:bg-sky-100 transition-colors"
+                          >
+                            <span className="text-2xl">🔷</span> Paytm
+                          </a>
+                        </div>
+
+                        {/* Troubleshooting */}
+                        <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-2xl text-left">
                           <p className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
                             <FiInfo /> Payment failing?
                           </p>
                           <ul className="text-[10px] text-red-500 space-y-1 list-disc pl-3">
                             <li>If apps show "Risk Alert", try <b>Scanning the QR</b> or <b>Copying the UPI ID</b> manually.</li>
                             <li>Banks often block the first payment to a new contact for 24 hours.</li>
-                            <li>Try a smaller amount (e.g. ₹1) first to "verify" the connection.</li>
+                            <li>Try a smaller amount (e.g. ₹1) first to verify the connection.</li>
                           </ul>
                         </div>
                       </div>
                     )}
 
+                    {/* ✅ FIX: Transaction ID auto-filled from state, editable */}
                     <div className="mt-10 pt-6 border-t border-gray-100 text-left">
                       <label className="church-label flex items-center gap-2">
-                        Enter UPI Transaction ID *
+                        UPI Transaction ID *
                         <div className="group relative">
                           <FiInfo className="text-gray-400 cursor-help" />
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                            Please enter the 12-digit transaction ID from your payment app.
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 p-2 bg-gray-800 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                            Enter the 12-digit transaction ID shown in your UPI app after payment (e.g. PhonePe → History → Transaction Details)
                           </div>
                         </div>
                       </label>
+
+                      {/* ✅ Auto-filled when returning from UPI app */}
+                      {txnId && (
+                        <div className="mb-2 p-2 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-xs text-green-700">
+                          <FiCheckCircle className="text-green-500" />
+                          Transaction ID detected automatically!
+                        </div>
+                      )}
+
                       <div className="flex gap-2">
-                         <input id="tid" className="church-input" placeholder="e.g. 4123..." />
-                         <button onClick={() => finalizeDonation(document.getElementById('tid').value)} className="bg-church-gold text-white px-4 rounded-xl font-bold hover:bg-gold-600 transition-colors">Submit</button>
+                        <input 
+                          value={txnId}
+                          onChange={(e) => setTxnId(e.target.value)}
+                          className="church-input flex-1" 
+                          placeholder="e.g. 412387654321"
+                        />
+                        <button 
+                          onClick={() => finalizeDonation(txnId)}
+                          disabled={!txnId.trim()}
+                          className="bg-church-gold text-white px-4 rounded-xl font-bold hover:bg-gold-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          Submit
+                        </button>
                       </div>
+                      <p className="text-[10px] text-gray-400 mt-2">
+                        Find your Transaction ID: PhonePe → History → tap transaction → Transaction ID | GPay → tap transaction → UPI transaction ID
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -313,7 +396,7 @@ export default function Donate() {
                         {isGeneratingPDF ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <FiDownload />}
                         Download the Receipt
                       </button>
-                      <button onClick={() => { setStep(1); setFormData(null); setFinalDonation(null); }} className="px-8 py-4 rounded-2xl border-2 border-gray-100 text-gray-600 font-bold hover:bg-gray-50 transition-all">
+                      <button onClick={() => { setStep(1); setFormData(null); setFinalDonation(null); setTxnId(''); }} className="px-8 py-4 rounded-2xl border-2 border-gray-100 text-gray-600 font-bold hover:bg-gray-50 transition-all">
                         Donate Again
                       </button>
                     </div>
@@ -321,14 +404,10 @@ export default function Donate() {
                     {/* HIDDEN RECEIPT TEMPLATE */}
                     <div className="fixed left-[-9999px] top-0">
                       <div ref={receiptRef} style={{ width: '800px', margin: 'auto', background: '#ffffff', padding: '35px', fontFamily: 'Arial, sans-serif', color: '#222' }}>
-                        
-                        {/* Top Date */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '20px' }}>
                           <div>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}, {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</div>
                           <div>SJBC-{finalDonation?._id?.toString().slice(-6).toUpperCase() || 'XXXXXX'}</div>
                         </div>
-
-                        {/* Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e5e5e5', paddingBottom: '15px' }}>
                           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
                             <img src={churchLogo} style={{ width: '70px', height: '70px', objectFit: 'contain' }} alt="Logo" />
@@ -340,48 +419,20 @@ export default function Donate() {
                           </div>
                           <div style={{ fontSize: '32px', fontWeight: 'bold' }}>Receipt</div>
                         </div>
-
-                        {/* Details */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px', fontSize: '16px' }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', marginBottom: '10px' }}>
-                              <div style={{ width: '150px', fontWeight: 'bold' }}>Receipt No :</div>
-                              <div>SJBC-{new Date().getFullYear()}-{finalDonation?._id?.toString().slice(-6).toUpperCase() || 'XXXXXX'}</div>
-                            </div>
-                            <div style={{ display: 'flex', marginBottom: '10px' }}>
-                              <div style={{ width: '150px', fontWeight: 'bold' }}>Name :</div>
-                              <div>{finalDonation?.donorName || user?.name || 'N/A'}</div>
-                            </div>
-                            <div style={{ display: 'flex', marginBottom: '10px' }}>
-                              <div style={{ width: '150px', fontWeight: 'bold' }}>Donation Type :</div>
-                              <div>{DONATION_TYPES.find(t => t.id === selectedType)?.label || 'Donation'}</div>
-                            </div>
-                            <div style={{ display: 'flex', marginBottom: '10px' }}>
-                              <div style={{ width: '150px', fontWeight: 'bold' }}>Purpose :</div>
-                              <div>{DONATION_TYPES.find(t => t.id === selectedType)?.label || 'Donation'} Offering</div>
-                            </div>
+                            <div style={{ display: 'flex', marginBottom: '10px' }}><div style={{ width: '150px', fontWeight: 'bold' }}>Receipt No :</div><div>SJBC-{new Date().getFullYear()}-{finalDonation?._id?.toString().slice(-6).toUpperCase()}</div></div>
+                            <div style={{ display: 'flex', marginBottom: '10px' }}><div style={{ width: '150px', fontWeight: 'bold' }}>Name :</div><div>{finalDonation?.donorName || user?.name || 'N/A'}</div></div>
+                            <div style={{ display: 'flex', marginBottom: '10px' }}><div style={{ width: '150px', fontWeight: 'bold' }}>Donation Type :</div><div>{DONATION_TYPES.find(t => t.id === selectedType)?.label || 'Donation'}</div></div>
+                            <div style={{ display: 'flex', marginBottom: '10px' }}><div style={{ width: '150px', fontWeight: 'bold' }}>Purpose :</div><div>{DONATION_TYPES.find(t => t.id === selectedType)?.label || 'Donation'} Offering</div></div>
                           </div>
                           <div style={{ flex: 1, paddingLeft: '20px' }}>
-                            <div style={{ display: 'flex', marginBottom: '10px' }}>
-                              <div style={{ width: '150px', fontWeight: 'bold' }}>Receipt Date :</div>
-                              <div>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-                            </div>
-                            <div style={{ display: 'flex', marginBottom: '10px' }}>
-                              <div style={{ width: '150px', fontWeight: 'bold' }}>Total Paid :</div>
-                              <div>INR. {(finalDonation?.amount || 0).toFixed(2)}</div>
-                            </div>
-                            <div style={{ display: 'flex', marginBottom: '10px' }}>
-                              <div style={{ width: '150px', fontWeight: 'bold' }}>Payment Method :</div>
-                              <div>UPI</div>
-                            </div>
-                            <div style={{ display: 'flex', marginBottom: '10px' }}>
-                              <div style={{ width: '150px', fontWeight: 'bold' }}>UPI Ref No :</div>
-                              <div>{finalDonation?.transactionId || 'N/A'}</div>
-                            </div>
+                            <div style={{ display: 'flex', marginBottom: '10px' }}><div style={{ width: '150px', fontWeight: 'bold' }}>Receipt Date :</div><div>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</div></div>
+                            <div style={{ display: 'flex', marginBottom: '10px' }}><div style={{ width: '150px', fontWeight: 'bold' }}>Total Paid :</div><div>INR. {(finalDonation?.amount || 0).toFixed(2)}</div></div>
+                            <div style={{ display: 'flex', marginBottom: '10px' }}><div style={{ width: '150px', fontWeight: 'bold' }}>Payment Method :</div><div>UPI</div></div>
+                            <div style={{ display: 'flex', marginBottom: '10px' }}><div style={{ width: '150px', fontWeight: 'bold' }}>UPI Ref No :</div><div>{finalDonation?.transactionId || 'N/A'}</div></div>
                           </div>
                         </div>
-
-                        {/* Table */}
                         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '30px', fontSize: '15px' }}>
                           <thead>
                             <tr>
@@ -396,30 +447,16 @@ export default function Donate() {
                             </tr>
                           </tbody>
                         </table>
-
-                        {/* Message */}
                         <div style={{ marginTop: '30px', border: '1px solid #ddd', padding: '18px', background: '#fafafa', lineHeight: '1.8' }}>
                           <strong style={{ display: 'block', marginBottom: '10px' }}>Message / Intention :</strong>
-                          “{finalDonation?.note || 'Prayers for family blessings'}”
+                          "{finalDonation?.note || 'Prayers for family blessings'}"
                         </div>
-
-                        {/* Thank You */}
                         <div style={{ marginTop: '40px', textAlign: 'center', lineHeight: '1.9', fontSize: '15px' }}>
-                          Thank you for your generous contribution<br />
-                          towards the ministry and mission of<br />
-                          <strong>St. John de Britto's Church.</strong><br /><br />
-                          May God bless you abundantly.
+                          Thank you for your generous contribution<br />towards the ministry and mission of<br /><strong>St. John de Britto's Church.</strong><br /><br />May God bless you abundantly.
                         </div>
-
-                        {/* Footer */}
                         <div style={{ marginTop: '45px', textAlign: 'center', fontSize: '14px', lineHeight: '1.8', color: '#555' }}>
-                          Contact Details :<br />
-                          Parish Office Phone : +91 96291 95484 <br />
-                          Parish Office Email : [EMAIL_ADDRESS] <br />
-                          Parish Office Website : www.stjohnchurch.com
+                          Contact Details :<br />Parish Office Phone : +91 96291 95484 <br />Parish Office Email : arndas777@gmail.com <br />Parish Office Website : www.stjohnchurch.com
                         </div>
-
-                        {/* Signature */}
                         <div style={{ marginTop: '40px', textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>
                           Computer Generated Receipt. <span style={{ color: 'red' }}>SIGNATURE NOT REQUIRED</span>
                         </div>
