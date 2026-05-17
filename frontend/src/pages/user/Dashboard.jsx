@@ -208,7 +208,7 @@ export default function UserDashboard() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.05 }}
-                      className="church-card group cursor-pointer hover:border-church-gold hover:shadow-lg transition-all flex items-center gap-4 border-l-4 border-church-gold/30 hover:border-church-gold"
+                      className="church-card group cursor-pointer hover:border-church-gold hover:shadow-lg transition-all flex items-center gap-4 border-l-4 border-church-gold/30"
                     >
                       <div className="w-12 h-12 rounded-xl bg-gold-50 text-church-gold flex items-center justify-center text-2xl group-hover:bg-church-gold group-hover:text-white transition-colors">
                         <FaDonate />
