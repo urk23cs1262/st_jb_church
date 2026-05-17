@@ -15,7 +15,7 @@ connectDB();
 // Security
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
-// ✅ FIX: Allow both localhost AND Vercel in production
+// Allow localhost, exact CLIENT_URL, AND all *.vercel.app preview URLs
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
@@ -26,6 +26,8 @@ app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    // Allow ALL Vercel preview deployments (*.vercel.app)
+    if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return callback(null, true);
     callback(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,
