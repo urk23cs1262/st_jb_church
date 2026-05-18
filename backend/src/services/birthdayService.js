@@ -32,7 +32,7 @@ const sendBirthdayWishes = async () => {
         title,
         message,
         type: 'general',
-        channels: ['email', 'sms']
+        channels: ['email']
       });
 
       console.log(`✅ Birthday wish sent to ${user.name} (${user.phone})`);

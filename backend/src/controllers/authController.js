@@ -79,7 +79,7 @@ const verifyOtp = async (req, res) => {
           title: "Birthday Blessings",
           message: `Dear ${user.name}, St. John de Britto's Church wishes you a very Happy Birthday! May God bless you with abundant joy, health, and peace on your special day. ✝️✨`,
           type: 'general',
-          channels: ['email', 'sms']
+          channels: ['email']
         });
       }
     }

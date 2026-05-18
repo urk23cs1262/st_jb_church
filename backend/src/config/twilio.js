@@ -1,36 +1,11 @@
-const twilio = require('twilio');
-
-console.log('SID:', process.env.TWILIO_ACCOUNT_SID);
-console.log('TOKEN:', process.env.TWILIO_AUTH_TOKEN ? process.env.TWILIO_AUTH_TOKEN.slice(0, 6) + '…' : 'undefined');
-console.log('PHONE:', process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_PHONE);
-
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
-
 const sendSMS = async (to, message) => {
-  const from = process.env.TWILIO_PHONE_NUMBER || process.env.TWILIO_PHONE;
-  try {
-    const response = await client.messages.create({ body: message, from, to });
-    console.log('SMS SENT:', response.sid);
-    return { success: true, sid: response.sid };
-  } catch (error) {
-    console.error('FULL ERROR:', error);
-    return { success: false, error: error.message, code: error.code };
-  }
+  console.log(`📱 [Twilio Disabled] SMS to ${to} skipped: ${message.slice(0, 50)}...`);
+  return { success: true, sid: 'mock_sms_disabled_sid' };
 };
 
 const sendWhatsApp = async (to, body, mediaUrl) => {
-  const from = process.env.TWILIO_WHATSAPP_NUMBER || process.env.TWILIO_WHATSAPP_FROM;
-  try {
-    const payload = { body, from: `whatsapp:${from}`, to: `whatsapp:${to}` };
-    if (mediaUrl) payload.mediaUrl = [mediaUrl];
-    const msg = await client.messages.create(payload);
-    return { success: true, sid: msg.sid };
-  } catch (err) {
-    return { success: false, error: err.message, code: err.code };
-  }
+  console.log(`📱 [Twilio Disabled] WhatsApp to ${to} skipped: ${body.slice(0, 50)}...`);
+  return { success: true, sid: 'mock_whatsapp_disabled_sid' };
 };
 
 module.exports = { sendSMS, sendWhatsApp };
