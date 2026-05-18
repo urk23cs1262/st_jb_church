@@ -76,7 +76,7 @@ const verifyOtp = async (req, res) => {
         await createNotification({
           userId: user._id,
           isBroadcast: false,
-          title: "Happy Birthday! 🎉",
+          title: "Birthday Blessings",
           message: `Dear ${user.name}, St. John de Britto's Church wishes you a very Happy Birthday! May God bless you with abundant joy, health, and peace on your special day. ✝️✨`,
           type: 'general',
           channels: ['email', 'sms']
@@ -106,7 +106,21 @@ const login = async (req, res) => {
     const { login: loginId, password } = req.body;
     if (!loginId || !password) return res.status(400).json({ success: false, message: 'Login and password required' });
 
-    const user = await User.findOne({ $or: [{ email: loginId }, { phone: loginId }] });
+    let user = await User.findOne({
+      $or: [
+        { email: { $regex: new RegExp('^' + loginId.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + '$', 'i') } },
+        { phone: loginId }
+      ]
+    });
+
+    if (!user && !loginId.includes('@')) {
+      const cleanDigits = loginId.replace(/\D/g, '');
+      if (cleanDigits.length >= 10) {
+        const last10 = cleanDigits.slice(-10);
+        user = await User.findOne({ phone: new RegExp(last10 + '$') });
+      }
+    }
+
     if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
     const match = await bcrypt.compare(password, user.passwordHash);
@@ -151,15 +165,27 @@ const resendOtp = async (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     const { login: loginId } = req.body;
-    const user = await User.findOne({ $or: [{ email: loginId }, { phone: loginId }] });
-    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    let sendPhone = null;
-    let sendEmail = null;
-    if (loginId.includes('@')) {
-      sendEmail = user.email;
-    } else {
-      sendPhone = user.phone;
+    
+    let user = await User.findOne({
+      $or: [
+        { email: { $regex: new RegExp('^' + loginId.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + '$', 'i') } },
+        { phone: loginId }
+      ]
+    });
+
+    if (!user && !loginId.includes('@')) {
+      const cleanDigits = loginId.replace(/\D/g, '');
+      if (cleanDigits.length >= 10) {
+        const last10 = cleanDigits.slice(-10);
+        user = await User.findOne({ phone: new RegExp(last10 + '$') });
+      }
     }
+
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Always send email OTP; also try SMS if they logged in by phone
+    const sendEmail = user.email || null;
+    const sendPhone = loginId.includes('@') ? null : user.phone;
     const otp = await sendOTP(user._id, sendPhone, sendEmail);
     res.json({ success: true, message: 'OTP sent to your requested medium', userId: user._id, devOtp: process.env.NODE_ENV === 'development' ? otp : undefined });
   } catch (err) {

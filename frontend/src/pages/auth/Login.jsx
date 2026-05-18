@@ -14,10 +14,12 @@ export default function Login() {
   const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm();
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue } = useForm();
   const [showPass, setShowPass] = useState(false);
-  const [stage, setStage] = useState('login'); // login | otp | reset
+  const [stage, setStage] = useState('login'); // login | otp | forgot | resetOtp
   const [userId, setUserId] = useState(null);
+  const [devOtp, setDevOtp] = useState(null);
+  const [isOtpLoading, setIsOtpLoading] = useState(false);
 
   const onLogin = async (data) => {
     try {
@@ -48,10 +50,13 @@ export default function Login() {
       const res = await api.post('/auth/forgot-password', { login: data.login });
       setUserId(res.data.userId);
       setStage('resetOtp');
-      toast.success('OTP sent!');
-      // if (res.data.devOtp) {
-      //   toast('Dev Mode: Your OTP is ' + res.data.devOtp, { duration: 10000, icon: '🛠️' });
-      // }
+      toast.success('OTP sent to your email!');
+      // Dev mode: store OTP for auto-fill UI
+      if (res.data.devOtp) {
+        setDevOtp(res.data.devOtp);
+        setIsOtpLoading(true);
+        setTimeout(() => setIsOtpLoading(false), 5000);
+      }
     } catch (e) { toast.error(e.response?.data?.message || 'User not found'); }
   };
 
@@ -134,6 +139,38 @@ export default function Login() {
           {stage === 'otp' && (
             <form onSubmit={handleSubmit(onVerifyOtp)} className="space-y-4">
               <p className="text-center text-gray-600  text-sm mb-4">{t('auth.otpSent')}</p>
+              {devOtp && (
+                <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 flex flex-col items-center justify-center gap-2 mb-4 min-h-[76px]">
+                  {isOtpLoading ? (
+                    <div className="flex flex-col items-center gap-2 w-full px-4 py-1">
+                      <p className="text-amber-800 text-xs font-semibold">Sending...</p>
+                      <div className="w-full bg-amber-200 h-1.5 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="bg-amber-500 h-full"
+                          initial={{ width: "0%" }}
+                          animate={{ width: "100%" }}
+                          transition={{ duration: 5, ease: "linear" }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-amber-800 text-xs font-semibold text-center">OTP sent to your number/email</p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-amber-900 font-mono font-bold text-xl tracking-widest">{devOtp.slice(0, 2)}xxxx</span>
+                        <button
+                          type="button"
+                          onClick={() => setValue('otp', devOtp)}
+                          className="bg-amber-400 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded transition-colors"
+                        >
+                          Auto Fill
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="church-label">{t('auth.otp')}</label>
                 <input {...register('otp', { required: true, minLength: 6, maxLength: 6 })} className="church-input text-center text-2xl tracking-widest font-bold" placeholder="000000" maxLength={6} />
@@ -142,7 +179,11 @@ export default function Login() {
               <button type="button" onClick={async () => { 
                 const res = await api.post('/auth/resend-otp', { userId }); 
                 toast.success('OTP resent!'); 
-                if (res.data.devOtp) toast('Dev Mode: Your OTP is ' + res.data.devOtp, { duration: 10000, icon: '🛠️' });
+                if (res.data.devOtp) {
+                  setDevOtp(res.data.devOtp);
+                  setIsOtpLoading(true);
+                  setTimeout(() => setIsOtpLoading(false), 5000);
+                }
               }} className="btn-ghost w-full justify-center text-sm">Resend OTP</button>
             </form>
           )}
@@ -163,7 +204,40 @@ export default function Login() {
           {/* Reset Password Stage */}
           {stage === 'resetOtp' && (
             <form onSubmit={handleSubmit(onResetPassword)} className="space-y-4">
-              <p className="text-center text-gray-600 text-sm mb-4">Enter the OTP sent to you and your new password.</p>
+              <p className="text-center text-gray-600 text-sm mb-4">Enter the OTP sent to your email and your new password.</p>
+
+              {devOtp && (
+                <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 flex flex-col items-center justify-center gap-2 mb-4 min-h-[76px]">
+                  {isOtpLoading ? (
+                    <div className="flex flex-col items-center gap-2 w-full px-4 py-1">
+                      <p className="text-amber-800 text-xs font-semibold">Sending...</p>
+                      <div className="w-full bg-amber-200 h-1.5 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="bg-amber-500 h-full"
+                          initial={{ width: "0%" }}
+                          animate={{ width: "100%" }}
+                          transition={{ duration: 5, ease: "linear" }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-amber-800 text-xs font-semibold text-center">OTP sent to your number/email</p>
+                      <div className="flex items-center gap-3">
+                        <span className="text-amber-900 font-mono font-bold text-xl tracking-widest">{devOtp.slice(0, 2)}xxxx</span>
+                        <button
+                          type="button"
+                          onClick={() => setValue('otp', devOtp)}
+                          className="bg-amber-400 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded transition-colors"
+                        >
+                          Auto Fill
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label className="church-label">{t('auth.otp')}</label>
                 <input {...register('otp', { required: true, minLength: 6, maxLength: 6 })} className="church-input text-center text-2xl tracking-widest font-bold mb-2" placeholder="000000" maxLength={6} />

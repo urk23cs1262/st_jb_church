@@ -23,6 +23,15 @@ if (process.env.SMTP_USER && process.env.SMTP_PASS) {
   console.warn('⚠️  SMTP not configured — emails will be skipped');
 }
 
+const stripHtml = (html) => {
+  return html
+    .replace(/<style([\s\S]*?)<\/style>/gi, '')
+    .replace(/<script([\s\S]*?)<\/script>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 const sendMail = async ({ to, subject, html, attachments = [] }) => {
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
     console.warn(`⚠️  Email skipped: ${subject} → ${to}`);
@@ -35,6 +44,7 @@ const sendMail = async ({ to, subject, html, attachments = [] }) => {
       to,
       subject,
       html,
+      text: stripHtml(html), // Plain-text fallback for higher inbox delivery (bypasses Promotions filters)
       attachments,
     });
     console.log(`📧 Email sent to ${to}: ${info.messageId}`);

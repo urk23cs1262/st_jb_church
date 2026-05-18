@@ -22,7 +22,7 @@ const sendBirthdayWishes = async () => {
     console.log(`🎂 Checking birthdays for ${today.toDateString()}... Found ${birthdayUsers.length} users.`);
 
     for (const user of birthdayUsers) {
-      const title = "Happy Birthday! 🎉";
+      const title = "Birthday Blessings";
       const message = `Dear ${user.name}, St. John de Britto's Church wishes you a very Happy Birthday! May God bless you with abundant joy, health, and peace on your special day. ✝️✨`;
 
       // Send via email and SMS

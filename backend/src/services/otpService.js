@@ -18,11 +18,11 @@ const sendOTP = async (userId, phone, email) => {
     }
 
     const smsBody = `Your St. John de Britto's Church verification code is: ${otp}. Valid for 10 minutes. Do not share this code with anyone.`;
-    
+
     // Fire and forget (don't await) for instant API response
     sendSMS(formattedPhone, smsBody).then(res => {
       if (res.success) console.log(`✅ OTP SMS sent to ${formattedPhone}`);
-      else console.warn(`⚠️ SMS failed for ${formattedPhone}: ${res.error}`);
+      else console.warn(`⚠️ SMS failed for ${formattedPhone}: [${res.code || 'N/A'}] ${res.error}`);
     }).catch(err => console.error(`❌ SMS Error: ${err.message}`));
   }
 

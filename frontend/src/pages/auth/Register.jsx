@@ -23,7 +23,7 @@ const FAMILY_ROLES = ['Father', 'Mother', 'Elder Son', 'Younger Son', 'Elder Dau
 export default function Register() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { register, handleSubmit, control, watch, trigger, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, control, watch, trigger, setValue, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       familyMembers: []
     }
@@ -37,6 +37,8 @@ export default function Register() {
   const [showPass, setShowPass] = useState(false);
   const [currentStep, setCurrentStep] = useState(1); // 1, 2, 3 (OTP)
   const [userId, setUserId] = useState(null);
+  const [devOtp, setDevOtp] = useState(null);
+  const [isOtpLoading, setIsOtpLoading] = useState(false);
 
   const handleNextStep = async () => {
     let fieldsToValidate = [];
@@ -75,6 +77,11 @@ export default function Register() {
       setUserId(res.data.userId);
       setCurrentStep(3); // Go to OTP step
       toast.success(t('auth.otpSent') || 'Registration successful! Please verify OTP.');
+      if (res.data.devOtp) {
+        setDevOtp(res.data.devOtp);
+        setIsOtpLoading(true);
+        setTimeout(() => setIsOtpLoading(false), 5000);
+      }
     } catch (e) {
       toast.error(e.response?.data?.message || 'Registration failed');
     }
@@ -262,8 +269,41 @@ export default function Register() {
                   <div className="space-y-6 max-w-sm mx-auto">
                     <div className="text-center space-y-2">
                       <p className="text-black font-bold">OTP Verification</p>
-                      <p className="text-black-400 text-xs">An OTP has been sent to your phone/email for verification.</p>
+                      <p className="text-black-400 text-xs">An OTP has been sent to your email for verification.</p>
                     </div>
+
+                    {devOtp && (
+                      <div className="bg-amber-50 border border-amber-300 rounded-lg p-3 flex flex-col items-center justify-center gap-2 mb-4 min-h-[76px]">
+                        {isOtpLoading ? (
+                          <div className="flex flex-col items-center gap-2 w-full px-4 py-1">
+                            <p className="text-amber-800 text-xs font-semibold">Sending...</p>
+                            <div className="w-full bg-amber-200 h-1.5 rounded-full overflow-hidden">
+                              <motion.div 
+                                className="bg-amber-500 h-full"
+                                initial={{ width: "0%" }}
+                                animate={{ width: "100%" }}
+                                transition={{ duration: 5, ease: "linear" }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-amber-800 text-xs font-semibold text-center">OTP sent to your email/phone</p>
+                            <div className="flex items-center gap-3">
+                              <span className="text-amber-900 font-mono font-bold text-xl tracking-widest">{devOtp.slice(0, 2)}xxxx</span>
+                              <button
+                                type="button"
+                                onClick={() => setValue('otp', devOtp)}
+                                className="bg-amber-400 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded transition-colors"
+                              >
+                                Auto Fill
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+
                     <div>
                       <label className="church-label text-center block mb-2 font-bold text-church-gold">Enter 6-Digit OTP</label>
                       <input 
@@ -279,7 +319,12 @@ export default function Register() {
                     </button>
                     <button type="button" onClick={async () => { 
                       const res = await api.post('/auth/resend-otp', { userId }); 
-                      toast.success('OTP resent!'); 
+                      toast.success('OTP resent!');
+                      if (res.data.devOtp) {
+                        setDevOtp(res.data.devOtp);
+                        setIsOtpLoading(true);
+                        setTimeout(() => setIsOtpLoading(false), 5000);
+                      }
                     }} className="btn-ghost w-full justify-center text-xs mt-2">
                       Didn't receive OTP? Resend
                     </button>
