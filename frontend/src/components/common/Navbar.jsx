@@ -328,6 +328,21 @@ export default function Navbar() {
                   </div>
                 ))}
 
+                {/* Contact Link */}
+                <div className="flex items-center">
+                  <NavLink
+                    to="/contact"
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `flex-1 block px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                        isActive ? 'bg-church-gold text-white' : 'text-gray-200 hover:bg-white/10'
+                      }`
+                    }
+                  >
+                    {t('nav.contact')}
+                  </NavLink>
+                </div>
+
                 {/* More Info links in mobile */}
                 <div className="pt-1">
                   <p className="px-4 text-[10px] text-church-gold/70 font-bold uppercase tracking-widest mb-1">More Info</p>
