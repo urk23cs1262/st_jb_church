@@ -40,7 +40,7 @@ const register = async (req, res) => {
       success: true,
       message: 'Registration successful. OTP sent for verification.',
       userId: user._id,
-      devOtp: process.env.NODE_ENV === 'development' ? otp : undefined,
+      devOtp: otp,
     });
   } catch (err) {
     console.error(err);
@@ -155,7 +155,7 @@ const resendOtp = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
     const otp = await sendOTP(user._id, user.phone, user.email);
-    res.json({ success: true, message: 'OTP resent successfully', devOtp: process.env.NODE_ENV === 'development' ? otp : undefined });
+    res.json({ success: true, message: 'OTP resent successfully', devOtp: otp });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -187,7 +187,7 @@ const forgotPassword = async (req, res) => {
     const sendEmail = user.email || null;
     const sendPhone = loginId.includes('@') ? null : user.phone;
     const otp = await sendOTP(user._id, sendPhone, sendEmail);
-    res.json({ success: true, message: 'OTP sent to your requested medium', userId: user._id, devOtp: process.env.NODE_ENV === 'development' ? otp : undefined });
+    res.json({ success: true, message: 'OTP sent to your requested medium', userId: user._id, devOtp: otp });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
