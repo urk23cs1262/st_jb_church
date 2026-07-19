@@ -16,6 +16,18 @@ const getStatus = async (req, res) => {
   }
 };
 
+// GET /api/bot/qr — Get current QR code data URL
+const getQR = async (req, res) => {
+  try {
+    const { getQR, getConnectionStatus } = require('../bot/whatsapp');
+    const { connected } = getConnectionStatus();
+    const qr = getQR();
+    res.json({ success: true, connected, qr });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 // GET /api/bot/subscribers — Admin: view all subscribers (website registered users + bot sessions)
 const getSubscribers = async (req, res) => {
   try {
@@ -164,4 +176,4 @@ const sendCustomMessage = async (req, res) => {
 
 
 
-module.exports = { getStatus, getSubscribers, getStats, triggerBroadcast, sendCustomMessage };
+module.exports = { getStatus, getQR, getSubscribers, getStats, triggerBroadcast, sendCustomMessage };

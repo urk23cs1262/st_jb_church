@@ -18,15 +18,13 @@ const qrcode = require('qrcode-terminal');
 const { handleIncomingMessage } = require('./botHandler');
 const { useMongoDBAuthState } = require('./mongoAuthState');
 
-let sock = null; // Active socket instance
-let isConnected = false;
+let currentQr = null; // Stored QR Code data URL
 
 // ─── Connect to WhatsApp ────────────────────────────────────────────────────
 
 async function connectToWhatsApp() {
   const { state, saveCreds } = await useMongoDBAuthState();
   const { version } = await fetchLatestBaileysVersion();
-
 
   console.log(`\n📱 SJDB Connect — Connecting to WhatsApp Web (Baileys v${version.join('.')})`);
 
@@ -46,6 +44,12 @@ async function connectToWhatsApp() {
     if (qr) {
       console.log('\n📲 Scan this QR code with your WhatsApp (Linked Devices → Link a Device):');
       qrcode.generate(qr, { small: true });
+      try {
+        const QRCode = require('qrcode');
+        currentQr = await QRCode.toDataURL(qr);
+      } catch (e) {
+        currentQr = null;
+      }
     }
 
     if (connection === 'close') {
@@ -65,6 +69,7 @@ async function connectToWhatsApp() {
 
     if (connection === 'open') {
       isConnected = true;
+      currentQr = null; // Clear QR once connected
       console.log('\n✅ WhatsApp connected! SJDB Connect bot is live.\n');
     }
   });
@@ -223,4 +228,8 @@ function getConnectionStatus() {
   return { connected: isConnected, sock: !!sock };
 }
 
-module.exports = { connectToWhatsApp, sendWhatsAppMessage, sendWhatsAppMedia, getConnectionStatus };
+function getQR() {
+  return currentQr;
+}
+
+module.exports = { connectToWhatsApp, sendWhatsAppMessage, sendWhatsAppMedia, getConnectionStatus, getQR };

@@ -25,22 +25,41 @@ export default function AdminWhatsApp() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [waStatus, setWaStatus] = useState({ connected: false });
+  const [qrCode, setQrCode] = useState(null);
 
   useEffect(() => {
     fetchData();
+
+    // Poll status & QR code every 4 seconds if not connected
+    const interval = setInterval(async () => {
+      try {
+        const [statusRes, qrRes] = await Promise.all([
+          api.get('/bot/status').catch(() => ({ data: { connected: false } })),
+          api.get('/bot/qr').catch(() => ({ data: { qr: null } }))
+        ]);
+        setWaStatus(statusRes.data);
+        setQrCode(qrRes.data?.qr || null);
+      } catch {
+        // Silent catch during polling
+      }
+    }, 4000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statsRes, subsRes, statusRes] = await Promise.all([
+      const [statsRes, subsRes, statusRes, qrRes] = await Promise.all([
         api.get('/bot/stats'),
         api.get('/bot/subscribers'),
         api.get('/bot/status').catch(() => ({ data: { connected: false } })),
+        api.get('/bot/qr').catch(() => ({ data: { qr: null } }))
       ]);
       setStats(statsRes.data.stats);
       setSubscribers(subsRes.data.subscribers || []);
       setWaStatus(statusRes.data);
+      setQrCode(qrRes.data?.qr || null);
     } catch {
       toast.error('Failed to load bot data');
     } finally {
@@ -276,12 +295,36 @@ export default function AdminWhatsApp() {
             </div>
           </div>
           {!waStatus.connected && (
-            <div className="mt-5 bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs text-amber-800">
-              <strong>📱 Setup Required:</strong> The WhatsApp bot is not connected.<br /><br />
-              1. Restart your backend server (<code>npm run dev</code>).<br />
-              2. A <strong>QR code</strong> will appear in the terminal.<br />
-              3. Open WhatsApp on your church phone → <strong>Linked Devices → Link a Device</strong>.<br />
-              4. Scan the QR code. The connection is saved automatically.
+            <div className="mt-5 bg-amber-50 border border-amber-200 rounded-xl p-5 text-xs text-amber-900 flex flex-col md:flex-row items-center gap-6">
+              {qrCode ? (
+                <div className="flex flex-col items-center bg-white p-4 rounded-2xl shadow-md border border-amber-200 min-w-[200px]">
+                  <img src={qrCode} alt="WhatsApp QR Code" className="w-48 h-48 rounded-lg" />
+                  <span className="text-[11px] font-semibold text-green-700 mt-2 animate-pulse flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-green-500" /> Live QR — Ready to scan
+                  </span>
+                </div>
+              ) : (
+                <div className="w-48 h-48 bg-amber-100/50 rounded-2xl flex items-center justify-center text-amber-600 text-center p-4 border border-amber-200">
+                  Initializing WhatsApp QR code...
+                </div>
+              )}
+
+              <div className="flex-1 space-y-2">
+                <h3 className="text-sm font-bold text-amber-900 flex items-center gap-1.5">
+                  <SiWhatsapp className="text-green-600 text-lg" /> Link WhatsApp Bot Device
+                </h3>
+                <p className="text-gray-600 leading-relaxed">
+                  Scan this QR code using the church's official WhatsApp account to connect the bot to your web server:
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-gray-700 font-medium pt-1">
+                  <li>Open <strong>WhatsApp</strong> on your phone</li>
+                  <li>Tap <strong>Settings / Menu (⋮)</strong> → <strong>Linked Devices</strong></li>
+                  <li>Tap <strong>Link a Device</strong> and point camera at the QR code above</li>
+                </ol>
+                <p className="text-[11px] text-amber-700 pt-2">
+                  ℹ️ Once scanned, your session credentials are stored securely in MongoDB so you won't need to scan again on server restarts.
+                </p>
+              </div>
             </div>
           )}
           {waStatus.connected && (
