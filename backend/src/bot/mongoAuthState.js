@@ -81,4 +81,13 @@ async function useMongoDBAuthState() {
   };
 }
 
-module.exports = { useMongoDBAuthState };
+async function clearMongoDBAuthState() {
+  try {
+    await AuthKey.deleteMany({});
+    console.log('🧹 Cleared all Baileys auth keys from MongoDB');
+  } catch (err) {
+    console.error('Failed to clear Baileys auth keys:', err.message);
+  }
+}
+
+module.exports = { useMongoDBAuthState, clearMongoDBAuthState };

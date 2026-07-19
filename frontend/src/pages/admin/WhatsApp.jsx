@@ -27,10 +27,12 @@ export default function AdminWhatsApp() {
   const [waStatus, setWaStatus] = useState({ connected: false });
   const [qrCode, setQrCode] = useState(null);
 
+  const [resetting, setResetting] = useState(false);
+
   useEffect(() => {
     fetchData();
 
-    // Poll status & QR code every 4 seconds if not connected
+    // Poll status & QR code every 2 seconds if not connected
     const interval = setInterval(async () => {
       try {
         const [statusRes, qrRes] = await Promise.all([
@@ -42,10 +44,24 @@ export default function AdminWhatsApp() {
       } catch {
         // Silent catch during polling
       }
-    }, 4000);
+    }, 2000);
 
     return () => clearInterval(interval);
   }, []);
+
+  const handleResetSession = async () => {
+    if (!confirm('Reset WhatsApp session and generate a fresh QR code?')) return;
+    setResetting(true);
+    setQrCode(null);
+    try {
+      const res = await api.post('/bot/reset');
+      toast.success(res.data.message || 'Session reset! Generating fresh QR code...');
+    } catch {
+      toast.error('Failed to reset session');
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -324,6 +340,16 @@ export default function AdminWhatsApp() {
                 <p className="text-[11px] text-amber-700 pt-2">
                   ℹ️ Once scanned, your session credentials are stored securely in MongoDB so you won't need to scan again on server restarts.
                 </p>
+
+                <div className="pt-2">
+                  <button
+                    onClick={handleResetSession}
+                    disabled={resetting}
+                    className="px-3 py-1.5 rounded-lg bg-amber-200/80 hover:bg-amber-300 text-amber-900 font-semibold text-xs transition-colors flex items-center gap-1.5"
+                  >
+                    🔄 {resetting ? 'Resetting...' : 'Reset & Generate New QR Code'}
+                  </button>
+                </div>
               </div>
             </div>
           )}

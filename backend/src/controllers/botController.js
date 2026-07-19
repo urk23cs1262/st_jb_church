@@ -8,6 +8,7 @@ function sendWA(phone, text) {
 
 // GET /api/bot/status — Connection status
 const getStatus = async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   try {
     const { getConnectionStatus } = require('../bot/whatsapp');
     res.json({ success: true, ...getConnectionStatus() });
@@ -18,11 +19,23 @@ const getStatus = async (req, res) => {
 
 // GET /api/bot/qr — Get current QR code data URL
 const getQR = async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   try {
     const { getQR, getConnectionStatus } = require('../bot/whatsapp');
     const { connected } = getConnectionStatus();
     const qr = getQR();
     res.json({ success: true, connected, qr });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/bot/reset — Force reset session and generate fresh QR
+const resetSession = async (req, res) => {
+  try {
+    const { resetWhatsAppSession } = require('../bot/whatsapp');
+    await resetWhatsAppSession();
+    res.json({ success: true, message: 'WhatsApp session reset. Generating fresh QR code...' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -176,4 +189,4 @@ const sendCustomMessage = async (req, res) => {
 
 
 
-module.exports = { getStatus, getQR, getSubscribers, getStats, triggerBroadcast, sendCustomMessage };
+module.exports = { getStatus, getQR, resetSession, getSubscribers, getStats, triggerBroadcast, sendCustomMessage };

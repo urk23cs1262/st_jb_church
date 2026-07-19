@@ -14,125 +14,164 @@ const {
   DisconnectReason,
   fetchLatestBaileysVersion,
 } = require('@whiskeysockets/baileys');
-const qrcode = require('qrcode-terminal');
+const QRCode = require('qrcode');
 const { handleIncomingMessage } = require('./botHandler');
-const { useMongoDBAuthState } = require('./mongoAuthState');
+const { useMongoDBAuthState, clearMongoDBAuthState } = require('./mongoAuthState');
 
+let sock = null; // Active socket instance
+let isConnected = false;
 let currentQr = null; // Stored QR Code data URL
+let isConnecting = false;
+
+// ─── Reset / Clear Session ──────────────────────────────────────────────────
+
+async function resetWhatsAppSession() {
+  console.log('🔄 Resetting WhatsApp session & clearing MongoDB auth keys...');
+  if (sock) {
+    try {
+      sock.ev.removeAllListeners('connection.update');
+      sock.ev.removeAllListeners('creds.update');
+      sock.ev.removeAllListeners('messages.upsert');
+      sock.end(undefined);
+    } catch (e) {}
+    sock = null;
+  }
+  isConnected = false;
+  currentQr = null;
+  await clearMongoDBAuthState();
+  setTimeout(connectToWhatsApp, 1000);
+}
 
 // ─── Connect to WhatsApp ────────────────────────────────────────────────────
 
 async function connectToWhatsApp() {
-  const { state, saveCreds } = await useMongoDBAuthState();
-  const { version } = await fetchLatestBaileysVersion();
+  if (isConnecting) return;
+  isConnecting = true;
 
-  console.log(`\n📱 SJDB Connect — Connecting to WhatsApp Web (Baileys v${version.join('.')})`);
-
-  sock = makeWASocket({
-    version,
-    auth: state,
-    printQRInTerminal: false, // We handle QR ourselves
-    browser: ['SJDB Connect', 'Chrome', '120.0.0'],
-    syncFullHistory: false,
-    markOnlineOnConnect: false,
-  });
-
-  // ── QR Code ────────────────────────────────────────────────────────────────
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    if (qr) {
-      console.log('\n📲 Scan this QR code with your WhatsApp (Linked Devices → Link a Device):');
-      qrcode.generate(qr, { small: true });
-      try {
-        const QRCode = require('qrcode');
-        currentQr = await QRCode.toDataURL(qr);
-      } catch (e) {
-        currentQr = null;
-      }
+  try {
+    const { state, saveCreds } = await useMongoDBAuthState();
+    
+    let version = [2, 3000, 1015901307];
+    try {
+      const vRes = await fetchLatestBaileysVersion();
+      if (vRes?.version) version = vRes.version;
+    } catch (vErr) {
+      console.warn('⚠️ Could not fetch remote Baileys version, using default version.');
     }
 
-    if (connection === 'close') {
-      isConnected = false;
-      const statusCode = lastDisconnect?.error?.output?.statusCode;
-      const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+    console.log(`\n📱 SJDB Connect — Connecting to WhatsApp Web (Baileys v${version.join('.')})`);
 
-      console.log(`\n⚠️  WhatsApp disconnected. Code: ${statusCode}. Reconnect: ${shouldReconnect}`);
+    sock = makeWASocket({
+      version,
+      auth: state,
+      printQRInTerminal: false, // We handle QR ourselves
+      browser: ['SJDB Connect', 'Chrome', '120.0.0'],
+      syncFullHistory: false,
+      markOnlineOnConnect: false,
+    });
 
-      if (shouldReconnect) {
-        console.log('🔄 Reconnecting in 5 seconds...');
-        setTimeout(connectToWhatsApp, 5000);
-      } else {
-        console.log('🚫 Logged out. Delete the session/ folder and restart to re-scan.');
-      }
-    }
+    // ── QR Code ────────────────────────────────────────────────────────────────
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
 
-    if (connection === 'open') {
-      isConnected = true;
-      currentQr = null; // Clear QR once connected
-      console.log('\n✅ WhatsApp connected! SJDB Connect bot is live.\n');
-    }
-  });
-
-  // ── Save credentials on update ────────────────────────────────────────────
-  sock.ev.on('creds.update', saveCreds);
-
-  // ── Incoming Messages ──────────────────────────────────────────────────────
-  sock.ev.on('messages.upsert', async ({ messages, type }) => {
-    if (type !== 'notify') return;
-
-    for (const msg of messages) {
-      // Ignore: status updates, broadcast lists
-      if (msg.key.remoteJid === 'status@broadcast') continue;
-
-      if (msg.key.fromMe) {
-        const myJid = sock?.user?.id ? sock.user.id.split(':')[0].replace(/\D/g, '') : '';
-        const remoteJidNum = msg.key.remoteJid ? msg.key.remoteJid.replace(/\D/g, '') : '';
-
-        // If it's an outgoing message sent to someone else, ignore
-        if (!myJid || myJid !== remoteJidNum) continue;
-
-        // If messaging self (testing), ignore automated bot responses to prevent loops
-        const textContent =
-          msg.message?.conversation ||
-          msg.message?.extendedTextMessage?.text ||
-          '';
-
-        if (
-          textContent.includes('Welcome to SJDB Connect') ||
-          textContent.includes('Choose your preferred language') ||
-          textContent.includes("You're all set!") ||
-          textContent.includes('Please reply with valid numbers') ||
-          textContent.includes('Please reply with *1*') ||
-          textContent.includes('unsubscribed from SJDB Connect')
-        ) {
-          continue;
+      if (qr) {
+        console.log('📲 New WhatsApp QR Code generated for Admin Dashboard.');
+        try {
+          currentQr = await QRCode.toDataURL(qr);
+          console.log('📸 QR Code Data URL ready for Web Dashboard!');
+        } catch (e) {
+          currentQr = null;
         }
       }
 
-      const from = msg.key.remoteJid; // e.g. "919876543210@s.whatsapp.net"
-      const body =
-        msg.message?.conversation ||
-        msg.message?.extendedTextMessage?.text ||
-        msg.message?.imageMessage?.caption ||
-        '';
+      if (connection === 'close') {
+        isConnected = false;
+        isConnecting = false;
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut && statusCode !== 401;
 
-      if (!body) continue;
+        console.log(`\n⚠️ WhatsApp disconnected. Code: ${statusCode}. Reconnect: ${shouldReconnect}`);
 
-      const phone = from.replace('@s.whatsapp.net', '').replace('@g.us', '');
-
-      console.log(`📨 Incoming from ${phone}: "${body.slice(0, 80)}"`);
-
-      // Route to bot handler
-      try {
-        await handleIncomingMessage(phone, body, from);
-      } catch (err) {
-        console.error('❌ Bot handler error:', err.message);
+        if (shouldReconnect) {
+          console.log('🔄 Reconnecting in 5 seconds...');
+          setTimeout(connectToWhatsApp, 5000);
+        } else {
+          console.log('🚫 Logged out or session invalid. Resetting auth state for fresh QR...');
+          resetWhatsAppSession();
+        }
       }
-    }
-  });
 
-  return sock;
+      if (connection === 'open') {
+        isConnected = true;
+        isConnecting = false;
+        currentQr = null; // Clear QR once connected
+        console.log('\n✅ WhatsApp connected! SJDB Connect bot is live.\n');
+      }
+    });
+
+    // ── Save credentials on update ────────────────────────────────────────────
+    sock.ev.on('creds.update', saveCreds);
+
+    // ── Incoming Messages ──────────────────────────────────────────────────────
+    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+      if (type !== 'notify') return;
+
+      for (const msg of messages) {
+        // Ignore: status updates, broadcast lists
+        if (msg.key.remoteJid === 'status@broadcast') continue;
+
+        if (msg.key.fromMe) {
+          const myJid = sock?.user?.id ? sock.user.id.split(':')[0].replace(/\D/g, '') : '';
+          const remoteJidNum = msg.key.remoteJid ? msg.key.remoteJid.replace(/\D/g, '') : '';
+
+          // If it's an outgoing message sent to someone else, ignore
+          if (!myJid || myJid !== remoteJidNum) continue;
+
+          // If messaging self (testing), ignore automated bot responses to prevent loops
+          const textContent =
+            msg.message?.conversation ||
+            msg.message?.extendedTextMessage?.text ||
+            '';
+
+          if (
+            textContent.includes('Welcome to SJDB Connect') ||
+            textContent.includes('Choose your preferred language') ||
+            textContent.includes("You're all set!") ||
+            textContent.includes('Please reply with valid numbers') ||
+            textContent.includes('Please reply with *1*') ||
+            textContent.includes('unsubscribed from SJDB Connect')
+          ) {
+            continue;
+          }
+        }
+
+        const from = msg.key.remoteJid; // e.g. "919876543210@s.whatsapp.net"
+        const body =
+          msg.message?.conversation ||
+          msg.message?.extendedTextMessage?.text ||
+          msg.message?.imageMessage?.caption ||
+          '';
+
+        if (!body) continue;
+
+        const phone = from.replace('@s.whatsapp.net', '').replace('@g.us', '');
+
+        console.log(`📨 Incoming from ${phone}: "${body.slice(0, 80)}"`);
+
+        // Route to bot handler
+        try {
+          await handleIncomingMessage(phone, body, from);
+        } catch (err) {
+          console.error('❌ Bot handler error:', err.message);
+        }
+      }
+    });
+
+    return sock;
+  } catch (err) {
+    isConnecting = false;
+    console.error('❌ Error during connectToWhatsApp:', err.message);
+  }
 }
 
 // ─── Send Text Message ────────────────────────────────────────────────────────
@@ -232,4 +271,4 @@ function getQR() {
   return currentQr;
 }
 
-module.exports = { connectToWhatsApp, sendWhatsAppMessage, sendWhatsAppMedia, getConnectionStatus, getQR };
+module.exports = { connectToWhatsApp, resetWhatsAppSession, sendWhatsAppMessage, sendWhatsAppMedia, getConnectionStatus, getQR };
