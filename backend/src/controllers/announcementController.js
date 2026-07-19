@@ -1,6 +1,9 @@
 const Announcement = require('../models/Announcement');
 const User = require('../models/User');
-const { sendSMS, sendWhatsApp } = require('../config/twilio');
+const { sendSMS } = require('../config/twilio');
+function sendWA(phone, text) {
+  return require('../bot/whatsapp').sendWhatsAppMessage(phone, text).catch(() => {});
+}
 
 const getAll = async (req, res) => {
   try {
@@ -28,7 +31,7 @@ const create = async (req, res) => {
         users.forEach(user => {
           if (user.phone) {
             sendSMS(user.phone, msg).catch(() => {});
-            sendWhatsApp(user.phone, msg).catch(() => {});
+            sendWA(user.phone, msg);
           }
         });
       }).catch(err => console.error("Error notifying users:", err));

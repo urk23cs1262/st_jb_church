@@ -67,10 +67,12 @@ app.use('/api/mass-reading', require('./routes/massReading'));
 app.use('/api/daily-reading', require('./routes/dailyReading'));
 app.use('/api/daily-saint', require('./routes/saint'));
 app.use('/api/settings', require('./routes/settings'));
+app.use('/api/bot', require('./routes/bot'));
 
 // Background Services
 require('./services/saintService');
 require('./services/birthdayService');
+require('./services/dailyBroadcastService'); // 6:00 AM spiritual content broadcast
 
 // ✅ Health check (used by cron-job.org to prevent cold starts)
 app.get('/api/health', (req, res) => res.json({
@@ -101,6 +103,13 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌍 Allowed origins: ${allowedOrigins.join(', ')}`);
   console.log(`📋 Health: /api/health\n`);
+
+  // Initialize Baileys WhatsApp connection
+  // Runs after server starts so a WA failure doesn't prevent API from starting
+  const { connectToWhatsApp } = require('./bot/whatsapp');
+  connectToWhatsApp().catch(err => {
+    console.error('❌ WhatsApp (Baileys) connection failed:', err.message);
+  });
 });
 
 module.exports = app;

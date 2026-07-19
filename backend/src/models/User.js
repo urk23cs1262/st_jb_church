@@ -23,7 +23,17 @@ const userSchema = new mongoose.Schema({
   profilePhoto: { type: String },
   isActive: { type: Boolean, default: true },
   lastLogin: { type: Date },
-  preferredLanguage: { type: String, enum: ['en', 'ta'], default: 'en' },
+  preferredLanguage: { type: String, enum: ['en', 'ta', 'both'], default: 'en' },
+  // WhatsApp Bot preferences — defaults to opted-in for website registrants
+  whatsappOptIn: { type: Boolean, default: true },
+  botPreferences: {
+    type: [{
+      type: String,
+      enum: ['verse', 'saint', 'mass', 'events', 'announcements', 'birthday']
+    }],
+    default: ['verse', 'saint', 'mass', 'events', 'announcements', 'birthday']
+  },
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

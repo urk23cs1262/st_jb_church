@@ -52,6 +52,7 @@ const AdminDonations = lazy(() => import('./pages/admin/Donations'));
 const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
 const AdminPrayers = lazy(() => import('./pages/admin/Prayers'));
 const AdminSettings = lazy(() => import('./pages/admin/Settings'));
+const AdminWhatsApp = lazy(() => import('./pages/admin/WhatsApp'));
 
 // Route guards
 const ProtectedRoute = ({ children }) => {
@@ -118,6 +119,7 @@ function AppRoutes() {
             <Route path="tickets" element={<AdminTickets />} />
             <Route path="prayers" element={<AdminPrayers />} />
             <Route path="settings" element={<AdminSettings />} />
+            <Route path="whatsapp" element={<AdminWhatsApp />} />
           </Route>
 
           {/* 404 */}

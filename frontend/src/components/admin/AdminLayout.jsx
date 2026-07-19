@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { FiUsers, FiCalendar, FiFileText, FiMessageSquare, FiDollarSign, FiImage, FiBell, FiMenu, FiX, FiLogOut, FiArrowLeft, FiSettings } from 'react-icons/fi';
+import { SiWhatsapp } from 'react-icons/si';
 import { GiChurch, GiCrucifix, GiPrayer } from 'react-icons/gi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { icon: <FiDollarSign />, label: 'Donations', path: '/admin/donations', color: 'bg-yellow-600' },
   { icon: <FiMessageSquare />, label: 'Tickets', path: '/admin/tickets', color: 'bg-rose-600' },
   { icon: <GiPrayer />, label: 'Prayers', path: '/admin/prayers', color: 'bg-church-gold' },
+  { icon: <SiWhatsapp />, label: 'WhatsApp Bot', path: '/admin/whatsapp', color: 'bg-[#25D366]' },
   { icon: <FiSettings />, label: 'Settings', path: '/admin/settings', color: 'bg-gray-600' },
 ];
 

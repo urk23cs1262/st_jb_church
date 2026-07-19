@@ -148,10 +148,12 @@ async function fetchDailySaint() {
 // Initial fetch on server start
 fetchDailySaint();
 
-// Schedule for 12:00 AM daily
+// Schedule for 12:00 AM IST daily
 cron.schedule('0 0 * * *', () => {
-  console.log('⏰ Running daily saint of the day update cron job (12:00 AM)...');
+  console.log('⏰ Running daily saint of the day update cron job (12:00 AM IST)...');
   fetchDailySaint();
+}, {
+  timezone: 'Asia/Kolkata'
 });
 
 const getDailySaint = () => dailySaint;

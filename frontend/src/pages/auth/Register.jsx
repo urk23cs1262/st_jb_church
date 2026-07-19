@@ -134,7 +134,7 @@ export default function Register() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="church-label">Full Name *</label>
-                      <input {...register('name', { required: 'Name is required' })} className="church-input" placeholder="John Paul" />
+                      <input {...register('name', { required: 'Name is required' })} className="church-input" placeholder="Enter your name" />
                       {errors.name && <p className="text-red-500 text-[10px] mt-1">{errors.name.message}</p>}
                     </div>
                     <div>
@@ -144,7 +144,7 @@ export default function Register() {
                     </div>
                     <div>
                       <label className="church-label">Family Name *</label>
-                      <input {...register('familyName', { required: 'Family name is required' })} className="church-input" placeholder="e.g., Joseph's Family" />
+                      <input {...register('familyName', { required: 'Family name is required' })} className="church-input" placeholder="Enter your family name" />
                     </div>
                     <div>
                       <label className="church-label">Sub-Station *</label>
@@ -155,17 +155,17 @@ export default function Register() {
                     </div>
                     <div>
                       <label className="church-label">Phone Number *</label>
-                      <input {...register('phone', { required: 'Phone is required' })} className="church-input" placeholder="9876543210" />
+                      <input {...register('phone', { required: 'Phone is required' })} className="church-input" placeholder="Enter your phone number" />
                       {errors.phone && <p className="text-red-500 text-[10px] mt-1">{errors.phone.message}</p>}
                     </div>
                     <div>
                       <label className="church-label">Email Address</label>
-                      <input {...register('email')} type="email" className="church-input" placeholder="john@example.com" />
+                      <input {...register('email')} type="email" className="church-input" placeholder="Enter your email address" />
                     </div>
                     <div className="md:col-span-2">
                       <label className="church-label">Password *</label>
                       <div className="relative">
-                        <input {...register('password', { required: 'Password is required', minLength: 6 })} type={showPass ? 'text' : 'password'} className="church-input pr-10" placeholder="••••••••" />
+                        <input {...register('password', { required: 'Password is required', minLength: 6 })} type={showPass ? 'text' : 'password'} className="church-input pr-10" placeholder="Enter your password (8 Characters)" />
                         <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                           {showPass ? <FiEyeOff /> : <FiEye />}
                         </button>

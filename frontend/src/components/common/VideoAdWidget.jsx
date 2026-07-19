@@ -6,12 +6,23 @@ import api from '../../services/api';
 // Update this default to any working public YouTube video ID
 const DEFAULT_VIDEO_ID = 'TiMeJqpETis';
 
-export default function VideoAdWidget() {
+export default function VideoAdWidget({ onOpenChange }) {
   const [isOpen, setIsOpen] = useState(true);
   const [isMaximized, setIsMaximized] = useState(false);
   const [videoId, setVideoId] = useState(DEFAULT_VIDEO_ID);
   const [videoError, setVideoError] = useState(false);
   const [openKey, setOpenKey] = useState(0); // increments each time user opens maximized view
+
+  // Notify Layout whenever open state changes so WhatsApp widget adjusts z-index
+  const handleSetIsOpen = (val) => {
+    setIsOpen(val);
+    onOpenChange?.(val);
+  };
+  const handleSetIsMaximized = (val) => {
+    setIsMaximized(val);
+    // Treat maximized as "open" too
+    onOpenChange?.(val ? true : isOpen);
+  };
 
   useEffect(() => {
     api.get('/settings/videoAdId')
@@ -27,7 +38,7 @@ export default function VideoAdWidget() {
   if (!isOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => handleSetIsOpen(true)}
         className="fixed bottom-6 right-0 z-[40] bg-white rounded-l-xl shadow-2xl border-y-2 border-l-2 border-gray-200 pl-3 pr-2 py-3 flex items-center justify-center text-church-royal-blue hover:bg-gray-50 transition-all hover:-translate-x-1"
         title="Open Video"
       >
@@ -42,7 +53,7 @@ export default function VideoAdWidget() {
         {/* Close button ABOVE the video */}
         <div className="w-full max-w-4xl flex justify-end mb-2">
           <button
-            onClick={() => setIsMaximized(false)}
+            onClick={() => handleSetIsMaximized(false)}
             className="w-10 h-10 bg-white/20 hover:bg-white/90 hover:text-gray-800 rounded-full flex items-center justify-center text-white transition-colors shadow-lg border border-white/30"
           >
             <FiX className="text-xl" />
@@ -74,7 +85,7 @@ export default function VideoAdWidget() {
         {/* Close button sits ABOVE the video card */}
         <div className="flex justify-end mb-1.5">
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={() => handleSetIsOpen(false)}
             className="w-7 h-7 bg-gray-800 hover:bg-red-600 rounded-full flex items-center justify-center text-white transition-colors shadow-lg"
             title="Close Video"
           >
@@ -88,7 +99,7 @@ export default function VideoAdWidget() {
           onClick={() => {
             if (!videoError) {
               setOpenKey(k => k + 1); // force iframe remount → play from start
-              setIsMaximized(true);
+              handleSetIsMaximized(true);
             }
           }}
         >

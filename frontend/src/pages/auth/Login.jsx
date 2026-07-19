@@ -109,14 +109,14 @@ export default function Login() {
                 <label className="church-label">{t('auth.phone')} / {t('auth.email')}</label>
                 <div className="relative">
                   <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input {...register('login', { required: 'Required' })} className="church-input pl-10" placeholder="Phone or Email" />
+                  <input {...register('login', { required: 'Required' })} className="church-input pl-10" placeholder="Enter your Phone or Email" />
                 </div>
                 {errors.login && <p className="text-red-500 text-xs mt-1">{errors.login.message}</p>}
               </div>
               <div>
                 <label className="church-label">{t('auth.password')}</label>
                 <div className="relative">
-                  <input {...register('password', { required: 'Required' })} type={showPass ? 'text' : 'password'} className="church-input pr-10" placeholder="••••••••" />
+                  <input {...register('password', { required: 'Required' })} type={showPass ? 'text' : 'password'} className="church-input pr-10" placeholder="Enter your Password (8 characters)" />
                   <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {showPass ? <FiEyeOff /> : <FiEye />}
                   </button>
