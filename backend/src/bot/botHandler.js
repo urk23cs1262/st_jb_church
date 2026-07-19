@@ -77,8 +77,13 @@ async function handleIncomingMessage(fromNumber, body) {
   // Update last message time
   session.lastMessage = new Date();
 
+  // Helper to check if incoming text is a HI / greeting / reset trigger
+  const isHiTrigger =
+    /\b(HI|HELLO|START|RESET|MENU)\b/i.test(text) ||
+    text.includes('SJDB CONNECT');
+
   // ── Step: Welcome / trigger ──────────────────────────────────────────────
-  if (session.step === 'welcome' || text === 'HI' || text === 'HELLO' || text === 'START') {
+  if (session.step === 'welcome' || isHiTrigger) {
     session.step = 'preferences';
     await session.save();
     await getWA().sendWhatsAppMessage(phone, WELCOME_MSG);
@@ -165,7 +170,7 @@ _St. John de Britto's Church_
       await getWA().sendWhatsAppMessage(phone, `🔕 You have been unsubscribed from SJDB Connect.\n\nReply *HI* anytime to re-subscribe. God bless! 🙏`);
       return;
     }
-    if (text === 'HI' || text === 'HELLO' || text === 'CHANGE') {
+    if (isHiTrigger || text === 'CHANGE') {
       session.step = 'preferences';
       await session.save();
       await getWA().sendWhatsAppMessage(phone, WELCOME_MSG);

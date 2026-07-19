@@ -77,9 +77,33 @@ async function connectToWhatsApp() {
     if (type !== 'notify') return;
 
     for (const msg of messages) {
-      // Ignore: status updates, broadcast lists, own messages
+      // Ignore: status updates, broadcast lists
       if (msg.key.remoteJid === 'status@broadcast') continue;
-      if (msg.key.fromMe) continue;
+
+      if (msg.key.fromMe) {
+        const myJid = sock?.user?.id ? sock.user.id.split(':')[0].replace(/\D/g, '') : '';
+        const remoteJidNum = msg.key.remoteJid ? msg.key.remoteJid.replace(/\D/g, '') : '';
+
+        // If it's an outgoing message sent to someone else, ignore
+        if (!myJid || myJid !== remoteJidNum) continue;
+
+        // If messaging self (testing), ignore automated bot responses to prevent loops
+        const textContent =
+          msg.message?.conversation ||
+          msg.message?.extendedTextMessage?.text ||
+          '';
+
+        if (
+          textContent.includes('Welcome to SJDB Connect') ||
+          textContent.includes('Choose your preferred language') ||
+          textContent.includes("You're all set!") ||
+          textContent.includes('Please reply with valid numbers') ||
+          textContent.includes('Please reply with *1*') ||
+          textContent.includes('unsubscribed from SJDB Connect')
+        ) {
+          continue;
+        }
+      }
 
       const from = msg.key.remoteJid; // e.g. "919876543210@s.whatsapp.net"
       const body =
