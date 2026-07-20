@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from '../services/api';
+import { applyUserSettings } from '../utils/applySettings';
 
 const AuthContext = createContext(null);
 
@@ -15,6 +16,13 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (user && user.settings) {
+      applyUserSettings(user.settings);
+    }
+  }, [user]);
+
 
   const fetchMe = async () => {
     try {

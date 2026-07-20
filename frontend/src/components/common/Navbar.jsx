@@ -23,7 +23,9 @@ const MORE_LINKS = [
   { key: 'priests', path: '/priests', label: 'Priests' },
   { key: 'gallery', path: '/gallery', label: 'Gallery' },
   { key: 'live', path: '/live', label: 'Live Stream' },
+  { key: 'nearby_parishes', path: '/nearby-parishes', label: 'Nearby Shrines' },
 ];
+
 
 
 export default function Navbar() {
@@ -264,6 +266,10 @@ export default function Navbar() {
                         <Link to="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gold-50 transition-colors">
                           <FiUser className="text-church-gold" /> {t('nav.dashboard')}
                         </Link>
+                        <Link to="/dashboard/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gold-50 transition-colors">
+                          <FiSettings className="text-church-gold" /> Settings
+                        </Link>
+
                         <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors">
                           <FiLogOut /> {t('nav.logout')}
                         </button>

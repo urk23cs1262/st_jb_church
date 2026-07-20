@@ -2,7 +2,74 @@ import churchLogo from '../../assets/image.png';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { GiChurch, GiCrucifix } from 'react-icons/gi';
+import { FiMapPin, FiNavigation, FiExternalLink, FiUsers } from 'react-icons/fi';
 import PageHero from '../../components/common/PageHero';
+
+const STATIONS = [
+  {
+    name: 'St. John de Britto Church (Main Parish)',
+    tamilName: 'புனித அருளானந்தர் ஆலயம் (தலைமைப் பங்கு)',
+    type: 'Main Parish Center',
+    location: 'Kalayarkoil, Sivaganga District, Tamil Nadu - 630551',
+    mapUrl: 'https://maps.google.com/?q=St+John+de+Britto+Church+Kalayarkoil',
+    families: '450+ Catholic Families',
+    isMain: true
+  },
+  {
+    name: 'Pallithammam Sub-Station',
+    tamilName: 'பள்ளித்தம்மம் கிளைப் பங்கு',
+    type: 'Sub-Station',
+    location: 'Pallithammam, Kalayarkoil Region, Sivaganga District',
+    mapUrl: 'https://maps.google.com/?q=Pallithammam+Sivaganga',
+    families: '80+ Families',
+    isMain: false
+  },
+  {
+    name: 'Nedungulam Sub-Station',
+    tamilName: 'நெடுங்குளம் கிளைப் பங்கு',
+    type: 'Sub-Station',
+    location: 'Nedungulam, Kalayarkoil Region, Sivaganga District',
+    mapUrl: 'https://maps.google.com/?q=Nedungulam+Sivaganga',
+    families: '65+ Families',
+    isMain: false
+  },
+  {
+    name: 'Kalluvazhy Sub-Station',
+    tamilName: 'கல்லுவாழி கிளைப் பங்கு',
+    type: 'Sub-Station',
+    location: 'Kalluvazhy, Kalayarkoil Region, Sivaganga District',
+    mapUrl: 'https://maps.google.com/?q=Kalluvazhy+Sivaganga',
+    families: '90+ Families',
+    isMain: false
+  },
+  {
+    name: 'Natarajapuram Sub-Station',
+    tamilName: 'நடராஜபுரம் கிளைப் பங்கு',
+    type: 'Sub-Station',
+    location: 'Natarajapuram, Kalayarkoil Region, Sivaganga District',
+    mapUrl: 'https://maps.google.com/?q=Natarajapuram+Sivaganga',
+    families: '50+ Families',
+    isMain: false
+  },
+  {
+    name: 'Susaiapparpattinam Sub-Station',
+    tamilName: 'சூசையப்பர்பட்டினம் கிளைப் பங்கு',
+    type: 'Sub-Station',
+    location: 'Susaiapparpattinam, Kalayarkoil Region, Sivaganga District',
+    mapUrl: 'https://maps.google.com/?q=Susaiapparpattinam+Sivaganga',
+    families: '110+ Families',
+    isMain: false
+  },
+  {
+    name: 'Maravamangalam Sub-Station',
+    tamilName: 'மறவமங்கலம் கிளைப் பங்கு',
+    type: 'Sub-Station',
+    location: 'Maravamangalam, Kalayarkoil Region, Sivaganga District',
+    mapUrl: 'https://maps.google.com/?q=Maravamangalam+Sivaganga',
+    families: '75+ Families',
+    isMain: false
+  }
+];
 
 const timeline = [
   { year: '1870s', event: 'Church founded by Jesuit missionaries in Kalayarkoil region' },
@@ -59,6 +126,59 @@ export default function About() {
             </motion.div>
           </div>
 
+          {/* Main Parish & Sub-Station Locations Section */}
+          <div className="mb-20">
+            <p className="section-subtitle text-center mb-2">Parish Network</p>
+            <h2 className="section-title text-center mb-10">Main Parish & Sub-Stations</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {STATIONS.map((station, index) => (
+                <motion.div
+                  key={station.name}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`church-card flex flex-col justify-between p-6 ${
+                    station.isMain ? 'border-2 border-church-gold shadow-gold bg-amber-50/30' : ''
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className={`text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
+                        station.isMain ? 'bg-church-gold text-white' : 'bg-church-royal-blue/10 text-church-royal-blue'
+                      }`}>
+                        {station.type}
+                      </span>
+                      <span className="text-xs text-gray-500 font-semibold flex items-center gap-1">
+                        <FiUsers className="text-church-gold" /> {station.families}
+                      </span>
+                    </div>
+
+                    <h3 className="font-display font-bold text-lg text-church-royal-blue mb-1">
+                      {station.name}
+                    </h3>
+                    <p className="text-sm font-semibold text-church-gold mb-3">{station.tamilName}</p>
+
+                    <p className="text-xs text-gray-600 flex items-start gap-2 mb-4 leading-relaxed">
+                      <FiMapPin className="text-red-500 flex-shrink-0 mt-0.5 text-sm" />
+                      <span>{station.location}</span>
+                    </p>
+                  </div>
+
+                  <a
+                    href={station.mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl text-xs font-bold transition-all bg-white border border-gray-200 text-church-royal-blue hover:bg-church-gold hover:text-white hover:border-church-gold shadow-sm"
+                  >
+                    <FiNavigation className="text-sm" /> View Location on Maps <FiExternalLink className="text-[10px]" />
+                  </a>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
           {/* Patron Saint */}
           <div className="glass-card p-8 md:p-12 mb-20 text-center">
             <GiCrucifix className="text-church-gold text-5xl mx-auto mb-4" />
@@ -69,6 +189,7 @@ export default function About() {
               Born on March 1, 1647, in Lisbon, Portugal, St. John de Britto was a Jesuit priest and missionary who worked in Tamil Nadu. Known as "Arulanandar" (Blessed in Grace), he fully embraced Tamil culture, learning the language and adopting the lifestyle of a Brahmin sage. He was martyred on February 4, 1693, at Oriur (near Ramnad) for his faith. Pope Pius XII canonized him on June 22, 1947. His feast day is celebrated on February 4th.
             </p>
           </div>
+
 
           {/* Timeline */}
           <div>

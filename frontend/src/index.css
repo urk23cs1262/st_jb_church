@@ -149,3 +149,17 @@
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
+
+/* Accessibility Mode Utilities */
+html.high-contrast-mode {
+  filter: contrast(135%) saturate(125%);
+}
+
+html.reduce-animations *, 
+html.reduce-animations *::before, 
+html.reduce-animations *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+

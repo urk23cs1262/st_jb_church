@@ -21,13 +21,21 @@ export default function Login() {
   const [devOtp, setDevOtp] = useState(null);
   const [isOtpLoading, setIsOtpLoading] = useState(false);
 
+  const getDefaultLandingRoute = (u) => {
+    if (u?.role === 'admin') return '/admin';
+    const pref = u?.settings?.appPreferences?.defaultHomePage;
+    if (pref === 'User Dashboard' || pref === 'Dashboard') return '/dashboard';
+    if (pref === 'Mass Timings' || pref === 'Mass') return '/mass-timings';
+    return '/';
+  };
+
   const onLogin = async (data) => {
     try {
       const res = await api.post('/auth/login', { login: data.login, password: data.password });
       login(res.data.user, res.data.token);
       toast.success(t('auth.loginSuccess'));
       const searchParams = new URLSearchParams(window.location.search);
-      const redirect = searchParams.get('redirect') || (res.data.user.role === 'admin' ? '/admin' : '/');
+      const redirect = searchParams.get('redirect') || getDefaultLandingRoute(res.data.user);
       navigate(redirect);
     } catch (e) {
       const msg = e.response?.data?.message;
@@ -41,9 +49,10 @@ export default function Login() {
       const res = await api.post('/auth/verify-otp', { userId, otp: data.otp });
       login(res.data.user, res.data.token);
       toast.success('Verified! Welcome.');
-      navigate('/');
+      navigate(getDefaultLandingRoute(res.data.user));
     } catch (e) { toast.error(e.response?.data?.message || 'Invalid OTP'); }
   };
+
 
   const onForgotPassword = async (data) => {
     try {

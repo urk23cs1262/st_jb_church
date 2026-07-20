@@ -1,0 +1,1116 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useForm, useFieldArray } from 'react-hook-form';
+import toast from 'react-hot-toast';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  FiUser, FiArrowLeft, FiSave, FiPlus, FiTrash2, FiBell, FiGlobe,
+  FiMoon, FiEye, FiUsers, FiHeart, FiCalendar, FiDollarSign, FiShield,
+  FiSmartphone, FiDatabase, FiGrid, FiMapPin, FiPhoneCall, FiCrosshair,
+  FiMessageSquare, FiInfo, FiCpu, FiRadio, FiKey, FiLock, FiLogOut, FiDownload
+} from 'react-icons/fi';
+import api, { UPLOADS_URL } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { applyUserSettings } from '../../utils/applySettings';
+
+const SUB_STATIONS = [
+  "Kalayarkoil (Main Parish)",
+  "Pallithammam",
+  "Nedungulam",
+  "Kalluvazhy",
+  "Natarajapuram",
+  "Susaiapparpattinam",
+  "Maravamangalam",
+  "Other"
+];
+
+const FAMILY_ROLES = ['Father', 'Mother', 'Elder Son', 'Younger Son', 'Elder Daughter', 'Younger Daughter', 'Grandfather', 'Grandmother', 'Other'];
+
+const MASS_SCHEDULE_OPTIONS = [
+  { id: 'sunday', label: 'Sunday: 6:30 AM & 8:30 AM (Tamil)' },
+  { id: 'weekday', label: 'Wednesday – Saturday: 5:00 PM (Tamil)' }
+];
+
+
+const SETTINGS_SECTIONS = [
+  { id: 'account', label: 'Account & Profile', icon: <FiUser /> },
+  { id: 'notifications', label: 'Notifications', icon: <FiBell /> },
+  { id: 'language_theme', label: 'Language & Accessibility', icon: <FiGlobe /> },
+
+  { id: 'privacy_data', label: 'Privacy & Data', icon: <FiEye /> },
+  { id: 'family', label: 'Family Settings', icon: <FiUsers /> },
+  { id: 'ministries_volunteer', label: 'Ministries & Volunteering', icon: <FiHeart /> },
+  { id: 'prayer', label: 'Prayer Preferences', icon: <FiCalendar /> },
+  // { id: 'donations', label: 'Donation Settings', icon: <FiDollarSign /> },
+  { id: 'security', label: 'Security & Connected Accounts', icon: <FiShield /> },
+  // { id: 'app_location', label: 'App & Location Preferences', icon: <FiGrid /> },
+  { id: 'church_emergency', label: 'Church & Emergency Contact', icon: <FiCrosshair /> },
+  { id: 'ai_preferences', label: 'AI-Based Settings', icon: <FiCpu /> },
+  // { id: 'admin_comm', label: 'Admin-Configurable Preferences', icon: <FiRadio /> },
+  { id: 'feedback_about', label: 'Feedback & About', icon: <FiInfo /> },
+];
+
+export default function Settings() {
+  const { user, fetchMe, logout } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('account');
+  const [photo, setPhoto] = useState(null);
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  const { register, handleSubmit, control, watch, reset, setValue, formState: { isSubmitting } } = useForm({
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      dob: '',
+      gender: '',
+      subStation: '',
+      familyName: '',
+      address: '',
+      familyRole: '',
+      familyRoleOther: '',
+      familyMembers: [],
+      // Deep settings structure
+      settings: {
+        notifications: {
+          eventReminders: true,
+          massSchedule: true,
+          prayerMeetings: true,
+          feastDays: true,
+          saintOfTheDay: true,
+          donationReceipts: true,
+          birthdayWishes: true,
+          anniversaryWishes: true,
+          whatsapp: true,
+          email: true,
+          push: true
+        },
+        language: 'en',
+        theme: 'light',
+        accessibility: {
+          fontSize: 'normal',
+          highContrast: false,
+          reduceAnimations: false,
+          screenReader: false
+        },
+        privacy: {
+          visibility: 'members',
+          showPhone: true,
+          showEmail: true,
+          showDob: false,
+          showAddress: false
+        },
+        family: {
+          familyHead: '',
+          relationship: '',
+          requestJoin: ''
+        },
+        ministries: ['Prayer Group'],
+        volunteering: {
+          availableDays: ['Sunday'],
+          timeOfDay: ['Morning'],
+          emergencyVolunteer: false,
+          preferredMinistries: []
+        },
+        prayer: {
+          dailyBibleVerse: true,
+          saintOfTheDay: true,
+          prayerReminder: true,
+          rosaryReminder: true,
+          massReminder: true
+        },
+        donations: {
+          defaultAmount: 100,
+          preferredPaymentMethod: 'UPI',
+          recurringDonation: false
+        },
+        security: {
+          twoFactorEnabled: false
+        },
+        appPreferences: {
+          defaultHomePage: 'Dashboard',
+          calendarView: 'Month',
+          compactMode: false,
+          animationsOn: true
+        },
+        location: {
+          enableLocation: true,
+          nearestParishSuggestions: true,
+          locationBasedEvents: true
+        },
+        emergencyContact: {
+          name: '',
+          relationship: '',
+          phone: ''
+        },
+        churchPreferences: {
+          preferredParish: 'St. John de Britto Church (Kalayarkoil)',
+          preferredMassTiming: ['Sunday: 6:30 AM & 8:30 AM (Tamil)'],
+          preferredLanguage: 'Tamil',
+          preferredPriest: ''
+        },
+
+        aiSettings: {
+          notificationRecommendations: true,
+          careerGuidance: false,
+          spiritualGrowth: true,
+          eventRecommendations: true,
+          familyInsights: true,
+          prayerSuggestions: true
+        },
+        adminCommPreferences: {
+          receiveAnnouncements: true,
+          receiveEmergencyAlerts: true,
+          joinBetaFeatures: false,
+          autoSyncFamily: true,
+          allowStaffContact: true,
+          receiveVolunteerRequests: true
+        }
+      }
+    }
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "familyMembers"
+  });
+
+  useEffect(() => {
+    fetchMe();
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      reset({
+        name: user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        dob: user.dob ? new Date(user.dob).toISOString().split('T')[0] : '',
+        gender: user.gender || '',
+        subStation: user.subStation || '',
+        familyName: user.familyName || '',
+        address: user.address || '',
+        familyRole: user.familyRole || '',
+        familyMembers: user.familyMembers || [],
+        settings: {
+          notifications: {
+            eventReminders: true,
+            massSchedule: true,
+            prayerMeetings: true,
+            feastDays: true,
+            saintOfTheDay: true,
+            donationReceipts: true,
+            birthdayWishes: true,
+            anniversaryWishes: true,
+            whatsapp: true,
+            email: true,
+            push: true,
+            ...(user.settings?.notifications || {})
+          },
+          language: user.settings?.language || user.preferredLanguage || 'en',
+          theme: user.settings?.theme || 'light',
+          accessibility: {
+            fontSize: 'normal',
+            highContrast: false,
+            reduceAnimations: false,
+            screenReader: false,
+            ...(user.settings?.accessibility || {})
+          },
+          privacy: {
+            visibility: 'members',
+            showPhone: true,
+            showEmail: true,
+            showDob: false,
+            showAddress: false,
+            ...(user.settings?.privacy || {})
+          },
+          family: {
+            familyHead: user.familyName ? `${user.familyName} Head` : '',
+            relationship: user.familyRole || '',
+            requestJoin: '',
+            ...(user.settings?.family || {})
+          },
+          ministries: user.settings?.ministries || ['Prayer Group'],
+          volunteering: {
+            availableDays: ['Sunday'],
+            timeOfDay: ['Morning'],
+            emergencyVolunteer: false,
+            preferredMinistries: [],
+            ...(user.settings?.volunteering || {})
+          },
+          prayer: {
+            dailyBibleVerse: true,
+            saintOfTheDay: true,
+            prayerReminder: true,
+            rosaryReminder: true,
+            massReminder: true,
+            ...(user.settings?.prayer || {})
+          },
+          donations: {
+            defaultAmount: 100,
+            preferredPaymentMethod: 'UPI',
+            recurringDonation: false,
+            ...(user.settings?.donations || {})
+          },
+          security: {
+            twoFactorEnabled: false,
+            ...(user.settings?.security || {})
+          },
+          appPreferences: {
+            defaultHomePage: 'Dashboard',
+            calendarView: 'Month',
+            compactMode: false,
+            animationsOn: true,
+            ...(user.settings?.appPreferences || {})
+          },
+          location: {
+            enableLocation: true,
+            nearestParishSuggestions: true,
+            locationBasedEvents: true,
+            ...(user.settings?.location || {})
+          },
+          emergencyContact: {
+            name: '',
+            relationship: '',
+            phone: '',
+            ...(user.settings?.emergencyContact || {})
+          },
+          churchPreferences: {
+            preferredParish: 'St. John de Britto Church (Kalayarkoil)',
+            preferredLanguage: 'Tamil',
+            preferredPriest: '',
+            ...(user.settings?.churchPreferences || {}),
+            preferredMassTiming: Array.isArray(user.settings?.churchPreferences?.preferredMassTiming)
+              ? user.settings.churchPreferences.preferredMassTiming
+              : (user.settings?.churchPreferences?.preferredMassTiming ? [user.settings.churchPreferences.preferredMassTiming] : ['Sunday: 6:30 AM & 8:30 AM (Tamil)'])
+          },
+
+          aiSettings: {
+            notificationRecommendations: true,
+            careerGuidance: false,
+            spiritualGrowth: true,
+            eventRecommendations: true,
+            familyInsights: true,
+            prayerSuggestions: true,
+            ...(user.settings?.aiSettings || {})
+          },
+          adminCommPreferences: {
+            receiveAnnouncements: true,
+            receiveEmergencyAlerts: true,
+            joinBetaFeatures: false,
+            autoSyncFamily: true,
+            allowStaffContact: true,
+            receiveVolunteerRequests: true,
+            ...(user.settings?.adminCommPreferences || {})
+          }
+        }
+      });
+    }
+  }, [user, reset]);
+
+  const watchedFamilyRole = watch('familyRole');
+  const watchedMembers = watch('familyMembers');
+  const watchedSettings = watch('settings');
+
+  const onSaveProfile = async (formDataRaw) => {
+    try {
+      const formData = new FormData();
+      const processedData = {
+        ...formDataRaw,
+        familyRole: formDataRaw.familyRole === 'Other' ? formDataRaw.familyRoleOther : formDataRaw.familyRole,
+        familyMembers: formDataRaw.familyMembers?.map(m => ({
+          name: m.name,
+          role: m.role === 'Other' ? m.roleOther : m.role
+        })) || []
+      };
+
+      Object.entries(processedData).forEach(([k, v]) => {
+        if (k === 'familyMembers' || k === 'settings') {
+          formData.append(k, JSON.stringify(v));
+        } else if (v !== undefined && v !== null) {
+          formData.append(k, v);
+        }
+      });
+      if (photo) formData.append('photo', photo);
+
+      await api.put('/users/profile', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      // Also sync settings sub-document
+      await api.put('/users/settings', { settings: formDataRaw.settings });
+
+      // Apply settings immediately across the website
+      applyUserSettings(formDataRaw.settings);
+
+      await fetchMe();
+      toast.success('Settings saved successfully!');
+
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to save settings');
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    if (!passwordData.currentPassword || !passwordData.newPassword) {
+      return toast.error('Please enter current and new password');
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      return toast.error('New passwords do not match');
+    }
+    setIsChangingPassword(true);
+    try {
+      await api.put('/users/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+      toast.success('Password updated successfully!');
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Password update failed');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
+  const handleDownloadData = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(user, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `user_data_${user?.name || 'profile'}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    toast.success('User data exported successfully!');
+  };
+
+  const handleClearCache = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    toast.success('Local cache cleared! Refreshing page...');
+    setTimeout(() => window.location.reload(), 1200);
+  };
+
+  return (
+    <div className="min-h-screen pt-24 bg-church-cream pb-16">
+      {/* Header Banner */}
+      <div className="bg-gray-600 py-10 shadow-md">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <Link to="/dashboard" className="text-gold-400 text-sm hover:underline flex items-center gap-1 mb-2 ml-8">
+              <FiArrowLeft /> Back to Dashboard
+            </Link>
+            <h1 className="font-display text-3xl font-bold text-white flex items-center gap-3">
+              <FiUser className="text-gold-400" /> Account Settings & Preferences
+            </h1>
+            {/* <p className="text-gray-300 text-xs mt-1">
+              Personalize your account, notifications, privacy, family preferences, and app experience
+            </p> */}
+          </div>
+          <button
+            onClick={handleSubmit(onSaveProfile)}
+            disabled={isSubmitting}
+            className="btn-gold py-3 px-8 text-sm font-bold shadow-gold-lg self-start md:self-auto flex items-center gap-2"
+          >
+            <FiSave className="text-lg" /> {isSubmitting ? 'Saving...' : 'Save All Settings'}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Layout */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+          {/* Sidebar Tabs */}
+          <div className="lg:col-span-4 xl:col-span-3 space-y-2">
+            <div className="church-card p-3 sticky top-28 shadow-sm">
+              <p className="text-[11px] font-bold text-church-royal-blue uppercase tracking-wider px-3 py-2 border-b border-gray-100 mb-2">
+                Settings Menu
+              </p>
+              <div className="space-y-1 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+                {SETTINGS_SECTIONS.map((sec) => {
+                  const isActive = activeTab === sec.id;
+                  return (
+                    <button
+                      key={sec.id}
+                      onClick={() => setActiveTab(sec.id)}
+                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all text-left ${isActive
+                          ? 'bg-church-gold text-white shadow-gold font-bold scale-[1.01]'
+                          : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                      <span className={`text-sm ${isActive ? 'text-white' : 'text-church-gold'}`}>{sec.icon}</span>
+                      <span className="truncate">{sec.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Form Content Area */}
+          <div className="lg:col-span-8 xl:col-span-9">
+            <form onSubmit={handleSubmit(onSaveProfile)} className="space-y-6">
+
+              {/* 1. Account & Profile */}
+              {activeTab === 'account' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiUser className="text-church-gold" />Account Settings
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Manage your basic personal profile details and credentials</p>
+                  </div>
+
+                  <div className="flex items-center gap-5 pb-6 border-b border-gray-100">
+                    <div className="relative">
+                      <div className="w-20 h-20 rounded-full bg-church-gradient flex items-center justify-center overflow-hidden shadow-gold">
+                        {photo ? (
+                          <img src={URL.createObjectURL(photo)} className="w-full h-full object-cover" />
+                        ) : user?.profilePhoto ? (
+                          <img src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <FiUser className="text-white text-3xl" />
+                        )}
+                      </div>
+                      <label className="absolute bottom-0 right-0 w-7 h-7 bg-church-gold rounded-full flex items-center justify-center cursor-pointer hover:bg-church-gold-light transition-colors shadow">
+                        <span className="text-white text-xs">📷</span>
+                        <input type="file" accept="image/*" className="hidden" onChange={e => setPhoto(e.target.files[0])} />
+                      </label>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-800 text-lg">{user?.name}</h3>
+                      <p className="text-gray-500 text-xs">{user?.phone} • {user?.email || 'No email attached'}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="church-label">Full Name *</label>
+                      <input {...register('name', { required: true })} className="church-input" />
+                    </div>
+                    <div>
+                      <label className="church-label">Email Address</label>
+                      <input {...register('email')} type="email" className="church-input" />
+                    </div>
+                    <div>
+                      <label className="church-label">Mobile Number</label>
+                      <input {...register('phone')} disabled className="church-input bg-gray-100 cursor-not-allowed" />
+                    </div>
+                    <div>
+                      <label className="church-label">Date of Birth</label>
+                      <input {...register('dob')} type="date" className="church-input" />
+                    </div>
+                    <div>
+                      <label className="church-label">Gender</label>
+                      <select {...register('gender')} className="church-select">
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="church-label">Sub-Station</label>
+                      <select {...register('subStation')} className="church-select">
+                        <option value="">Select Sub-station</option>
+                        {SUB_STATIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100 space-y-4">
+                    <h3 className="font-bold text-church-royal-blue text-sm flex items-center gap-2">
+                      <FiLock className="text-church-gold" /> Change Password
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <input
+                        type="password"
+                        placeholder="Current Password"
+                        value={passwordData.currentPassword}
+                        onChange={e => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        className="church-input text-xs"
+                      />
+                      <input
+                        type="password"
+                        placeholder="New Password"
+                        value={passwordData.newPassword}
+                        onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        className="church-input text-xs"
+                      />
+                      <input
+                        type="password"
+                        placeholder="Confirm New Password"
+                        value={passwordData.confirmPassword}
+                        onChange={e => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        className="church-input text-xs"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleChangePassword}
+                      disabled={isChangingPassword}
+                      className="btn-outline-gold text-xs py-2 px-4"
+                    >
+                      {isChangingPassword ? 'Updating...' : 'Update Password'}
+                    </button>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100 flex flex-wrap gap-4 items-center justify-between">
+                    <div>
+                      <p className="font-bold text-xs text-red-600">Danger Zone</p>
+                      <p className="text-gray-500 text-[11px]">Logout from active sessions or terminate account</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={logout} className="btn-ghost text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 py-2 px-3">
+                        <FiLogOut /> Logout All Devices
+                      </button>
+                      <button type="button" onClick={() => toast.error('Please contact Church Admin to request permanent account deletion.')} className="btn-ghost text-xs text-red-600 bg-red-50 hover:bg-red-100 py-2 px-3">
+                        <FiTrash2 /> Delete Account
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 2. Notifications */}
+              {activeTab === 'notifications' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiBell className="text-church-gold" /> Notification Settings
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Choose what alerts and updates you receive</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'eventReminders', label: 'Event Reminders' },
+                      { key: 'massSchedule', label: 'Mass Schedule Updates' },
+                      { key: 'prayerMeetings', label: 'Prayer Meeting Notifications' },
+                      { key: 'feastDays', label: 'Feast Day Alerts' },
+                      { key: 'saintOfTheDay', label: 'Saint of the Day' },
+                      { key: 'donationReceipts', label: 'Donation Receipts' },
+                      { key: 'birthdayWishes', label: 'Birthday Wishes' },
+                      { key: 'anniversaryWishes', label: 'Anniversary Wishes' },
+                      { key: 'whatsapp', label: 'WhatsApp Notifications' },
+                      { key: 'email', label: 'Email Notifications' },
+                      { key: 'push', label: 'Push Notifications' },
+                    ].map(item => (
+                      <label key={item.key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100 transition-colors">
+                        <input
+                          type="checkbox"
+                          {...register(`settings.notifications.${item.key}`)}
+                          className="w-4 h-4 text-church-gold rounded focus:ring-church-gold"
+                        />
+                        <span className="text-xs font-semibold text-gray-800">{item.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Language & Accessibility */}
+              {activeTab === 'language_theme' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiGlobe className="text-church-gold" /> Language & Accessibility
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Customize language and accessibility options</p>
+                  </div>
+
+                  <div>
+                    <label className="church-label">Preferred Language</label>
+                    <select {...register('settings.language')} className="church-select max-w-md">
+                      <option value="en">English</option>
+                      <option value="ta">தமிழ் (Tamil)</option>
+                      {/* <option value="ml">மலையாளம் (Malayalam)</option>
+                      <option value="hi">हिन्दी (Hindi)</option> */}
+                    </select>
+                  </div>
+
+
+                  <div className="pt-6 border-t border-gray-100 space-y-4">
+                    <h3 className="font-bold text-church-royal-blue text-sm">Accessibility Settings</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="church-label">Font Size</label>
+                        <select {...register('settings.accessibility.fontSize')} className="church-select">
+                          <option value="normal">Normal</option>
+                          <option value="large">Large</option>
+                          <option value="xlarge">Extra Large</option>
+                        </select>
+                      </div>
+                      {[
+                        { key: 'highContrast', label: 'High Contrast Mode' },
+                        { key: 'reduceAnimations', label: 'Reduce Animations' },
+                        { key: 'screenReader', label: 'Screen Reader Support' }
+                      ].map(acc => (
+                        <label key={acc.key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100">
+                          <input type="checkbox" {...register(`settings.accessibility.${acc.key}`)} className="w-4 h-4 text-church-gold rounded" />
+                          <span className="text-xs font-semibold text-gray-800">{acc.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 5 & 6. Privacy & Data */}
+              {activeTab === 'privacy_data' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiEye className="text-church-gold" />Privacy & Data Settings
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Control profile visibility and personal data exports</p>
+                  </div>
+
+                  <div>
+                    <label className="church-label">Allow Profile Visible to</label>
+                    <select {...register('settings.privacy.visibility')} className="church-select max-w-md">
+                      <option value="everyone">Everyone</option>
+                      <option value="members">Church Members Only</option>
+                      <option value="family">Family Only</option>
+                      <option value="only_me">Only Me</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="church-label">Show Information to Others:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {[
+                        { key: 'showPhone', label: 'Show Phone Number' },
+                        { key: 'showEmail', label: 'Show Email' },
+                        { key: 'showDob', label: 'Show Birthday' },
+                        { key: 'showAddress', label: 'Show Home Address' },
+                      ].map(p => (
+                        <label key={p.key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100">
+                          <input type="checkbox" {...register(`settings.privacy.${p.key}`)} className="w-4 h-4 text-church-gold rounded" />
+                          <span className="text-xs font-semibold text-gray-800">{p.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100 space-y-3">
+                    <h3 className="font-bold text-church-royal-blue text-sm">Data & Storage Controls</h3>
+                    <div className="flex flex-wrap gap-3">
+                      <button type="button" onClick={handleDownloadData} className="btn-outline-gold text-xs py-2.5 px-4 flex items-center gap-2">
+                        <FiDownload /> Download My Data (JSON)
+                      </button>
+                      <button type="button" onClick={handleClearCache} className="btn-ghost text-xs text-gray-700 bg-gray-100 hover:bg-gray-200 py-2.5 px-4">
+                        Clear Browser Cache
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 7. Family Settings */}
+              {activeTab === 'family' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                        <FiUsers className="text-church-gold" />Family Settings
+                      </h2>
+                      <p className="text-gray-500 text-xs mt-1">Manage family name, role, and household members</p>
+                    </div>
+                    <button type="button" onClick={() => append({ name: '', role: '' })} className="btn-gold py-2 px-3 text-xs">
+                      <FiPlus /> Add Family Member
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="church-label">Current Family Name</label>
+                      <input {...register('familyName')} className="church-input" placeholder="e.g. Xavier Family" />
+                    </div>
+                    <div>
+                      <label className="church-label">Your Role in Family</label>
+                      <select {...register('familyRole')} className="church-select">
+                        <option value="">Select Role</option>
+                        {FAMILY_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 pt-4">
+                    <h3 className="font-bold text-sm text-church-royal-blue">Listed Household Members ({fields.length})</h3>
+                    {fields.map((item, index) => (
+                      <div key={item.id} className="grid grid-cols-12 gap-3 items-start bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <div className="col-span-6">
+                          <input {...register(`familyMembers.${index}.name`)} className="church-input py-2 text-xs" placeholder="Member Name" />
+                        </div>
+                        <div className="col-span-5">
+                          <select {...register(`familyMembers.${index}.role`)} className="church-select py-2 text-xs">
+                            <option value="">Select Role</option>
+                            {FAMILY_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                          </select>
+                        </div>
+                        <div className="col-span-1 pt-1 flex justify-center">
+                          <button type="button" onClick={() => remove(index)} className="text-red-500 hover:text-red-700 p-1.5">
+                            <FiTrash2 />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 8 & 9. Ministries & Volunteering */}
+              {activeTab === 'ministries_volunteer' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiHeart className="text-church-gold" />Ministry & Volunteer Preferences
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Select ministries you wish to participate in and volunteer availability</p>
+                  </div>
+
+                  <div>
+                    <label className="church-label mb-2 block">Select Ministries You're Interested In</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {['Choir', 'Youth', 'Sunday School', 'Altar Servers', 'Legion of Mary', 'Prayer Group'].map(m => (
+                        <label key={m} className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100">
+                          <input
+                            type="checkbox"
+                            value={m}
+                            {...register('settings.ministries')}
+                            className="w-4 h-4 text-church-gold rounded"
+                          />
+                          <span className="text-xs font-semibold text-gray-800">{m}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100 space-y-4">
+                    <h3 className="font-bold text-church-royal-blue text-sm">Volunteer Availability</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="church-label">Available Time of Day</label>
+                        <select {...register('settings.volunteering.timeOfDay')} className="church-select">
+                          <option value="Morning">Morning</option>
+                          <option value="Afternoon">Afternoon</option>
+                          <option value="Evening">Evening</option>
+                          <option value="Anytime">Anytime</option>
+                        </select>
+                      </div>
+                      <label className="flex items-center gap-3 p-3 bg-amber-50/60 border border-amber-200 rounded-xl cursor-pointer self-end">
+                        <input type="checkbox" {...register('settings.volunteering.emergencyVolunteer')} className="w-4 h-4 text-amber-600 rounded" />
+                        <span className="text-xs font-bold text-amber-900">Emergency Volunteer On-Call</span>
+                      </label>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 10. Prayer Preferences */}
+              {activeTab === 'prayer' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiCalendar className="text-church-gold" />Prayer & Devotional Preferences
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Configure automated spiritual reminders and daily verses</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'dailyBibleVerse', label: 'Receive Daily Bible Verse' },
+                      { key: 'saintOfTheDay', label: 'Receive Saint of the Day' },
+                      { key: 'prayerReminder', label: 'Prayer Reminder' },
+                      { key: 'rosaryReminder', label: 'Rosary Reminder' },
+                      { key: 'massReminder', label: 'Mass Reminder' },
+                    ].map(p => (
+                      <label key={p.key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100">
+                        <input type="checkbox" {...register(`settings.prayer.${p.key}`)} className="w-4 h-4 text-church-gold rounded" />
+                        <span className="text-xs font-semibold text-gray-800">{p.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 11. Donation Settings */}
+              {activeTab === 'donations' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiDollarSign className="text-church-gold" />Donation Settings
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Default offering amounts and payment preferences</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="church-label">Default Offering Amount (₹)</label>
+                      <input type="number" {...register('settings.donations.defaultAmount')} className="church-input" />
+                    </div>
+                    <div>
+                      <label className="church-label">Preferred Payment Method</label>
+                      <select {...register('settings.donations.preferredPaymentMethod')} className="church-select">
+                        <option value="UPI">UPI / GPay / PhonePe</option>
+                        <option value="Card">Credit / Debit Card</option>
+                        <option value="NetBanking">Net Banking</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100 flex flex-wrap gap-3">
+                    <Link to="/donate" className="btn-gold text-xs py-2.5 px-4">
+                      Make a Donation Now
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 12 & 13. Security & Connected Accounts */}
+              {activeTab === 'security' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiShield className="text-church-gold" />Security & Connected Accounts
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Manage active devices and third-party logins</p>
+                  </div>
+
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-gray-800">Current Session Device</p>
+                        <p className="text-[11px] text-gray-500">Windows Chrome • IP 127.0.0.1 (Active Now)</p>
+                      </div>
+                      <span className="px-2.5 py-1 bg-green-100 text-green-800 rounded-full text-[10px] font-bold">Connected</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="font-bold text-sm text-church-royal-blue">Connected Accounts</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {['Google Login', 'WhatsApp Number'].map((acc, i) => (
+                        <div key={acc} className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-gray-800">{acc}</span>
+                          <span className="text-[10px] text-green-600 font-bold">Linked</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 14, 15 & 16. App & Location Preferences */}
+              {activeTab === 'app_location' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiGrid className="text-church-gold" />App & Location Preferences
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Configure layout, views, and location-based alerts</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="church-label">Default Home Landing Page</label>
+                      <select {...register('settings.appPreferences.defaultHomePage')} className="church-select">
+                        <option value="Dashboard">User Dashboard</option>
+                        <option value="Home">Church Home Page</option>
+                        <option value="Mass">Mass Timings</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="church-label">Default Calendar View</label>
+                      <select {...register('settings.appPreferences.calendarView')} className="church-select">
+                        <option value="Month">Month View</option>
+                        <option value="List">List View</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    {[
+                      { key: 'enableLocation', label: 'Enable Location Services' },
+                      { key: 'nearestParishSuggestions', label: 'Nearest Parish Suggestions' },
+                      { key: 'locationBasedEvents', label: 'Location-based Event Notifications' },
+                    ].map(loc => (
+                      <label key={loc.key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100">
+                        <input type="checkbox" {...register(`settings.location.${loc.key}`)} className="w-4 h-4 text-church-gold rounded" />
+                        <span className="text-xs font-semibold text-gray-800">{loc.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 17 & 18. Church & Emergency Contact */}
+              {activeTab === 'church_emergency' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiCrosshair className="text-church-gold" />Church & Emergency Preferences
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Specify preferred Mass times, parish priest, and emergency contact</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="church-label">Preferred Parish</label>
+                      <select {...register('settings.churchPreferences.preferredParish')} className="church-select">
+                        <option>Select Preferred Parish</option>
+                        <option value="St. John de Britto Church (Kalayarkoil)">St. John de Britto Church (Kalayarkoil)</option>
+                        {SUB_STATIONS.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                  </div>
+
+                  <div>
+                    <label className="church-label mb-2 block">Preferred Mass Timings</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {MASS_SCHEDULE_OPTIONS.map(m => (
+                        <label key={m.id} className="flex items-center gap-3 p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100 transition-colors">
+                          <input
+                            type="checkbox"
+                            value={m.label}
+                            {...register('settings.churchPreferences.preferredMassTiming')}
+                            className="w-4 h-4 text-church-gold rounded focus:ring-church-gold"
+                          />
+                          <span className="text-xs font-semibold text-gray-800">{m.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-gray-100 space-y-4">
+
+                    <h3 className="font-bold text-church-royal-blue text-sm">Emergency Contact</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <label className="church-label">Contact Name</label>
+                        <input {...register('settings.emergencyContact.name')} className="church-input" placeholder="Name" />
+                      </div>
+                      <div>
+                        <label className="church-label">Relationship</label>
+                        <input {...register('settings.emergencyContact.relationship')} className="church-input" placeholder="e.g. Spouse / Brother" />
+                      </div>
+                      <div>
+                        <label className="church-label">Phone Number</label>
+                        <input {...register('settings.emergencyContact.phone')} className="church-input" placeholder="Phone" />
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* AI-Based Settings */}
+              {activeTab === 'ai_preferences' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiCpu className="text-church-gold" /> AI-Based Settings (Smart Personalization)
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Control AI recommendations for events, career guidance, and spiritual growth</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'notificationRecommendations', label: 'AI Notification Recommendations' },
+                      { key: 'careerGuidance', label: 'AI Career Guidance Preferences' },
+                      { key: 'spiritualGrowth', label: 'AI Spiritual Growth Suggestions' },
+                      { key: 'eventRecommendations', label: 'AI Event Recommendations' },
+                      { key: 'familyInsights', label: 'AI Family Insights' },
+                      { key: 'prayerSuggestions', label: 'AI Prayer Suggestions' },
+                    ].map(ai => (
+                      <label key={ai.key} className="flex items-center gap-3 p-3.5 bg-gradient-to-r from-amber-50/50 to-white rounded-xl hover:bg-amber-50 cursor-pointer border border-amber-200/60 shadow-xs">
+                        <input type="checkbox" {...register(`settings.aiSettings.${ai.key}`)} className="w-4 h-4 text-church-gold rounded" />
+                        <span className="text-xs font-bold text-gray-800">{ai.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Admin-Configurable Preferences */}
+              {activeTab === 'admin_comm' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiRadio className="text-church-gold" /> Admin-Configurable Member Preferences
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">Control permissions for church staff communication and automated syncing</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { key: 'receiveAnnouncements', label: 'Receive Parish Announcements' },
+                      { key: 'receiveEmergencyAlerts', label: 'Receive Urgent Emergency Alerts' },
+                      // { key: 'joinBetaFeatures', label: 'Join Beta Features' },
+                      { key: 'autoSyncFamily', label: 'Auto-sync profile with family' },
+                      { key: 'allowStaffContact', label: 'Allow church staff to contact me' },
+                      { key: 'receiveVolunteerRequests', label: 'Receive volunteer requests' },
+                    ].map(adm => (
+                      <label key={adm.key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100">
+                        <input type="checkbox" {...register(`settings.adminCommPreferences.${adm.key}`)} className="w-4 h-4 text-church-gold rounded" />
+                        <span className="text-xs font-semibold text-gray-800">{adm.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* 19 & 20. Feedback & About */}
+              {activeTab === 'feedback_about' && (
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
+                  <div className="border-b border-gray-100 pb-4">
+                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                      <FiInfo className="text-church-gold" />Feedback & App Info
+                    </h2>
+                    <p className="text-gray-500 text-xs mt-1">App version, support channels, and feedback options</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                      <h3 className="font-bold text-xs text-church-royal-blue uppercase tracking-wider">Church Management System</h3>
+                      <p className="text-xs text-gray-600">St. John de Britto's Church, Kalayarkoil</p>
+                      <p className="text-[11px] text-gray-400">Version 2.4.0 (Build 2026.07)</p>
+                    </div>
+
+                    <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                      <h3 className="font-bold text-xs text-church-royal-blue uppercase tracking-wider">Help & Feedback</h3>
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <Link to="/contact" className="text-xs font-bold text-church-gold hover:underline">Contact Administrator</Link>
+                        {/* <span className="text-gray-300">•</span>
+                        <Link to="/dashboard/tickets" className="text-xs font-bold text-church-gold hover:underline">Report Bug / Raise Ticket</Link> */}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Bottom Sticky Save Bar */}
+              <div className="sticky bottom-4 bg-white/90 backdrop-blur-md p-4 rounded-2xl border border-gray-200 shadow-xl flex items-center justify-between">
+                <p className="text-xs text-gray-500 font-medium">Unsaved changes will be updated upon clicking Save Settings.</p>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn-gold py-2.5 px-6 text-xs font-bold shadow-gold flex items-center gap-2"
+                >
+                  <FiSave className="text-base" /> {isSubmitting ? 'Saving...' : 'Save Settings'}
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

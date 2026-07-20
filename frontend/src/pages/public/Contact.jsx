@@ -30,7 +30,7 @@ export default function Contact() {
   };
 
   return (
-    <div className="min-h-screen pt-28 bg-church-cream ">
+    <div className="min-h-screen pt-10 bg-church-cream ">
       <PageHero title={<>{t('nav.contact')}</>} subtitle={<>Get In Touch</>} />
 
       <section className="py-16">
@@ -72,11 +72,12 @@ export default function Contact() {
               <div className="rounded-2xl overflow-hidden shadow-card border border-gray-100 ">
                 <iframe
                   title="St. John de Britto's Church Location"
-                  width="100%" height="280"
+                  width="100%" height="320"
                   style={{ border: 0 }}
                   loading="lazy"
-                  src="https://maps.google.com/maps?q=Kalayarkoil+Church+Tamil+Nadu&output=embed"
+                  src="https://maps.google.com/maps?q=St.+John+de+Britto+Church,+Kalayarkoil,+Tamil+Nadu+630551&t=&z=16&ie=UTF8&iwloc=&output=embed"
                 />
+
               </div>
             </motion.div>
 

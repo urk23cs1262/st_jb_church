@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useForm, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { FiEye, FiEyeOff, FiPlus, FiTrash2, FiChevronRight, FiChevronLeft } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiPlus, FiTrash2, FiChevronRight, FiChevronLeft, FiUsers, FiUserCheck, FiCheckCircle, FiRefreshCw } from 'react-icons/fi';
 import api from '../../services/api';
 import churchLogo from '../../assets/image.png';
+
 
 const SUB_STATIONS = [
   "Kalayarkoil (Main Parish)",
@@ -23,13 +24,13 @@ const FAMILY_ROLES = ['Father', 'Mother', 'Elder Son', 'Younger Son', 'Elder Dau
 export default function Register() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { register, handleSubmit, control, watch, trigger, setValue, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, control, watch, trigger, setValue, getValues, formState: { errors, isSubmitting } } = useForm({
     defaultValues: {
       familyMembers: []
     }
   });
   
-  const { fields, append, remove } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control,
     name: "familyMembers"
   });
@@ -39,6 +40,29 @@ export default function Register() {
   const [userId, setUserId] = useState(null);
   const [devOtp, setDevOtp] = useState(null);
   const [isOtpLoading, setIsOtpLoading] = useState(false);
+
+  // Family lookup state
+  const [suggestedFamilies, setSuggestedFamilies] = useState([]);
+  const [isFetchingFamilies, setIsFetchingFamilies] = useState(false);
+  const [selectedMemberKey, setSelectedMemberKey] = useState(null);
+
+  const fetchFamilyLookup = async (famName) => {
+    if (!famName || !famName.trim()) {
+      setSuggestedFamilies([]);
+      return;
+    }
+    setIsFetchingFamilies(true);
+    try {
+      const res = await api.get(`/auth/family-lookup?familyName=${encodeURIComponent(famName.trim())}`);
+      if (res.data.success) {
+        setSuggestedFamilies(res.data.families || []);
+      }
+    } catch (e) {
+      console.error('Family lookup failed', e);
+    } finally {
+      setIsFetchingFamilies(false);
+    }
+  };
 
   const handleNextStep = async () => {
     let fieldsToValidate = [];
@@ -50,11 +74,54 @@ export default function Register() {
 
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
+      if (currentStep === 1) {
+        const famName = getValues('familyName');
+        fetchFamilyLookup(famName);
+      }
       setCurrentStep(prev => prev + 1);
     } else {
       toast.error('Please fill in all required fields');
     }
   };
+
+  const handleSelectFamilyMember = (family, member, mIdx) => {
+    const key = `${family.userId}-${mIdx}`;
+    setSelectedMemberKey(key);
+
+    // Auto-fill familyRole
+    if (FAMILY_ROLES.includes(member.role)) {
+      setValue('familyRole', member.role);
+    } else {
+      setValue('familyRole', 'Other');
+      setValue('familyRoleOther', member.role);
+    }
+
+    // Auto-fill subStation if not already filled or matching
+    if (family.subStation) {
+      setValue('subStation', family.subStation);
+    }
+
+    // Filter out selected member and populate remaining family members
+    const otherMembers = family.allMembers
+      .filter((_, idx) => idx !== mIdx)
+      .map(m => ({
+        name: m.name,
+        role: FAMILY_ROLES.includes(m.role) ? m.role : 'Other',
+        roleOther: FAMILY_ROLES.includes(m.role) ? '' : m.role
+      }));
+
+    replace(otherMembers);
+    toast.success(`Role set to "${member.role}" and ${otherMembers.length} family member(s) auto-filled!`);
+  };
+
+  const handleClearAutoFill = () => {
+    setSelectedMemberKey(null);
+    setValue('familyRole', '');
+    setValue('familyRoleOther', '');
+    replace([]);
+    toast.info('Cleared family auto-fill');
+  };
+
 
   const prevStep = () => setCurrentStep(prev => prev - 1);
 
@@ -187,8 +254,81 @@ export default function Register() {
                   exit={{ x: -20, opacity: 0 }}
                   className="space-y-6"
                 >
+                  {isFetchingFamilies && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3 text-amber-800 text-xs">
+                      <FiRefreshCw className="animate-spin text-amber-600 text-base" />
+                      <span>Searching for existing family members registered under "{watch('familyName')}"...</span>
+                    </div>
+                  )}
+
+                  {!isFetchingFamilies && suggestedFamilies.length > 0 && (
+                    <div className="bg-gradient-to-br from-amber-50/90 to-amber-100/50 rounded-2xl p-5 border border-amber-300/60 shadow-sm space-y-4">
+                      <div className="flex items-start justify-between gap-2 border-b border-amber-200/60 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 bg-amber-500 text-white rounded-xl shadow-sm">
+                            <FiUsers className="text-lg" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-amber-950 text-sm flex items-center gap-1.5">
+                              Registered Family Found: <span className="text-church-royal-blue">{suggestedFamilies[0].familyName}</span>
+                            </h3>
+                            <p className="text-amber-800/80 text-[11px] mt-0.5">
+                              Click your profile below to auto-fill your role and existing family members
+                            </p>
+                          </div>
+                        </div>
+                        {selectedMemberKey && (
+                          <button
+                            type="button"
+                            onClick={handleClearAutoFill}
+                            className="text-xs font-semibold text-amber-800 hover:text-amber-950 flex items-center gap-1 bg-amber-200/60 hover:bg-amber-200 px-2.5 py-1 rounded-lg transition-colors"
+                          >
+                            <FiRefreshCw className="text-xs" /> Reset
+                          </button>
+                        )}
+                      </div>
+
+                      {suggestedFamilies.map((fam, fIdx) => (
+                        <div key={fam.userId || fIdx} className="space-y-2">
+                          {fam.subStation && (
+                            <div className="text-[11px] text-amber-800/90 font-medium">
+                              Sub-Station: <span className="font-bold">{fam.subStation}</span>
+                            </div>
+                          )}
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {fam.allMembers.map((m, mIdx) => {
+                              const key = `${fam.userId}-${mIdx}`;
+                              const isSelected = selectedMemberKey === key;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => handleSelectFamilyMember(fam, m, mIdx)}
+                                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${
+                                    isSelected
+                                      ? 'bg-amber-600 text-white shadow-amber-600/30 ring-2 ring-amber-600 ring-offset-1 scale-[1.02]'
+                                      : 'bg-white hover:bg-amber-50 text-gray-800 border border-amber-200/80 hover:border-amber-400'
+                                  }`}
+                                >
+                                  {isSelected ? <FiCheckCircle className="text-white text-sm" /> : <FiUserCheck className="text-amber-600 text-sm" />}
+                                  <span>{m.name}</span>
+                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                    isSelected ? 'bg-amber-700 text-amber-100' : 'bg-amber-100 text-amber-900'
+                                  }`}>
+                                    {m.role}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   <div>
                     <label className="church-label">Your Role in Family *</label>
+
                     <select {...register('familyRole', { required: 'Role is required' })} className="church-input">
                       <option value="">Select your role</option>
                       {FAMILY_ROLES.map(r => <option key={r} value={r}>{r}</option>)}

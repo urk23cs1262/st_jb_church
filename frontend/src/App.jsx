@@ -25,6 +25,8 @@ const Rosary = lazy(() => import('./pages/public/Rosary'));
 const CatholicCalendar = lazy(() => import('./pages/public/CatholicCalendar'));
 const FAQ = lazy(() => import('./pages/public/FAQ'));
 const ParishCouncil = lazy(() => import('./pages/public/ParishCouncil'));
+const NearbyParishes = lazy(() => import('./pages/public/NearbyParishes'));
+
 
 import AdminLayout from './components/admin/AdminLayout';
 
@@ -38,6 +40,8 @@ const UserBooking = lazy(() => import('./pages/user/Booking'));
 const UserDocuments = lazy(() => import('./pages/user/Documents'));
 const UserTickets = lazy(() => import('./pages/user/Tickets'));
 const UserProfile = lazy(() => import('./pages/user/Profile'));
+const UserSettings = lazy(() => import('./pages/user/Settings'));
+
 
 // Admin dashboard
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
@@ -93,12 +97,16 @@ function AppRoutes() {
             <Route path="/calendar" element={<CatholicCalendar />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/parish-council" element={<ParishCouncil />} />
+            <Route path="/nearby-parishes" element={<NearbyParishes />} />
+
             {/* User dashboard routes */}
             <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
             <Route path="/dashboard/booking" element={<ProtectedRoute><UserBooking /></ProtectedRoute>} />
             <Route path="/dashboard/documents" element={<ProtectedRoute><UserDocuments /></ProtectedRoute>} />
             <Route path="/dashboard/tickets" element={<ProtectedRoute><UserTickets /></ProtectedRoute>} />
-            <Route path="/dashboard/profile" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+            <Route path="/dashboard/settings" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
+            <Route path="/dashboard/profile" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
+
           </Route>
 
           {/* Auth routes */}

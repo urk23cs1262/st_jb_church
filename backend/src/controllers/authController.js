@@ -212,4 +212,52 @@ const getMe = async (req, res) => {
   res.json({ success: true, user: req.user });
 };
 
-module.exports = { register, verifyOtp, login, resendOtp, forgotPassword, resetPassword, getMe };
+// @GET /api/auth/family-lookup?familyName=...
+const lookupFamily = async (req, res) => {
+  try {
+    const { familyName } = req.query;
+    if (!familyName || !familyName.trim()) {
+      return res.json({ success: true, families: [] });
+    }
+
+    const cleanName = familyName.trim();
+    const users = await User.find({
+      familyName: { $regex: new RegExp('^' + cleanName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + '$', 'i') }
+    }).select('name familyName familyRole familyMembers subStation phone email');
+
+    if (!users || users.length === 0) {
+      return res.json({ success: true, families: [] });
+    }
+
+    const families = users.map(user => {
+      const allMembers = [];
+      if (user.name) {
+        allMembers.push({ name: user.name, role: user.familyRole || 'Head', isRegisteredUser: true });
+      }
+      if (user.familyMembers && Array.isArray(user.familyMembers)) {
+        user.familyMembers.forEach(m => {
+          if (m.name) {
+            allMembers.push({ name: m.name, role: m.role || 'Member', isRegisteredUser: false });
+          }
+        });
+      }
+
+      return {
+        userId: user._id,
+        familyName: user.familyName,
+        subStation: user.subStation,
+        primaryUser: { name: user.name, role: user.familyRole },
+        familyMembers: user.familyMembers || [],
+        allMembers
+      };
+    });
+
+    res.json({ success: true, families });
+  } catch (err) {
+    console.error('lookupFamily error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { register, verifyOtp, login, resendOtp, forgotPassword, resetPassword, getMe, lookupFamily };
+

@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { FiUser, FiCalendar, FiFileText, FiMessageSquare, FiBell, FiEdit, FiDownload, FiCheckCircle, FiX, FiInfo } from 'react-icons/fi';
+import { FiUser, FiCalendar, FiFileText, FiMessageSquare, FiBell, FiEdit, FiSettings, FiDownload, FiCheckCircle, FiX, FiInfo } from 'react-icons/fi';
+
 import { FaDonate } from "react-icons/fa";
 import { GiChurch, GiCrucifix, GiPrayer, GiHeartBottle } from 'react-icons/gi';
 import api, { UPLOADS_URL } from '../../services/api';
@@ -128,19 +129,30 @@ export default function UserDashboard() {
       {/* Header */}
       <div className="bg-gray-600 py-12">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0">
-              {user?.profilePhoto ? <img src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`} alt="profile" className="w-full h-full object-cover rounded-full" /> : <span className="text-white text-2xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>}
+          <div className="flex items-center gap-6 md:gap-8">
+            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0 ring-4 ring-white/20">
+              {user?.profilePhoto ? (
+                <img
+                  src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`}
+                  alt="profile"
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <span className="text-white text-4xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>
+              )}
             </div>
             <div>
-              <p className="text-gold-400 text-sm">Welcome back</p>
-              <h1 className="text-white font-display text-2xl font-bold">{user?.name}</h1>
-              <p className="text-gray-300 text-sm">{user?.phone} {user?.parishMemberId ? `• ID: ${user.parishMemberId}` : ''}</p>
+              <p className="text-gold-400 text-base md:text-lg font-medium tracking-wide">Welcome back</p>
+              <h1 className="text-white font-display text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight my-1">{user?.name}</h1>
+              <p className="text-gray-200 text-base md:text-lg font-medium">
+                {user?.phone} {user?.parishMemberId ? `• ID: ${user.parishMemberId}` : ''}
+              </p>
             </div>
-            <Link to="/dashboard/profile" className="ml-auto btn-outline-gold text-sm py-2">
-              <FiEdit /> Edit Profile
+            <Link to="/dashboard/settings" className="ml-auto btn-outline-gold text-base py-3 px-6 shadow-md border-2">
+              <FiSettings className="text-lg" /> Settings
             </Link>
           </div>
+
         </div>
       </div>
 

@@ -114,7 +114,7 @@ async function connectToWhatsApp() {
 
     // ── Incoming Messages ──────────────────────────────────────────────────────
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
-      if (type !== 'notify') return;
+      if (type !== 'notify' && type !== 'append') return;
 
       for (const msg of messages) {
         // Ignore: status updates, broadcast lists
@@ -125,7 +125,7 @@ async function connectToWhatsApp() {
           const remoteJidNum = msg.key.remoteJid ? msg.key.remoteJid.replace(/\D/g, '') : '';
 
           // If it's an outgoing message sent to someone else, ignore
-          if (!myJid || myJid !== remoteJidNum) continue;
+          if (!myJid || myJid.slice(-10) !== remoteJidNum.slice(-10)) continue;
 
           // If messaging self (testing), ignore automated bot responses to prevent loops
           const textContent =

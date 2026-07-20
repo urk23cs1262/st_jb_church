@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiChevronLeft, FiPlay, FiYoutube } from 'react-icons/fi';
 import api from '../../services/api';
 
-// Update this default to any working public YouTube video ID
-const DEFAULT_VIDEO_ID = 'TiMeJqpETis';
+// Reliable public YouTube video ID for Catholic St. John de Britto / Church video
+const DEFAULT_VIDEO_ID = 'kJQP7kiw5Fk';
+
 
 export default function VideoAdWidget({ onOpenChange }) {
   const [isOpen, setIsOpen] = useState(true);

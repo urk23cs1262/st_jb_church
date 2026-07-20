@@ -5,16 +5,29 @@ import { FiX, FiExternalLink, FiInfo } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import api from '../../services/api';
 
+const FALLBACK_SAINT = {
+  name: "St. John de Britto",
+  description: "St. John de Britto (Arul Anandar) was a Portuguese Jesuit missionary and martyr who embraced Tamil culture and gave his life for his faith in 1693.",
+  image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/St._John_De_Britto.jpg/500px-St._John_De_Britto.jpg",
+  link: "https://www.catholic.org/saints/saint.php?saint_id=4025"
+};
+
 export default function DailySaintTicker() {
   const { t, i18n } = useTranslation();
-  const [saint, setSaint] = useState(null);
+  const [saint, setSaint] = useState(FALLBACK_SAINT);
   const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     api.get('/daily-saint')
-      .then(res => setSaint(res.data.saint))
-      .catch(err => console.error('Daily Saint Error:', err));
+      .then(res => {
+        if (res.data.saint) setSaint(res.data.saint);
+      })
+      .catch(err => {
+        console.error('Daily Saint Error, using fallback:', err);
+        setSaint(FALLBACK_SAINT);
+      });
   }, []);
+
 
   useEffect(() => {
     if (!showModal) return;

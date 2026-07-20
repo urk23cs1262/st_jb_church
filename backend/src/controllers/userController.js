@@ -28,7 +28,7 @@ const updateProfile = async (req, res) => {
   try {
     let { 
       name, familyName, dob, gender, address, email, 
-      preferredLanguage, subStation, familyRole, familyMembers 
+      preferredLanguage, subStation, familyRole, familyMembers, settings 
     } = req.body;
     
     if (email === "") email = undefined;
@@ -42,10 +42,20 @@ const updateProfile = async (req, res) => {
       }
     }
 
+    if (typeof settings === 'string') {
+      try {
+        settings = JSON.parse(settings);
+      } catch (e) {
+        console.error('Error parsing settings:', e);
+      }
+    }
+
     const updateData = { 
       name, familyName, dob, gender, address, email, 
       preferredLanguage, subStation, familyRole, familyMembers 
     };
+    if (settings) updateData.settings = settings;
+
     
     if (req.file) updateData.profilePhoto = `/uploads/profiles/${req.file.filename}`;
     
@@ -86,8 +96,28 @@ const changePassword = async (req, res) => {
     if (!match) return res.status(400).json({ success: false, message: 'Current password incorrect' });
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await User.findByIdAndUpdate(req.user._id, { passwordHash });
-    res.json({ success: true, message: 'Password changed successfully' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-module.exports = { getAllUsers, getUserById, updateProfile, updateUser, deleteUser, changePassword };
+// PUT /api/users/settings — self
+
+const updateSettings = async (req, res) => {
+  try {
+    const { settings } = req.body;
+    if (!settings) {
+      return res.status(400).json({ success: false, message: 'Settings payload is required' });
+    }
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { settings } },
+      { new: true }
+    ).select('-passwordHash -otp -otpExpires');
+
+    res.json({ success: true, message: 'Settings saved successfully', user });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getAllUsers, getUserById, updateProfile, updateUser, deleteUser, changePassword, updateSettings };
+
