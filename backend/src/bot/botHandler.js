@@ -306,7 +306,10 @@ _St. John de Britto's Church_
       linkedUser = await User.findOne({ phone: { $regex: enteredPhone.slice(-10) } });
 
       if (!linkedUser) {
-        // silent — ignore, let them try again or SKIP
+        // Not found — give clear feedback so user knows what to do
+        await getWA().sendWhatsAppMessage(replyTarget,
+          `❌ *No parish account found* with mobile number *${enteredPhone.slice(-10)}*.\n\nPlease check the number and try again, or reply *SKIP* to continue without linking.`
+        );
         return;
       }
 
