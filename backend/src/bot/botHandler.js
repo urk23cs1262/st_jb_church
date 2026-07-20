@@ -129,7 +129,7 @@ const langMap = {
 
 // ─── Handle Incoming Message ─────────────────────────────────────────────────
 
-async function handleIncomingMessage(fromNumber, body, rawJid) {
+async function handleIncomingMessage(fromNumber, body, rawJid, pushName) {
   const text = (body || '').trim().toUpperCase();
 
   // Destination JID for sending replies back (e.g. "13430564061424@lid" or "919876543210@s.whatsapp.net")
@@ -155,6 +155,28 @@ async function handleIncomingMessage(fromNumber, body, rawJid) {
 
   // Update last message time
   session.lastMessage = new Date();
+
+  // Try auto-linking by phone or pushName if not linked yet
+  if (!session.linkedUserId) {
+    let linkedCandidate = null;
+    if (phone && phone.length >= 10 && !rawJid?.includes('@lid')) {
+      linkedCandidate = await User.findOne({ phone: { $regex: phone.slice(-10) } });
+    }
+    if (!linkedCandidate && pushName && pushName.trim().length >= 2) {
+      const cleanName = pushName.trim();
+      const firstWord = cleanName.split(' ')[0];
+      linkedCandidate = await User.findOne({
+        $or: [
+          { name: { $regex: cleanName, $options: 'i' } },
+          { name: { $regex: firstWord, $options: 'i' } }
+        ]
+      });
+    }
+    if (linkedCandidate) {
+      session.linkedUserId = linkedCandidate._id;
+      await session.save();
+    }
+  }
 
   // Helper to check if incoming text is a HI / greeting / reset trigger
   const isHiTrigger =
@@ -197,21 +219,35 @@ async function handleIncomingMessage(fromNumber, body, rawJid) {
     }
 
     session.language = lang;
-    session.step = 'done';
-    await session.save();
 
-    // Try to link to existing User by phone if phone is a valid number
+    // Try to link to existing User by phone (non-@lid users only)
     let linkedUser = null;
-    if (phone && phone.length >= 10) {
+    if (session.linkedUserId) {
+      linkedUser = await User.findById(session.linkedUserId);
+    }
+    if (!linkedUser && phone && phone.length >= 10 && !rawJid?.includes('@lid')) {
       linkedUser = await User.findOne({ phone: { $regex: phone.slice(-10) } });
-      if (linkedUser) {
-        session.linkedUserId = linkedUser._id;
-        await session.save();
-        linkedUser.whatsappOptIn = true;
-        linkedUser.botPreferences = session.preferences;
-        linkedUser.preferredLanguage = lang;
-        await linkedUser.save();
-      }
+    }
+
+    if (linkedUser) {
+      session.linkedUserId = linkedUser._id;
+      linkedUser.whatsappOptIn = true;
+      linkedUser.botPreferences = session.preferences;
+      linkedUser.preferredLanguage = lang;
+      await linkedUser.save();
+      session.step = 'done';
+      await session.save();
+    } else if (rawJid?.includes('@lid')) {
+      // @lid user — can't auto-detect phone, ask them
+      session.step = 'link_phone';
+      await session.save();
+      await getWA().sendWhatsAppMessage(replyTarget,
+        `📱 *Link Your Parish Account*\n\nTo connect your WhatsApp to your existing parish account, please reply with your *registered mobile number* (10 digits).\n\nExample: *9876543210*\n\n_(Reply *SKIP* if you don't have a parish account)_`
+      );
+      return;
+    } else {
+      session.step = 'done';
+      await session.save();
     }
 
     const prefLabels = session.preferences.map(p => {
@@ -242,13 +278,63 @@ To access personalized parish services (family registration, event bookings, mas
       notifyAdminsUnregisteredBotUser(session, phone, replyTarget).catch(e => console.warn('Admin bot activity email error:', e.message));
     }
 
-
     confirmMsg += `\n\n✝️ May God bless you!
 — *SJDB Connect*
 _St. John de Britto's Church_
 
 📱 Reply *STOP* to unsubscribe or *HI* to change preferences.`;
 
+    await getWA().sendWhatsAppMessage(replyTarget, confirmMsg);
+    return;
+
+  }
+
+  // ── Step: Link phone number (@lid users) ────────────────────────────────
+  if (session.step === 'link_phone') {
+    const isSkip = text === 'SKIP';
+    const enteredPhone = body.trim().replace(/\D/g, '');
+
+    let linkedUser = null;
+
+    if (!isSkip && enteredPhone.length >= 10) {
+      linkedUser = await User.findOne({ phone: { $regex: enteredPhone.slice(-10) } });
+
+      if (!linkedUser) {
+        await getWA().sendWhatsAppMessage(replyTarget,
+          `⚠️ No parish account found with that mobile number.\n\nPlease check and try again, or reply *SKIP* if you don't have an account.`
+        );
+        return;
+      }
+
+      session.linkedUserId = linkedUser._id;
+      linkedUser.whatsappOptIn = true;
+      linkedUser.botPreferences = session.preferences;
+      linkedUser.preferredLanguage = session.language;
+      await linkedUser.save();
+    }
+
+    session.step = 'done';
+    await session.save();
+
+    const prefLabels = session.preferences.map(p => {
+      const labels = { verse: 'Bible Verse', saint: 'Saint of the Day', mass: 'Mass Readings', events: 'Events', announcements: 'Announcements', birthday: 'Birthday Wishes' };
+      return `✅ ${labels[p]}`;
+    }).join('\n');
+
+    const langLabel = { en: 'English', ta: 'Tamil', both: 'English & Tamil' }[session.language || 'en'];
+
+    let confirmMsg = linkedUser
+      ? `✅ *Account Linked Successfully!*\n\nWelcome, *${linkedUser.name}*! Your WhatsApp is now linked to your parish account.\n\n`
+      : `🎉 *You're all set!*\n\n`;
+
+    confirmMsg += `You will receive:\n${prefLabels}\n\n🌐 Language: *${langLabel}*\n\nDaily messages are sent at *6:00 AM IST* every morning.\n\n🔗 *Visit Our Parish Portal:*\n${CLIENT_URL}`;
+
+    if (!linkedUser) {
+      confirmMsg += `\n\n💡 *Create Your Parish Account:*\nTo access personalized parish services, create your free account:\n👉 ${CLIENT_URL}/register`;
+      notifyAdminsUnregisteredBotUser(session, phone, replyTarget).catch(e => console.warn('Admin bot activity email error:', e.message));
+    }
+
+    confirmMsg += `\n\n✝️ May God bless you!\n— *SJDB Connect*\n_St. John de Britto's Church_\n\n📱 Reply *STOP* to unsubscribe or *HI* to change preferences.`;
     await getWA().sendWhatsAppMessage(replyTarget, confirmMsg);
     return;
 

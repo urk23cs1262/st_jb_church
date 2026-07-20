@@ -5,7 +5,7 @@ const botSessionSchema = new mongoose.Schema({
   phoneNumber: { type: String, required: true, unique: true }, // e.g. "919876543210"
   step: {
     type: String,
-    enum: ['welcome', 'preferences', 'language', 'done'],
+    enum: ['welcome', 'preferences', 'language', 'link_phone', 'done'],
     default: 'welcome'
   },
   preferences: [{

@@ -102,9 +102,10 @@ async function runDailyBroadcast() {
     const subscriberMap = new Map();
 
     dbUsers.forEach(u => {
-      const p = u.phone.replace(/\D/g, '');
-      if (p) {
-        subscriberMap.set(p, {
+      const p = u.phone ? u.phone.trim() : '';
+      const cleanP = p.replace(/\D/g, '');
+      if (cleanP) {
+        subscriberMap.set(cleanP, {
           name: u.name,
           phone: p,
           lang: u.preferredLanguage || 'en',
@@ -114,17 +115,20 @@ async function runDailyBroadcast() {
     });
 
     dbSessions.forEach(s => {
-      const p = s.phoneNumber.replace(/\D/g, '');
-      if (p) {
-        const existing = subscriberMap.get(p);
-        subscriberMap.set(p, {
+      const jidKey = s.phoneNumber ? s.phoneNumber.trim() : '';
+      const cleanP = jidKey.replace(/\D/g, '');
+      if (jidKey) {
+        const mapKey = jidKey.includes('@lid') ? jidKey : (cleanP || jidKey);
+        const existing = subscriberMap.get(cleanP) || subscriberMap.get(mapKey);
+        subscriberMap.set(mapKey, {
           name: existing?.name || 'WhatsApp Member',
-          phone: p,
+          phone: jidKey, // Preserve @lid so sendWhatsAppMessage routes correctly
           lang: s.language || 'en',
           prefs: s.preferences?.length ? s.preferences : ['verse', 'saint', 'mass', 'events', 'announcements', 'birthday']
         });
       }
     });
+
 
     const subscribers = Array.from(subscriberMap.values());
     console.log(`📨 Broadcasting to ${subscribers.length} total subscribers (website + WhatsApp)...`);

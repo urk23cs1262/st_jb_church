@@ -173,10 +173,11 @@ async function connectToWhatsApp() {
 
         // Route to bot handler
         try {
-          await handleIncomingMessage(phone, body, from);
+          await handleIncomingMessage(phone, body, from, msg.pushName);
         } catch (err) {
           console.error('❌ Bot handler error:', err.message);
         }
+
 
 
       }

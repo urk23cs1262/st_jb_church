@@ -74,12 +74,36 @@ const getSubscribers = async (req, res) => {
     // Merge/override with interactive bot sessions
     sessions.forEach(s => {
       const cleanPhone = s.phoneNumber.replace(/\D/g, '');
-      if (cleanPhone) {
-        const existing = subscriberMap.get(cleanPhone);
-        subscriberMap.set(cleanPhone, {
+      const linkedUserIdStr = s.linkedUserId ? String(s.linkedUserId) : null;
+      let matchedUserKey = null;
+
+      if (linkedUserIdStr) {
+        for (const [key, value] of subscriberMap.entries()) {
+          if (String(value._id) === linkedUserIdStr) {
+            matchedUserKey = key;
+            break;
+          }
+        }
+      }
+
+      if (!matchedUserKey && cleanPhone) {
+        matchedUserKey = cleanPhone;
+      }
+
+      if (matchedUserKey && subscriberMap.has(matchedUserKey)) {
+        const existing = subscriberMap.get(matchedUserKey);
+        subscriberMap.set(matchedUserKey, {
+          ...existing,
+          preferences: s.preferences?.length ? s.preferences : existing.preferences,
+          language: s.language || existing.language,
+          updatedAt: s.updatedAt || existing.updatedAt
+        });
+      } else {
+        const key = cleanPhone || s.phoneNumber;
+        subscriberMap.set(key, {
           _id: s._id,
-          phoneNumber: cleanPhone,
-          name: existing?.name || 'WhatsApp Member',
+          phoneNumber: s.phoneNumber,
+          name: 'WhatsApp Member',
           source: 'WhatsApp Bot',
           preferences: s.preferences?.length ? s.preferences : ['verse', 'saint', 'mass', 'events', 'announcements', 'birthday'],
           language: s.language || 'en',
@@ -87,6 +111,7 @@ const getSubscribers = async (req, res) => {
         });
       }
     });
+
 
     const subscribers = Array.from(subscriberMap.values());
     res.json({ success: true, total: subscribers.length, subscribers });
