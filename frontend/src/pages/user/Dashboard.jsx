@@ -127,34 +127,36 @@ export default function UserDashboard() {
   return (
     <div className="min-h-screen pt-24 bg-church-cream ">
       {/* Header */}
-      <div className="bg-gray-600 py-12">
+      <div className="bg-gray-600 py-6 sm:py-10 md:py-12">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="flex items-center gap-6 md:gap-8">
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0 ring-4 ring-white/20">
-              {user?.profilePhoto ? (
-                <img
-                  src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`}
-                  alt="profile"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              ) : (
-                <span className="text-white text-4xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>
-              )}
+          <div className="flex flex-row items-center justify-between gap-3 sm:gap-6 md:gap-8">
+            <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
+              <div className="w-12 h-12 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0 ring-2 md:ring-4 ring-white/20">
+                {user?.profilePhoto ? (
+                  <img
+                    src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`}
+                    alt="profile"
+                    className="w-full h-full object-cover rounded-full"
+                  />
+                ) : (
+                  <span className="text-white text-lg sm:text-3xl md:text-4xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-gold-400 text-[10px] sm:text-sm md:text-lg font-medium tracking-wide">Welcome back</p>
+                <h1 className="text-white font-display text-base sm:text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight truncate my-0.5 md:my-1">{user?.name}</h1>
+                <p className="text-gray-200 text-[10px] sm:text-xs md:text-lg font-medium truncate">
+                  {user?.phone} {user?.parishMemberId ? `• ID: ${user.parishMemberId}` : ''}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-gold-400 text-base md:text-lg font-medium tracking-wide">Welcome back</p>
-              <h1 className="text-white font-display text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight my-1">{user?.name}</h1>
-              <p className="text-gray-200 text-base md:text-lg font-medium">
-                {user?.phone} {user?.parishMemberId ? `• ID: ${user.parishMemberId}` : ''}
-              </p>
-            </div>
-            <Link to="/dashboard/settings" className="ml-auto btn-outline-gold text-base py-3 px-6 shadow-md border-2">
-              <FiSettings className="text-lg" /> Settings
+            <Link to="/dashboard/settings" className="btn-outline-gold text-xs sm:text-sm md:text-base py-1.5 px-2.5 sm:py-2.5 sm:px-5 md:py-3 md:px-6 shadow-md border border-church-gold/60 rounded-xl whitespace-nowrap flex-shrink-0">
+              <FiSettings className="text-xs sm:text-sm md:text-lg" /> Settings
             </Link>
           </div>
-
         </div>
       </div>
+
 
       <div className="max-w-6xl mx-auto px-4 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
