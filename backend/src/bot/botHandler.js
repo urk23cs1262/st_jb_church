@@ -183,11 +183,17 @@ async function handleIncomingMessage(fromNumber, body, rawJid, pushName) {
     /\b(HI|HELLO|START|RESET|MENU)\b/i.test(text) ||
     text.includes('SJDB CONNECT');
 
-  // ── Step: Welcome / trigger ──────────────────────────────────────────────
-  if (session.step === 'welcome' || isHiTrigger) {
+  // ── Step: Welcome / trigger — ONLY respond to HI/HELLO/START/RESET/MENU ──
+  // If session is fresh (welcome) but user sent something random, stay SILENT.
+  if (isHiTrigger) {
     session.step = 'preferences';
     await session.save();
     await getWA().sendWhatsAppMessage(replyTarget, WELCOME_MSG);
+    return;
+  }
+
+  // If session is in 'welcome' state (never started) and message is NOT a trigger, ignore silently
+  if (session.step === 'welcome') {
     return;
   }
 
@@ -340,7 +346,7 @@ _St. John de Britto's Church_
 
   }
 
-  // ── Step: Done — handle STOP / HELP ─────────────────────────────────────
+  // ── Step: Done — handle STOP only; all other random messages → SILENT ────
   if (session.step === 'done') {
     if (text === 'STOP' || text === 'UNSUBSCRIBE') {
       session.step = 'welcome';
@@ -358,13 +364,8 @@ _St. John de Britto's Church_
       await getWA().sendWhatsAppMessage(replyTarget, WELCOME_MSG);
       return;
     }
-    // Any other message
-    await getWA().sendWhatsAppMessage(replyTarget,
-      `🙏 *SJDB Connect — St. John de Britto's Church*\n\n🔗 *Visit Our Parish Portal:*
-${CLIENT_URL}
-
-Reply *HI* to change your preferences or *STOP* to unsubscribe.\n\nGod bless you! ✝️`
-    );
+    // Any other random message → STAY SILENT (no reply)
+    return;
   }
 }
 
