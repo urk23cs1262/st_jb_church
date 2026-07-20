@@ -114,74 +114,49 @@ async function connectToWhatsApp() {
 
     // ── Incoming Messages ──────────────────────────────────────────────────────
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
-      if (type !== 'notify' && type !== 'append') return;
+      // ONLY process 'notify' — this is a real new incoming message.
+      // 'append' fires when the user simply opens the chat — we do NOT respond to that.
+      if (type !== 'notify') return;
 
       for (const msg of messages) {
-        // Ignore: status updates, broadcast lists
+        // Skip: status updates, broadcast lists, group chats
+        if (!msg.key.remoteJid) continue;
         if (msg.key.remoteJid === 'status@broadcast') continue;
+        if (msg.key.remoteJid.endsWith('@g.us')) continue;
 
-        if (msg.key.fromMe) {
-          const myJid = sock?.user?.id ? sock.user.id.split(':')[0].replace(/\D/g, '') : '';
-          const remoteJidNum = msg.key.remoteJid ? msg.key.remoteJid.replace(/\D/g, '') : '';
+        // Skip: messages sent by us (the bot / church number)
+        if (msg.key.fromMe) continue;
 
-          // If it's an outgoing message sent to another person, ignore completely
-          if (!myJid || myJid.slice(-10) !== remoteJidNum.slice(-10)) continue;
-
-          // If messaging self (testing in Note to Self / You chat), ignore all automated bot responses to prevent loops
-          const textContent =
-            msg.message?.conversation ||
-            msg.message?.extendedTextMessage?.text ||
-            '';
-
-          if (
-            textContent.includes('Welcome to SJDB Connect') ||
-            textContent.includes('Choose your preferred language') ||
-            textContent.includes("You're all set!") ||
-            textContent.includes('Please reply with valid numbers') ||
-            textContent.includes('Please reply with *1*') ||
-            textContent.includes('unsubscribed from SJDB Connect') ||
-            textContent.includes('New Church Event') ||
-            textContent.includes('New Church Announcement') ||
-            textContent.includes('Updated Church Event') ||
-            textContent.includes('Updated Parish Announcement')
-          ) {
-            continue;
-          }
-        }
-
-        const from = msg.key.remoteJid; // e.g. "919876543210@s.whatsapp.net" or "13430564061424@lid"
+        // Extract text body — only process if user actually typed something
         const body =
           msg.message?.conversation ||
           msg.message?.extendedTextMessage?.text ||
           msg.message?.imageMessage?.caption ||
           '';
 
-        if (!body) continue;
+        // Skip: empty body (reactions, stickers, voice notes, media with no caption, etc.)
+        if (!body || !body.trim()) continue;
 
-        const phone = from.replace('@s.whatsapp.net', '').replace('@g.us', '');
+        const from = msg.key.remoteJid;
 
         console.log("=================================");
         console.log("📩 NEW MESSAGE RECEIVED");
         console.log("Type:", type);
         console.log("From:", from);
-        console.log("Phone:", phone);
         console.log("Body:", body);
-        console.log("FromMe:", msg.key.fromMe);
-        console.log("MSG KEY:", JSON.stringify(msg.key, null, 2));
-        console.log("FULL MSG:", JSON.stringify(msg, null, 2));
         console.log("=================================");
 
         // Route to bot handler
         try {
-          await handleIncomingMessage(phone, body, from, msg.pushName);
+          await handleIncomingMessage(from, body, from, msg.pushName);
         } catch (err) {
           console.error('❌ Bot handler error:', err.message);
         }
 
-
-
       }
     });
+
+
 
     return sock;
   } catch (err) {
