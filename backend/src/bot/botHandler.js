@@ -183,17 +183,21 @@ async function handleIncomingMessage(fromNumber, body, rawJid, pushName) {
     /\b(HI|HELLO|START|RESET|MENU)\b/i.test(text) ||
     text.includes('SJDB CONNECT');
 
-  // ── Step: Welcome / trigger — ONLY respond to HI/HELLO/START/RESET/MENU ──
-  // If session is fresh (welcome) but user sent something random, stay SILENT.
-  if (isHiTrigger) {
+  // ── Step: Welcome / trigger ──────────────────────────────────────────────
+  // ONLY respond to HI/HELLO/START/RESET/MENU — ignore everything else
+  if (session.step === 'welcome') {
+    if (!isHiTrigger) return; // silent
     session.step = 'preferences';
     await session.save();
     await getWA().sendWhatsAppMessage(replyTarget, WELCOME_MSG);
     return;
   }
 
-  // If session is in 'welcome' state (never started) and message is NOT a trigger, ignore silently
-  if (session.step === 'welcome') {
+  // If HI trigger is sent at any step — restart the flow
+  if (isHiTrigger) {
+    session.step = 'preferences';
+    await session.save();
+    await getWA().sendWhatsAppMessage(replyTarget, WELCOME_MSG);
     return;
   }
 
@@ -203,10 +207,7 @@ async function handleIncomingMessage(fromNumber, body, rawJid, pushName) {
     const prefs = parts.map(p => prefMap[p]).filter(Boolean);
 
     if (prefs.length === 0) {
-      await getWA().sendWhatsAppMessage(replyTarget,
-        `⚠️ Please reply with valid numbers (1-6) separated by commas.\nExample: *1,2,3*\n\n🔗 Website: ${CLIENT_URL}`
-      );
-      return;
+      return; // silent — ignore random messages
     }
 
     session.preferences = prefs;
@@ -220,8 +221,7 @@ async function handleIncomingMessage(fromNumber, body, rawJid, pushName) {
   if (session.step === 'language') {
     const lang = langMap[body.trim()];
     if (!lang) {
-      await getWA().sendWhatsAppMessage(replyTarget, `⚠️ Please reply with *1* (English), *2* (Tamil), or *3* (Both).\n\n🔗 Website: ${CLIENT_URL}`);
-      return;
+      return; // silent — ignore random messages
     }
 
     session.language = lang;
@@ -306,9 +306,7 @@ _St. John de Britto's Church_
       linkedUser = await User.findOne({ phone: { $regex: enteredPhone.slice(-10) } });
 
       if (!linkedUser) {
-        await getWA().sendWhatsAppMessage(replyTarget,
-          `⚠️ No parish account found with that mobile number.\n\nPlease check and try again, or reply *SKIP* if you don't have an account.`
-        );
+        // silent — ignore, let them try again or SKIP
         return;
       }
 
@@ -346,7 +344,7 @@ _St. John de Britto's Church_
 
   }
 
-  // ── Step: Done — handle STOP only; all other random messages → SILENT ────
+  // ── Step: Done — handle STOP / HI only, ignore everything else ──────────
   if (session.step === 'done') {
     if (text === 'STOP' || text === 'UNSUBSCRIBE') {
       session.step = 'welcome';
@@ -358,13 +356,7 @@ _St. John de Britto's Church_
       await getWA().sendWhatsAppMessage(replyTarget, `🔕 You have been unsubscribed from SJDB Connect.\n\n🔗 Website: ${CLIENT_URL}\n\nReply *HI* anytime to re-subscribe. God bless! 🙏`);
       return;
     }
-    if (isHiTrigger || text === 'CHANGE') {
-      session.step = 'preferences';
-      await session.save();
-      await getWA().sendWhatsAppMessage(replyTarget, WELCOME_MSG);
-      return;
-    }
-    // Any other random message → STAY SILENT (no reply)
+    // All other messages → completely silent (no reply)
     return;
   }
 }
