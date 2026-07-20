@@ -114,7 +114,7 @@ async function connectToWhatsApp() {
 
     // ── Incoming Messages ──────────────────────────────────────────────────────
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
-      if (type !== 'notify' && type !== 'append') return;
+      if (type !== 'notify') return; // 'append' fires for the same msg and causes duplicate replies
 
       for (const msg of messages) {
         // Ignore: status updates, broadcast lists
