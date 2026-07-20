@@ -1,17 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { FiUser, FiCalendar, FiFileText, FiMessageSquare, FiBell, FiEdit, FiSettings, FiDownload, FiCheckCircle, FiX, FiInfo } from 'react-icons/fi';
 
 import { FaDonate } from "react-icons/fa";
 import { GiChurch, GiCrucifix, GiPrayer, GiHeartBottle } from 'react-icons/gi';
-import api, { UPLOADS_URL } from '../../services/api';
+import api, { UPLOADS_URL, getMediaUrl } from '../../services/api';
+
 import { SectionLoader } from '../../components/common/Loader';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
 import churchLogo from '../../assets/image.png';
+import { FiShield } from 'react-icons/fi';
+import PendingApprovalModal from '../../components/user/PendingApprovalModal';
 
 const DONATION_TYPES = [
   { id: 'general', label: 'General Offering' },
@@ -22,11 +26,14 @@ const DONATION_TYPES = [
 
 export default function UserDashboard() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [donations, setDonations] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [selectedPendingRequest, setSelectedPendingRequest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [viewingDonation, setViewingDonation] = useState(null);
@@ -39,8 +46,21 @@ export default function UserDashboard() {
       api.get('/notifications').then(r => setNotifications(r.data.notifications || [])),
       api.get('/tickets/my').then(r => setTickets(r.data.tickets || [])),
       api.get('/donations/my').then(r => setDonations(r.data.donations || [])),
+      api.get('/permission-requests/user/pending').then(r => {
+        const reqs = r.data.requests || [];
+        setPendingRequests(reqs);
+
+        // Check if coming from email link with requestId
+        const targetReqId = searchParams.get('requestId');
+        if (targetReqId) {
+          const match = reqs.find(req => req._id === targetReqId);
+          if (match) setSelectedPendingRequest(match);
+        }
+      }).catch(() => {}),
     ]).finally(() => setLoading(false));
-  }, []);
+  }, [searchParams]);
+
+
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -134,11 +154,12 @@ export default function UserDashboard() {
               <div className="w-12 h-12 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0 ring-2 md:ring-4 ring-white/20">
                 {user?.profilePhoto ? (
                   <img
-                    src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`}
+                    src={getMediaUrl(user.profilePhoto)}
                     alt="profile"
                     className="w-full h-full object-cover rounded-full"
                   />
                 ) : (
+
                   <span className="text-white text-lg sm:text-3xl md:text-4xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>
                 )}
               </div>
@@ -159,6 +180,38 @@ export default function UserDashboard() {
 
 
       <div className="max-w-6xl mx-auto px-4 py-10">
+        {/* Pending Settings Change Request Banner */}
+        {pendingRequests.length > 0 && (
+          <div className="space-y-4 mb-8">
+            {pendingRequests.map(req => (
+              <motion.div key={req._id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-amber-50 border-2 border-church-gold rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-church-gold text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm">
+                    <FiShield className="text-xl" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-gray-900 text-sm sm:text-base">Settings Change Approval Required</h3>
+                      <span className="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">1 Action Required</span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-700 mt-0.5">
+                      <span className="font-bold">{req.adminId?.name || 'Administrator'}</span> requested changes to your account settings.
+                    </p>
+                    {req.reason && <p className="text-xs text-amber-800 italic mt-1">"{req.reason}"</p>}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedPendingRequest(req)}
+                  className="btn-gold px-4 py-2 text-xs sm:text-sm whitespace-nowrap self-start sm:self-auto flex items-center gap-1.5 shadow-gold"
+                >
+                  <FiShield /> Review Request
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content Area */}
           <div className="lg:col-span-2 space-y-10">
@@ -171,6 +224,7 @@ export default function UserDashboard() {
                 </Link>
               ))}
             </div>
+
 
             {/* My Mass Bookings */}
             <div>
@@ -500,6 +554,15 @@ export default function UserDashboard() {
           )}
         </div>
       </div>
+
+      {selectedPendingRequest && (
+        <PendingApprovalModal
+          request={selectedPendingRequest}
+          onClose={() => setSelectedPendingRequest(null)}
+          onResponded={(reqId) => setPendingRequests(prev => prev.filter(r => r._id !== reqId))}
+        />
+      )}
     </div>
   );
 }
+

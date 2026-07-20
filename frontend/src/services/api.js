@@ -28,5 +28,14 @@ api.interceptors.response.use(
 );
 
 
+export const getMediaUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const baseUrl = UPLOADS_URL.replace(/\/uploads\/?$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${cleanPath}`;
+};
+
 export { API_URL, UPLOADS_URL };
 export default api;
+

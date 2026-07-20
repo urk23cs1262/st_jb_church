@@ -151,15 +151,19 @@
 }
 
 /* Accessibility Mode Utilities */
-html.high-contrast-mode {
+html.high-contrast-mode, body.high-contrast-mode {
   filter: contrast(135%) saturate(125%);
 }
 
 html.reduce-animations *, 
 html.reduce-animations *::before, 
-html.reduce-animations *::after {
+html.reduce-animations *::after,
+body.reduce-animations *, 
+body.reduce-animations *::before, 
+body.reduce-animations *::after {
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
 }
+
 

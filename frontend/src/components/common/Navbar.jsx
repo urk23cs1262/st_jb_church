@@ -3,7 +3,8 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
-import { UPLOADS_URL } from '../../services/api';
+import { UPLOADS_URL, getMediaUrl } from '../../services/api';
+
 
 import {
   FiMenu, FiX, FiUser, FiLogOut,
@@ -236,11 +237,12 @@ export default function Navbar() {
                     <div className="w-7 h-7 rounded-full bg-church-gold flex items-center justify-center overflow-hidden border border-gold-400/50">
                       {user?.profilePhoto ? (
                         <img 
-                          src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`} 
+                          src={getMediaUrl(user.profilePhoto)} 
                           alt="profile" 
                           className="w-full h-full object-cover" 
                         />
                       ) : (
+
                         <span className="text-white text-xs font-bold">{user?.name?.[0]?.toUpperCase()}</span>
                       )}
                     </div>

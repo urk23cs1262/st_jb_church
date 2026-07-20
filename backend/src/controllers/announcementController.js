@@ -26,8 +26,17 @@ const create = async (req, res) => {
     
     // Notify all users in background
     if (ann.isPublished !== false) {
+      const clientUrl = process.env.CLIENT_URL?.replace('http://localhost:5173', 'https://st-jb-church.vercel.app') || 'https://st-jb-church.vercel.app';
+      const snippet = ann.content ? (ann.content.length > 120 ? ann.content.slice(0, 120) + '...' : ann.content) : '';
+      const msg = `📢 *New Church Announcement: ${ann.title}*
+
+${snippet ? `_"${snippet}"_\n\n` : ''}🔗 *Read Full Announcement on Website:*
+${clientUrl}/announcements
+
+✝️ _St. John de Britto's Church, Kalayarkoil_`;
+
+
       User.find({ isVerified: true }).then(users => {
-        const msg = `New Church Announcement: ${ann.title}. Read more on the website!`;
         users.forEach(user => {
           if (user.phone) {
             sendSMS(user.phone, msg).catch(() => {});
@@ -36,6 +45,7 @@ const create = async (req, res) => {
         });
       }).catch(err => console.error("Error notifying users:", err));
     }
+
 
     res.status(201).json({ success: true, announcement: ann });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
@@ -46,9 +56,32 @@ const update = async (req, res) => {
     const data = { ...req.body };
     if (req.file) data.attachment = `/uploads/announcements/${req.file.filename}`;
     const ann = await Announcement.findByIdAndUpdate(req.params.id, data, { new: true });
+
+    // Notify all users about Updated Announcement in background
+    if (ann && ann.isPublished !== false) {
+      const clientUrl = process.env.CLIENT_URL?.replace('http://localhost:5173', 'https://st-jb-church.vercel.app') || 'https://st-jb-church.vercel.app';
+      const snippet = ann.content ? (ann.content.length > 120 ? ann.content.slice(0, 120) + '...' : ann.content) : '';
+      const msg = `🔄 *Updated Parish Announcement: ${ann.title}*
+
+${snippet ? `_"${snippet}"_\n\n` : ''}🔗 *Read Updated Announcement on Website:*
+${clientUrl}/announcements
+
+✝️ _St. John de Britto's Church, Kalayarkoil_`;
+
+      User.find({ isVerified: true }).then(users => {
+        users.forEach(user => {
+          if (user.phone) {
+            sendSMS(user.phone, msg).catch(() => {});
+            sendWA(user.phone, msg);
+          }
+        });
+      }).catch(err => console.error("Error notifying users on announcement update:", err));
+    }
+
     res.json({ success: true, announcement: ann });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
+
 
 const remove = async (req, res) => {
   try {

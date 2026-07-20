@@ -9,9 +9,11 @@ import {
   FiSmartphone, FiDatabase, FiGrid, FiMapPin, FiPhoneCall, FiCrosshair,
   FiMessageSquare, FiInfo, FiCpu, FiRadio, FiKey, FiLock, FiLogOut, FiDownload
 } from 'react-icons/fi';
-import api, { UPLOADS_URL } from '../../services/api';
+import api, { UPLOADS_URL, getMediaUrl } from '../../services/api';
+
 import { useAuth } from '../../context/AuthContext';
 import { applyUserSettings } from '../../utils/applySettings';
+import PendingApprovalModal from '../../components/user/PendingApprovalModal';
 
 const SUB_STATIONS = [
   "Kalayarkoil (Main Parish)",
@@ -57,6 +59,13 @@ export default function Settings() {
   const [photo, setPhoto] = useState(null);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [selectedPendingRequest, setSelectedPendingRequest] = useState(null);
+
+  useEffect(() => {
+    api.get('/permission-requests/user/pending').then(r => setPendingRequests(r.data.requests || [])).catch(() => {});
+  }, []);
+
 
   const { register, handleSubmit, control, watch, reset, setValue, formState: { isSubmitting } } = useForm({
     defaultValues: {
@@ -190,9 +199,17 @@ export default function Settings() {
         gender: user.gender || '',
         subStation: user.subStation || '',
         familyName: user.familyName || '',
-        address: user.address || '',
-        familyRole: user.familyRole || '',
-        familyMembers: user.familyMembers || [],
+        familyRole: FAMILY_ROLES.includes(user.familyRole) ? (user.familyRole || '') : (user.familyRole ? 'Other' : ''),
+        familyRoleOther: FAMILY_ROLES.includes(user.familyRole) ? '' : (user.familyRole || ''),
+        familyMembers: user.familyMembers?.map(m => {
+          const isStd = FAMILY_ROLES.includes(m.role);
+          return {
+            name: m.name,
+            role: isStd ? (m.role || '') : (m.role ? 'Other' : ''),
+            roleOther: isStd ? '' : (m.role || '')
+          };
+        }) || [],
+
         settings: {
           notifications: {
             eventReminders: true,
@@ -344,8 +361,10 @@ export default function Settings() {
       // Apply settings immediately across the website
       applyUserSettings(formDataRaw.settings);
 
+      setPhoto(null);
       await fetchMe();
       toast.success('Settings saved successfully!');
+
 
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to save settings');
@@ -421,7 +440,40 @@ export default function Settings() {
 
       {/* Main Layout */}
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Pending Settings Change Request Banner */}
+        {pendingRequests.length > 0 && (
+          <div className="space-y-4 mb-8">
+            {pendingRequests.map(req => (
+              <motion.div key={req._id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-amber-50 border-2 border-church-gold rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-church-gold text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm">
+                    <FiShield className="text-xl" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-gray-900 text-sm sm:text-base">Administrator Settings Change Request</h3>
+                      <span className="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Approval Required</span>
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-700 mt-0.5">
+                      <span className="font-bold">{req.adminId?.name || 'Administrator'}</span> requested changes to your account settings.
+                    </p>
+                    {req.reason && <p className="text-xs text-amber-800 italic mt-1">"{req.reason}"</p>}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedPendingRequest(req)}
+                  className="btn-gold px-4 py-2 text-xs sm:text-sm whitespace-nowrap self-start sm:self-auto flex items-center gap-1.5 shadow-gold"
+                >
+                  <FiShield /> Review & Respond
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
 
           {/* Sidebar Tabs */}
           <div className="lg:col-span-4 xl:col-span-3 space-y-2">
@@ -470,10 +522,11 @@ export default function Settings() {
                         {photo ? (
                           <img src={URL.createObjectURL(photo)} className="w-full h-full object-cover" />
                         ) : user?.profilePhoto ? (
-                          <img src={user.profilePhoto.startsWith('http') ? user.profilePhoto : `${UPLOADS_URL.replace('/uploads', '')}${user.profilePhoto.startsWith('/') ? '' : '/'}${user.profilePhoto}`} className="w-full h-full object-cover" />
+                          <img src={getMediaUrl(user.profilePhoto)} className="w-full h-full object-cover" />
                         ) : (
                           <FiUser className="text-white text-3xl" />
                         )}
+
                       </div>
                       <label className="absolute bottom-0 right-0 w-7 h-7 bg-church-gold rounded-full flex items-center justify-center cursor-pointer hover:bg-church-gold-light transition-colors shadow">
                         <span className="text-white text-xs">📷</span>
@@ -736,6 +789,13 @@ export default function Settings() {
                         <option value="">Select Role</option>
                         {FAMILY_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                       </select>
+                      {watchedFamilyRole === 'Other' && (
+                        <input
+                          {...register('familyRoleOther')}
+                          className="church-input mt-2"
+                          placeholder="Please specify your role"
+                        />
+                      )}
                     </div>
                   </div>
 
@@ -746,11 +806,18 @@ export default function Settings() {
                         <div className="col-span-6">
                           <input {...register(`familyMembers.${index}.name`)} className="church-input py-2 text-xs" placeholder="Member Name" />
                         </div>
-                        <div className="col-span-5">
+                        <div className="col-span-5 space-y-2">
                           <select {...register(`familyMembers.${index}.role`)} className="church-select py-2 text-xs">
                             <option value="">Select Role</option>
                             {FAMILY_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
                           </select>
+                          {watchedMembers?.[index]?.role === 'Other' && (
+                            <input
+                              {...register(`familyMembers.${index}.roleOther`)}
+                              className="church-input py-2 text-xs"
+                              placeholder="Specify custom role"
+                            />
+                          )}
                         </div>
                         <div className="col-span-1 pt-1 flex justify-center">
                           <button type="button" onClick={() => remove(index)} className="text-red-500 hover:text-red-700 p-1.5">
@@ -760,6 +827,7 @@ export default function Settings() {
                       </div>
                     ))}
                   </div>
+
                 </motion.div>
               )}
 
@@ -1023,7 +1091,7 @@ export default function Settings() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
                       { key: 'notificationRecommendations', label: 'AI Notification Recommendations' },
-                      { key: 'careerGuidance', label: 'AI Career Guidance Preferences' },
+                      // { key: 'careerGuidance', label: 'AI Career Guidance Preferences' },
                       { key: 'spiritualGrowth', label: 'AI Spiritual Growth Suggestions' },
                       { key: 'eventRecommendations', label: 'AI Event Recommendations' },
                       { key: 'familyInsights', label: 'AI Family Insights' },
@@ -1111,6 +1179,15 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {selectedPendingRequest && (
+        <PendingApprovalModal
+          request={selectedPendingRequest}
+          onClose={() => setSelectedPendingRequest(null)}
+          onResponded={(reqId) => setPendingRequests(prev => prev.filter(r => r._id !== reqId))}
+        />
+      )}
     </div>
   );
 }
+

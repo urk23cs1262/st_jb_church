@@ -124,10 +124,10 @@ async function connectToWhatsApp() {
           const myJid = sock?.user?.id ? sock.user.id.split(':')[0].replace(/\D/g, '') : '';
           const remoteJidNum = msg.key.remoteJid ? msg.key.remoteJid.replace(/\D/g, '') : '';
 
-          // If it's an outgoing message sent to someone else, ignore
+          // If it's an outgoing message sent to another person, ignore completely
           if (!myJid || myJid.slice(-10) !== remoteJidNum.slice(-10)) continue;
 
-          // If messaging self (testing), ignore automated bot responses to prevent loops
+          // If messaging self (testing in Note to Self / You chat), ignore all automated bot responses to prevent loops
           const textContent =
             msg.message?.conversation ||
             msg.message?.extendedTextMessage?.text ||
@@ -139,13 +139,17 @@ async function connectToWhatsApp() {
             textContent.includes("You're all set!") ||
             textContent.includes('Please reply with valid numbers') ||
             textContent.includes('Please reply with *1*') ||
-            textContent.includes('unsubscribed from SJDB Connect')
+            textContent.includes('unsubscribed from SJDB Connect') ||
+            textContent.includes('New Church Event') ||
+            textContent.includes('New Church Announcement') ||
+            textContent.includes('Updated Church Event') ||
+            textContent.includes('Updated Parish Announcement')
           ) {
             continue;
           }
         }
 
-        const from = msg.key.remoteJid; // e.g. "919876543210@s.whatsapp.net"
+        const from = msg.key.remoteJid; // e.g. "919876543210@s.whatsapp.net" or "13430564061424@lid"
         const body =
           msg.message?.conversation ||
           msg.message?.extendedTextMessage?.text ||
@@ -156,7 +160,16 @@ async function connectToWhatsApp() {
 
         const phone = from.replace('@s.whatsapp.net', '').replace('@g.us', '');
 
-        console.log(`📨 Incoming from ${phone}: "${body.slice(0, 80)}"`);
+        console.log("=================================");
+        console.log("📩 NEW MESSAGE RECEIVED");
+        console.log("Type:", type);
+        console.log("From:", from);
+        console.log("Phone:", phone);
+        console.log("Body:", body);
+        console.log("FromMe:", msg.key.fromMe);
+        console.log("MSG KEY:", JSON.stringify(msg.key, null, 2));
+        console.log("FULL MSG:", JSON.stringify(msg, null, 2));
+        console.log("=================================");
 
         // Route to bot handler
         try {
@@ -164,6 +177,8 @@ async function connectToWhatsApp() {
         } catch (err) {
           console.error('❌ Bot handler error:', err.message);
         }
+
+
       }
     });
 

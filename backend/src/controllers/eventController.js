@@ -35,8 +35,18 @@ const create = async (req, res) => {
 
     // Notify all users in background
     if (event.isPublished !== false) {
+      const clientUrl = process.env.CLIENT_URL?.replace('http://localhost:5173', 'https://st-jb-church.vercel.app') || 'https://st-jb-church.vercel.app';
+      const eventDateStr = event.date ? new Date(event.date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+      const msg = `📅 *New Church Event: ${event.title}*
+🗓️ *Date:* ${eventDateStr}
+${event.time ? `⏰ *Time:* ${event.time}\n` : ''}${event.venue ? `📍 *Venue:* ${event.venue}\n` : ''}
+🔗 *View Details & Register:*
+${clientUrl}/events
+
+✝️ _St. John de Britto's Church, Kalayarkoil_`;
+
+
       User.find({ isVerified: true }).then(users => {
-        const msg = `New Church Event: ${event.title} on ${new Date(event.date).toLocaleDateString()}. Register now!`;
         users.forEach(user => {
           if (user.phone) {
             sendSMS(user.phone, msg).catch(() => {});
@@ -45,6 +55,7 @@ const create = async (req, res) => {
         });
       }).catch(err => console.error("Error notifying users:", err));
     }
+
 
     res.status(201).json({ success: true, event });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
@@ -55,9 +66,33 @@ const update = async (req, res) => {
     const data = { ...req.body };
     if (req.file) data.image = `/uploads/events/${req.file.filename}`;
     const event = await Event.findByIdAndUpdate(req.params.id, data, { new: true });
+
+    // Notify all users about Updated Event in background
+    if (event && event.isPublished !== false) {
+      const clientUrl = process.env.CLIENT_URL?.replace('http://localhost:5173', 'https://st-jb-church.vercel.app') || 'https://st-jb-church.vercel.app';
+      const eventDateStr = event.date ? new Date(event.date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '';
+      const msg = `🔄 *Updated Church Event: ${event.title}*
+🗓️ *Date:* ${eventDateStr}
+${event.time ? `⏰ *Time:* ${event.time}\n` : ''}${event.venue ? `📍 *Venue:* ${event.venue}\n` : ''}
+🔗 *View Updated Details & Register:*
+${clientUrl}/events
+
+✝️ _St. John de Britto's Church, Kalayarkoil_`;
+
+      User.find({ isVerified: true }).then(users => {
+        users.forEach(user => {
+          if (user.phone) {
+            sendSMS(user.phone, msg).catch(() => {});
+            sendWA(user.phone, msg);
+          }
+        });
+      }).catch(err => console.error("Error notifying users on event update:", err));
+    }
+
     res.json({ success: true, event });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
+
 
 const remove = async (req, res) => {
   try {

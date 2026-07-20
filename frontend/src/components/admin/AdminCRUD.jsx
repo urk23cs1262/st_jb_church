@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { FiPlus, FiTrash2, FiEdit, FiX } from 'react-icons/fi';
+
 import api, { UPLOADS_URL } from '../../services/api';
 import { SectionLoader } from '../common/Loader';
 
@@ -13,9 +14,36 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
   const [editing, setEditing] = useState(null);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm();
+  const [generatingAi, setGeneratingAi] = useState({});
+  const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm();
+
+  const handleAiGenerate = async (fieldName) => {
+    const titleVal = watch('title') || watch('subject') || watch('name');
+    if (!titleVal || !titleVal.trim()) {
+      toast.error('Please enter a Title first so AI can generate content!');
+      return;
+    }
+
+    setGeneratingAi(prev => ({ ...prev, [fieldName]: true }));
+    try {
+      const res = await api.post('/ai/generate-content', {
+        type: resource,
+        title: titleVal,
+        field: fieldName
+      });
+      if (res.data?.text) {
+        setValue(fieldName, res.data.text);
+        toast.success('Generated content with AI!');
+      }
+    } catch {
+      toast.error('Failed to generate AI content');
+    } finally {
+      setGeneratingAi(prev => ({ ...prev, [fieldName]: false }));
+    }
+  };
 
   const fetchItems = async () => {
+
     setLoading(true);
     try {
       const res = await api.get(`/${resource}?page=${page}&limit=20`);
@@ -59,11 +87,12 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
 
   return (
     <div className="w-full">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-2xl font-bold text-church-royal-blue ">Manage {title} ({total})</h1>
-          <button onClick={openAdd} className="btn-gold text-sm py-2"><FiPlus /> Add {title.slice(0, -1)}</button>
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Manage {title} ({total})</h1>
+          <button onClick={openAdd} className="btn-gold text-xs sm:text-sm py-2 px-4 shadow-sm self-start sm:self-auto"><FiPlus /> Add {title.slice(0, -1)}</button>
         </div>
+
 
         {loading ? <SectionLoader /> : (
           <>
@@ -139,10 +168,26 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {fields.map(f => (
                 <div key={f.name}>
-                  {f.type !== 'checkbox' && <label className="church-label">{f.label}{f.required && ' *'}</label>}
+                  {f.type !== 'checkbox' && (
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="church-label mb-0">{f.label}{f.required && ' *'}</label>
+                      {f.type === 'textarea' && (
+                        <button
+                          type="button"
+                          onClick={() => handleAiGenerate(f.name)}
+                          disabled={generatingAi[f.name]}
+                          className="flex items-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-full transition-all shadow-xs"
+                        >
+                          {generatingAi[f.name] ? 'AI Writing...' : 'Fill with AI'}
+                        </button>
+
+                      )}
+                    </div>
+                  )}
                   {f.type === 'textarea' ? (
-                    <textarea {...register(f.name, { required: f.required })} rows={3} className="church-input resize-none" placeholder={f.placeholder} />
+                    <textarea {...register(f.name, { required: f.required })} rows={4} className="church-input resize-none" placeholder={f.placeholder || `Enter ${f.label.toLowerCase()} or click 'Fill with AI'`} />
                   ) : f.type === 'select' ? (
+
                     <select {...register(f.name)} className="church-select">
                       <option value="">Select {f.label.toLowerCase()}</option>
                       {f.options?.map(o => <option key={o} value={o} className="capitalize">{o.replace('_', ' ')}</option>)}

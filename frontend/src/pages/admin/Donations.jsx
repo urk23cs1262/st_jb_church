@@ -35,8 +35,9 @@ export default function AdminDonations() {
 
   return (
     <div className="w-full">
-      <div className="p-6">
-        <h1 className="font-display text-2xl font-bold text-church-royal-blue  mb-6">Manage Donations</h1>
+      <div className="p-4 sm:p-6">
+        <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue mb-6">Manage Donations</h1>
+
 
         {/* Stats */}
         {stats.length > 0 && (

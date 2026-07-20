@@ -46,11 +46,12 @@ export default function AdminPriests() {
 
   return (
     <div className="w-full">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="font-display text-2xl font-bold text-church-royal-blue ">Manage Priests</h1>
-          <button onClick={openAdd} className="btn-gold text-sm py-2"><FiPlus /> Add Priest</button>
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Manage Priests</h1>
+          <button onClick={openAdd} className="btn-gold text-xs sm:text-sm py-2 px-4 shadow-sm self-start sm:self-auto"><FiPlus /> Add Priest</button>
         </div>
+
 
         {loading ? <SectionLoader /> : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

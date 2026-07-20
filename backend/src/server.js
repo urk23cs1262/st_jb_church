@@ -66,7 +66,11 @@ app.use('/api/prayers', require('./routes/prayers'));
 app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/anbiyam', require('./routes/anbiyam'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/permission-requests', require('./routes/permissionRequests'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/ai', require('./routes/ai'));
+
+
 app.use('/api/mass-reading', require('./routes/massReading'));
 app.use('/api/daily-reading', require('./routes/dailyReading'));
 app.use('/api/daily-saint', require('./routes/saint'));

@@ -19,32 +19,28 @@ export const applyUserSettings = (settings) => {
 
   // 2. Accessibility - Font Size
   const fontSize = settings.accessibility?.fontSize || 'normal';
-  if (fontSize === 'large') {
-    document.documentElement.style.fontSize = '18px';
-  } else if (fontSize === 'xlarge') {
-    document.documentElement.style.fontSize = '20px';
-  } else {
-    document.documentElement.style.fontSize = '16px';
-  }
+  const targetSize = fontSize === 'large' ? '18px' : fontSize === 'xlarge' ? '20px' : '16px';
+  document.documentElement.style.fontSize = targetSize;
+  if (document.body) document.body.style.fontSize = targetSize;
 
   // 3. High Contrast Mode
-  if (settings.accessibility?.highContrast) {
-    document.documentElement.classList.add('high-contrast-mode');
-  } else {
-    document.documentElement.classList.remove('high-contrast-mode');
-  }
+  const isHighContrast = !!settings.accessibility?.highContrast;
+  document.documentElement.classList.toggle('high-contrast-mode', isHighContrast);
+  if (document.body) document.body.classList.toggle('high-contrast-mode', isHighContrast);
 
   // 4. Reduce Animations
-  if (settings.accessibility?.reduceAnimations) {
-    document.documentElement.classList.add('reduce-animations');
-  } else {
-    document.documentElement.classList.remove('reduce-animations');
-  }
+  const isReduceAnim = !!settings.accessibility?.reduceAnimations;
+  document.documentElement.classList.toggle('reduce-animations', isReduceAnim);
+  if (document.body) document.body.classList.toggle('reduce-animations', isReduceAnim);
 
   // 5. Screen Reader Support
-  if (settings.accessibility?.screenReader) {
+  const isScreenReader = !!settings.accessibility?.screenReader;
+  if (isScreenReader) {
     document.documentElement.setAttribute('data-screen-reader', 'true');
+    if (document.body) document.body.setAttribute('data-screen-reader', 'true');
   } else {
     document.documentElement.removeAttribute('data-screen-reader');
+    if (document.body) document.body.removeAttribute('data-screen-reader');
   }
 };
+

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { FiUsers, FiCalendar, FiFileText, FiMessageSquare, FiDollarSign, FiSettings, FiImage, FiMic, FiBell } from 'react-icons/fi';
+import { SiWhatsapp } from 'react-icons/si';
 import { GiChurch, GiCrucifix, GiPrayer } from 'react-icons/gi';
 import api from '../../services/api';
 import { SectionLoader } from '../../components/common/Loader';
@@ -19,9 +20,12 @@ const NAV_ITEMS = [
   { icon: <FiFileText />, label: 'Documents', path: '/admin/documents', color: 'bg-teal-600' },
   { icon: <FiDollarSign />, label: 'Donations', path: '/admin/donations', color: 'bg-yellow-600' },
   { icon: <FiMessageSquare />, label: 'Tickets', path: '/admin/tickets', color: 'bg-rose-600' },
-  { icon: <FiUsers />, label: 'Registrations', path: '/admin/registrations', color: 'bg-indigo-500' },
+  // { icon: <FiUsers />, label: 'Registrations', path: '/admin/registrations', color: 'bg-indigo-500' },
   { icon: <GiPrayer />, label: 'Prayers', path: '/admin/prayers', color: 'bg-church-gold' },
+  { icon: <SiWhatsapp />, label: 'WhatsApp Bot', path: '/admin/whatsapp', color: 'bg-[#25D366]' },
+  { icon: <FiSettings />, label: 'Settings', path: '/admin/settings', color: 'bg-gray-600' },
 ];
+
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -43,13 +47,12 @@ export default function AdminDashboard() {
   return (
     <div className="w-full">
       {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <h1 className="font-display text-2xl font-bold text-church-royal-blue">Admin Dashboard</h1>
-        <div className="flex items-center gap-3">
-        </div>
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">SJDB Admin Dashboard</h1>
       </div>
 
-          <div className="p-6">
+      <div className="p-4 sm:p-6">
+
             {loading ? <SectionLoader /> : (
               <>
                 {/* Stat Cards */}

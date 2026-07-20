@@ -17,10 +17,16 @@ function getWA() {
 
 // ─── Message Templates ─────────────────────────────────────────────────────
 
+const CLIENT_URL = process.env.CLIENT_URL?.replace('http://localhost:5173', 'https://st-jb-church.vercel.app') || 'https://st-jb-church.vercel.app';
+
+
 const WELCOME_MSG = `🙏 *Welcome to SJDB Connect*
 _Connecting Faith & Community_
 
-Dear friend, thank you for reaching out to *St. John de Britto's Church*!
+Dear friend, thank you for reaching out to *St. John de Britto's Church, Kalayarkoil*!
+
+🔗 *Visit Our Parish Portal:*
+${CLIENT_URL}
 
 Please select what you would like to receive daily:
 
@@ -61,16 +67,27 @@ const langMap = {
 
 // ─── Handle Incoming Message ─────────────────────────────────────────────────
 
-async function handleIncomingMessage(fromNumber, body) {
+async function handleIncomingMessage(fromNumber, body, rawJid) {
   const text = (body || '').trim().toUpperCase();
 
-  // Normalize phone number (remove whatsapp: prefix, +, spaces)
-  const phone = fromNumber.replace('whatsapp:', '').replace(/\D/g, '');
+  // Destination JID for sending replies back (e.g. "13430564061424@lid" or "919876543210@s.whatsapp.net")
+  const replyTarget = rawJid || fromNumber;
+
+  // Clean phone number / session key
+  const phone = (fromNumber || '').replace('whatsapp:', '').replace(/\D/g, '');
+  const sessionKey = (fromNumber && fromNumber.includes('@lid')) ? fromNumber : (phone || fromNumber);
 
   // Get or create session
-  let session = await BotSession.findOne({ phoneNumber: phone });
+  let session = await BotSession.findOne({
+    $or: [
+      { phoneNumber: sessionKey },
+      { phoneNumber: phone },
+      ...(rawJid ? [{ phoneNumber: rawJid }] : [])
+    ]
+  });
+
   if (!session) {
-    session = new BotSession({ phoneNumber: phone, step: 'welcome' });
+    session = new BotSession({ phoneNumber: sessionKey, step: 'welcome' });
     await session.save();
   }
 
@@ -86,7 +103,7 @@ async function handleIncomingMessage(fromNumber, body) {
   if (session.step === 'welcome' || isHiTrigger) {
     session.step = 'preferences';
     await session.save();
-    await getWA().sendWhatsAppMessage(phone, WELCOME_MSG);
+    await getWA().sendWhatsAppMessage(replyTarget, WELCOME_MSG);
     return;
   }
 
@@ -96,8 +113,8 @@ async function handleIncomingMessage(fromNumber, body) {
     const prefs = parts.map(p => prefMap[p]).filter(Boolean);
 
     if (prefs.length === 0) {
-      await getWA().sendWhatsAppMessage(phone,
-        `⚠️ Please reply with valid numbers (1-6) separated by commas.\nExample: *1,2,3*`
+      await getWA().sendWhatsAppMessage(replyTarget,
+        `⚠️ Please reply with valid numbers (1-6) separated by commas.\nExample: *1,2,3*\n\n🔗 Website: ${CLIENT_URL}`
       );
       return;
     }
@@ -105,7 +122,7 @@ async function handleIncomingMessage(fromNumber, body) {
     session.preferences = prefs;
     session.step = 'language';
     await session.save();
-    await getWA().sendWhatsAppMessage(phone, LANGUAGE_MSG);
+    await getWA().sendWhatsAppMessage(replyTarget, LANGUAGE_MSG);
     return;
   }
 
@@ -113,7 +130,7 @@ async function handleIncomingMessage(fromNumber, body) {
   if (session.step === 'language') {
     const lang = langMap[body.trim()];
     if (!lang) {
-      await getWA().sendWhatsAppMessage(phone, `⚠️ Please reply with *1* (English), *2* (Tamil), or *3* (Both).`);
+      await getWA().sendWhatsAppMessage(replyTarget, `⚠️ Please reply with *1* (English), *2* (Tamil), or *3* (Both).\n\n🔗 Website: ${CLIENT_URL}`);
       return;
     }
 
@@ -121,15 +138,17 @@ async function handleIncomingMessage(fromNumber, body) {
     session.step = 'done';
     await session.save();
 
-    // Try to link to existing User by phone
-    const user = await User.findOne({ phone: { $regex: phone.slice(-10) } });
-    if (user) {
-      session.linkedUserId = user._id;
-      await session.save();
-      user.whatsappOptIn = true;
-      user.botPreferences = session.preferences;
-      user.preferredLanguage = lang;
-      await user.save();
+    // Try to link to existing User by phone if phone is a valid number
+    if (phone && phone.length >= 10) {
+      const user = await User.findOne({ phone: { $regex: phone.slice(-10) } });
+      if (user) {
+        session.linkedUserId = user._id;
+        await session.save();
+        user.whatsappOptIn = true;
+        user.botPreferences = session.preferences;
+        user.preferredLanguage = lang;
+        await user.save();
+      }
     }
 
     const prefLabels = session.preferences.map(p => {
@@ -148,13 +167,16 @@ ${prefLabels}
 
 Daily messages are sent at *6:00 AM IST* every morning.
 
+🔗 *Visit Our Parish Portal:*
+${CLIENT_URL}
+
 ✝️ May God bless you!
 — *SJDB Connect*
 _St. John de Britto's Church_
 
 📱 Reply *STOP* to unsubscribe or *HI* to change preferences.`;
 
-    await getWA().sendWhatsAppMessage(phone, confirmMsg);
+    await getWA().sendWhatsAppMessage(replyTarget, confirmMsg);
     return;
   }
 
@@ -167,20 +189,25 @@ _St. John de Britto's Church_
       if (session.linkedUserId) {
         await User.findByIdAndUpdate(session.linkedUserId, { whatsappOptIn: false, botPreferences: [] });
       }
-      await getWA().sendWhatsAppMessage(phone, `🔕 You have been unsubscribed from SJDB Connect.\n\nReply *HI* anytime to re-subscribe. God bless! 🙏`);
+      await getWA().sendWhatsAppMessage(replyTarget, `🔕 You have been unsubscribed from SJDB Connect.\n\n🔗 Website: ${CLIENT_URL}\n\nReply *HI* anytime to re-subscribe. God bless! 🙏`);
       return;
     }
     if (isHiTrigger || text === 'CHANGE') {
       session.step = 'preferences';
       await session.save();
-      await getWA().sendWhatsAppMessage(phone, WELCOME_MSG);
+      await getWA().sendWhatsAppMessage(replyTarget, WELCOME_MSG);
       return;
     }
     // Any other message
-    await getWA().sendWhatsAppMessage(phone,
-      `🙏 *SJDB Connect*\n\nReply *HI* to change your preferences or *STOP* to unsubscribe.\n\nGod bless you! ✝️`
+    await getWA().sendWhatsAppMessage(replyTarget,
+      `🙏 *SJDB Connect — St. John de Britto's Church*\n\n🔗 *Visit Our Parish Portal:*
+${CLIENT_URL}
+
+Reply *HI* to change your preferences or *STOP* to unsubscribe.\n\nGod bless you! ✝️`
     );
   }
 }
 
+
 module.exports = { handleIncomingMessage };
+

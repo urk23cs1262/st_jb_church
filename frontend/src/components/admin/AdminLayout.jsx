@@ -23,7 +23,6 @@ const NAV_ITEMS = [
 ];
 
 export default function AdminLayout() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [desktopOpen, setDesktopOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { logout } = useAuth();
@@ -31,11 +30,8 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-church-cream flex">
-      {/* Mobile overlay */}
-      {mobileOpen && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setMobileOpen(false)} />}
-      
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 ${desktopOpen ? 'w-64' : 'w-20'} bg-church-royal-blue z-50 transform transition-all duration-300 lg:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'} flex flex-col`}>
+      {/* Desktop Sidebar */}
+      <div className={`hidden lg:flex fixed inset-y-0 left-0 ${desktopOpen ? 'w-64' : 'w-20'} bg-church-royal-blue z-50 transform transition-all duration-300 flex-col`}>
         <div className={`px-3 py-2.5 border-b border-white/10 flex items-center ${desktopOpen ? 'justify-between' : 'justify-center'} relative bg-white/5`}>
           <div className="flex items-center gap-2.5">
             <div className="w-12 h-12 rounded-full bg-white ring-2 ring-church-gold/40 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
@@ -48,9 +44,6 @@ export default function AdminLayout() {
               </div>
             )}
           </div>
-          <button className="lg:hidden text-white/70 hover:text-white" onClick={() => setMobileOpen(false)}>
-            <FiX size={18} />
-          </button>
         </div>
 
         {/* Desktop Toggle Button */}
@@ -62,7 +55,7 @@ export default function AdminLayout() {
         </button>
         
         <nav className="flex-1 px-2 py-1 flex flex-col justify-evenly">
-          <Link to="/admin" onClick={() => setMobileOpen(false)} className={`flex items-center ${desktopOpen ? 'gap-2.5 px-2.5' : 'justify-center'} py-1 rounded-lg font-semibold text-xs transition-all ${location.pathname === '/admin' ? 'bg-church-gold text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'} group relative`}>
+          <Link to="/admin" className={`flex items-center ${desktopOpen ? 'gap-2.5 px-2.5' : 'justify-center'} py-1 rounded-lg font-semibold text-xs transition-all ${location.pathname === '/admin' ? 'bg-church-gold text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'} group relative`}>
             <span className={`w-6 h-6 rounded-md flex items-center justify-center text-white text-xs flex-shrink-0 ${location.pathname === '/admin' ? 'bg-white/20' : 'bg-church-gold'}`}>
               <GiCrucifix className="text-sm" />
             </span>
@@ -71,7 +64,7 @@ export default function AdminLayout() {
             )}
           </Link>
           {NAV_ITEMS.map((item, i) => (
-            <Link key={i} to={item.path} onClick={() => setMobileOpen(false)} className={`flex items-center ${desktopOpen ? 'gap-2.5 px-2.5' : 'justify-center'} py-1 rounded-lg font-semibold text-xs transition-all ${location.pathname === item.path ? 'bg-church-gold text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'} group relative`}>
+            <Link key={i} to={item.path} className={`flex items-center ${desktopOpen ? 'gap-2.5 px-2.5' : 'justify-center'} py-1 rounded-lg font-semibold text-xs transition-all ${location.pathname === item.path ? 'bg-church-gold text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'} group relative`}>
               <span className={`w-6 h-6 rounded-md ${location.pathname === item.path ? 'bg-white/20' : item.color} flex items-center justify-center text-white text-xs flex-shrink-0`}>{item.icon}</span>
               {desktopOpen ? <span>{item.label}</span> : (
                 <span className="absolute left-12 bg-gray-900 text-white px-2 py-1 rounded-md text-xs opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity shadow-lg">{item.label}</span>
@@ -96,13 +89,27 @@ export default function AdminLayout() {
         </div>
       </div>
       
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className={`flex-1 transition-all duration-300 ${desktopOpen ? 'lg:ml-64' : 'lg:ml-20'} flex flex-col min-h-screen relative w-full`}>
-        {/* Mobile Header */}
-        <div className="lg:hidden bg-church-royal-blue text-white p-4 flex items-center gap-3 sticky top-0 z-30 shadow-md">
-          <button onClick={() => setMobileOpen(true)}><FiMenu size={24} /></button>
-          <span className="font-bold">Admin Panel</span>
+        {/* Mobile Header Navbar */}
+        <div className="lg:hidden bg-church-royal-blue text-white p-3 px-4 flex items-center justify-between sticky top-0 z-30 shadow-md">
+          {/* Top Left: Church logo image linking to Admin Dashboard */}
+          <Link to="/admin" className="w-10 h-10 rounded-full bg-white ring-2 ring-church-gold/40 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+            <img src={churchLogo} alt="Admin Dashboard" className="w-full h-full object-cover object-[center_15%]" />
+          </Link>
+
+          {/* Top Right: Back to Website near to Logout */}
+          <div className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-1.5 bg-church-gold hover:brightness-110 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-md transition-all">
+              <FiArrowLeft className="text-sm" /> Back to Website
+            </Link>
+            <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-md transition-all">
+              <FiLogOut className="text-sm" /> Logout
+            </button>
+          </div>
         </div>
+
+
         
         {/* Outlet Content */}
         <div className="flex-1 overflow-x-hidden">

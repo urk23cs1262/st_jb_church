@@ -46,26 +46,27 @@ export default function AdminPrayers() {
 
   return (
     <div className="w-full">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-8">
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="font-display text-3xl font-bold text-church-royal-blue flex items-center gap-3">
-              <GiPrayer className="text-church-gold" /> Prayer Wall Requests
+            <h1 className="font-display text-xl sm:text-3xl font-bold text-church-royal-blue flex items-center gap-2 sm:gap-3">
+              <GiPrayer className="text-church-gold text-2xl sm:text-3xl" /> Prayer Wall Requests
             </h1>
-            <p className="text-gray-500 mt-1 text-sm">Review and approve prayer intentions for the public wall</p>
+            <p className="text-gray-500 mt-1 text-xs sm:text-sm">Review and approve prayer intentions for the public wall</p>
           </div>
-          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200">
+          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 overflow-x-auto no-scrollbar max-w-full">
             {['pending', 'approved', 'rejected'].map(s => (
               <button
                 key={s}
                 onClick={() => setFilter(s)}
-                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${filter === s ? 'bg-church-gold text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all ${filter === s ? 'bg-church-gold text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 {s}
               </button>
             ))}
           </div>
         </div>
+
 
         {loading ? <SectionLoader /> : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
