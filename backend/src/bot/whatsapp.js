@@ -276,6 +276,52 @@ async function sendWhatsAppMedia(phone, { url, caption = '', mimetype, fileName 
   }
 }
 
+async function sendWhatsAppToUser(userObjOrId, text) {
+  try {
+    const BotSession = require('../models/BotSession');
+    const User = require('../models/User');
+
+    let user = userObjOrId;
+    if (typeof userObjOrId === 'string') {
+      user = await User.findById(userObjOrId);
+    }
+
+    if (!user) return false;
+
+    // Find BotSession by linkedUserId or phone number regex
+    const phoneDigits = user.phone ? user.phone.replace(/\D/g, '').slice(-10) : '';
+    const queryList = [{ linkedUserId: user._id }];
+    if (phoneDigits) {
+      queryList.push({ phoneNumber: { $regex: phoneDigits } });
+    }
+
+    let session = await BotSession.findOne({ $or: queryList });
+    let targetJid = session?.phoneNumber || user.phone;
+
+    // Fallback for admin if specific phone/session isn't linked
+    if (!targetJid && (user.role === 'admin' || user.isAdmin)) {
+      const adminUsers = await User.find({ role: 'admin', phone: { $exists: true, $ne: '' } });
+      for (const adm of adminUsers) {
+        if (adm.phone) {
+          targetJid = adm.phone;
+          break;
+        }
+      }
+    }
+
+    if (!targetJid) {
+      console.warn(`⚠️ No WhatsApp number or session found for user ${user.name}`);
+      return false;
+    }
+
+    return await sendWhatsAppMessage(targetJid, text);
+  } catch (err) {
+    console.error('❌ Error sending WhatsApp to user:', err.message);
+    return false;
+  }
+}
+
+
 // ─── Connection Status ────────────────────────────────────────────────────────
 
 function getConnectionStatus() {
@@ -286,4 +332,5 @@ function getQR() {
   return currentQr;
 }
 
-module.exports = { connectToWhatsApp, resetWhatsAppSession, sendWhatsAppMessage, sendWhatsAppMedia, getConnectionStatus, getQR };
+module.exports = { connectToWhatsApp, resetWhatsAppSession, sendWhatsAppMessage, sendWhatsAppMedia, sendWhatsAppToUser, getConnectionStatus, getQR };
+

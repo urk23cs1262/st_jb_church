@@ -315,13 +315,45 @@ export default function UserDashboard() {
                 {unreadCount > 0 && <span className="bg-church-gold text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{unreadCount}</span>}
               </h2>
               <div className="space-y-3">
-                {notifications.slice(0, 4).map((n, i) => (
-                  <div key={n._id} className={`p-4 rounded-xl transition-all ${n.isRead ? 'bg-gray-50' : 'bg-gold-50 border-l-4 border-church-gold'}`}>
-                    <p className="font-bold text-gray-800 text-xs">{n.title}</p>
-                    <p className="text-gray-500 text-[10px] mt-1 leading-relaxed line-clamp-2">{n.message}</p>
-                  </div>
-                ))}
+                {notifications.slice(0, 7).map((n) => {
+                  const isPermissionAlert = n.relatedModel === 'PermissionRequest' || n.title?.includes('Settings');
+                  return (
+                    <div
+                      key={n._id}
+                      onClick={async () => {
+                        if (isPermissionAlert) {
+                          let match = pendingRequests.find(r => r._id === n.relatedId);
+                          if (!match) {
+                            try {
+                              const res = await api.get('/permission-requests/user/pending');
+                              const reqs = res.data.requests || [];
+                              setPendingRequests(reqs);
+                              match = reqs.find(r => r._id === n.relatedId) || reqs[0];
+                            } catch (e) {}
+                          }
+                          if (match) {
+                            setSelectedPendingRequest(match);
+                          } else {
+                            toast.error('This permission request has already been processed.');
+                          }
+                        }
+                      }}
+                      className={`p-4 rounded-xl transition-all cursor-pointer hover:shadow-md ${isPermissionAlert ? 'border-2 border-amber-400 bg-amber-50/80 hover:bg-amber-100 ring-2 ring-amber-400/30' : n.isRead ? 'bg-gray-50' : 'bg-gold-50 border-l-4 border-church-gold'}`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-bold text-gray-800 text-xs">{n.title}</p>
+                        {isPermissionAlert && (
+                          <span className="text-[9px] font-black uppercase text-amber-900 bg-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-pulse">
+                            <FiShield size={10} /> Action Required
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-gray-600 text-[11px] mt-1 leading-relaxed line-clamp-2">{n.message}</p>
+                    </div>
+                  );
+                })}
                 {notifications.length === 0 && <p className="text-gray-400 text-xs italic text-center py-4">No new alerts</p>}
+
               </div>
             </div>
 

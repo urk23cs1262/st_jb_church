@@ -2,6 +2,7 @@ const PermissionRequest = require('../models/PermissionRequest');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
 const { sendMail } = require('../config/mailer');
+const { sendWhatsAppMessage, sendWhatsAppToUser } = require('../bot/whatsapp');
 
 // Helper to set nested property by path string e.g. "notifications.eventReminders"
 function setNestedPath(obj, path, value) {
@@ -45,6 +46,28 @@ exports.createRequest = async (req, res) => {
       relatedModel: 'PermissionRequest'
     });
 
+    const clientUrl = process.env.CLIENT_URL?.replace('http://localhost:5173', 'https://st-jb-church.vercel.app') || 'https://st-jb-church.vercel.app';
+
+    // Send immediate WhatsApp notification to target user via WhatsApp bot (session-aware)
+    const changeList = Object.values(requestedChanges).map(d => `• *${d.label}*: ${String(d.old)} ➔ ${String(d.new)}`).join('\n');
+    const waMsg = `⚠️ *Action Required: Settings Permission Request*
+
+Hello *${targetUser.name}*, administrator *${req.user.name}* requested updates to your account settings.
+
+📝 *Reason:* "${reason}"
+
+📋 *Proposed Changes:*
+${changeList}
+
+🔗 *Review & Approve/Reject on Website:*
+${clientUrl}/dashboard?requestAction=approve&requestId=${request._id}
+
+🔒 _For your privacy, settings will NOT take effect until you approve._
+✝️ _St. John de Britto's Church, Kalayarkoil_`;
+
+    sendWhatsAppToUser(targetUser, waMsg).catch(err => console.warn('User WA notification error:', err.message));
+
+
     // Send immediate detailed email to user if email exists
     if (targetUser.email) {
       const diffCards = Object.entries(requestedChanges).map(([key, diff]) => `
@@ -59,8 +82,6 @@ exports.createRequest = async (req, res) => {
           </div>
         </div>
       `).join('');
-
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
       const emailHtml = `
 <div style="background:#f1f5f9; padding:15px 10px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
@@ -206,13 +227,29 @@ exports.respondToRequest = async (req, res) => {
 
     await request.save();
 
-    // Send email notification to Admin if admin email exists
+    // Send WhatsApp & Email notifications to Admin if admin user exists
     try {
       const adminUser = await User.findById(request.adminId);
-      if (adminUser?.email) {
-        const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-        const isApproved = status === 'approved';
+      const clientUrl = process.env.CLIENT_URL?.replace('http://localhost:5173', 'https://st-jb-church.vercel.app') || 'https://st-jb-church.vercel.app';
+      const isApproved = status === 'approved';
 
+      if (adminUser) {
+        const adminWaMsg = `${isApproved ? '✅' : '❌'} *Permission Request Response Received*
+
+Hello *${adminUser.name}*, parish member *${req.user.name}* has *${status.toUpperCase()}* your requested settings changes.
+
+📝 *Rationale:* "${request.reason}"
+
+🔗 *View Requests Log on Website:*
+${clientUrl}/admin/users?tab=requests
+
+✝️ _St. John de Britto's Church, Kalayarkoil_`;
+
+        sendWhatsAppToUser(adminUser, adminWaMsg).catch(err => console.warn('Admin WA error:', err.message));
+      }
+
+
+      if (adminUser?.email) {
         const emailHtml = `
 <div style="background:#f1f5f9; padding:20px 12px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <div style="max-width:550px; margin:0 auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 6px 20px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
@@ -255,8 +292,9 @@ exports.respondToRequest = async (req, res) => {
         }).catch(err => console.warn('Admin email error:', err.message));
       }
     } catch (e) {
-      console.warn('Admin email error:', e.message);
+      console.warn('Admin notification error:', e.message);
     }
+
 
     res.json({ message: `Request ${status} successfully`, request });
   } catch (err) {
