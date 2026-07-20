@@ -402,8 +402,8 @@ export default function Settings() {
             <Link to="/dashboard" className="text-gold-400 text-sm hover:underline flex items-center gap-1 mb-2 ml-8">
               <FiArrowLeft /> Back to Dashboard
             </Link>
-            <h1 className="font-display text-3xl font-bold text-white flex items-center gap-3">
-              <FiUser className="text-gold-400" /> Account Settings & Preferences
+            <h1 className="font-display text-3xl font-bold text-white flex items-center gap-3 ml-8">
+              Settings
             </h1>
             {/* <p className="text-gray-300 text-xs mt-1">
               Personalize your account, notifications, privacy, family preferences, and app experience
@@ -412,7 +412,7 @@ export default function Settings() {
           <button
             onClick={handleSubmit(onSaveProfile)}
             disabled={isSubmitting}
-            className="btn-gold py-3 px-8 text-sm font-bold shadow-gold-lg self-start md:self-auto flex items-center gap-2"
+            className="btn-gold py-3 px-8 text-sm font-bold shadow-gold-lg self-start md:self-auto flex items-center gap-2 mr-8"
           >
             <FiSave className="text-lg" /> {isSubmitting ? 'Saving...' : 'Save All Settings'}
           </button>
