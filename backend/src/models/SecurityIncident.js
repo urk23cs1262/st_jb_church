@@ -9,7 +9,7 @@ const securityIncidentSchema = new mongoose.Schema({
   // Incident Classification
   type: {
     type: String,
-    enum: ['unauthorized_login_reported', 'suspicious_activity', 'multiple_failed_logins', 'brute_force_suspension'],
+    enum: ['unauthorized_login_reported', 'suspicious_activity', 'multiple_failed_logins', 'brute_force_suspension', 'brute_force_lockout'],
     default: 'unauthorized_login_reported'
   },
   status: {

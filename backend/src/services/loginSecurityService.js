@@ -633,6 +633,69 @@ async function sendAccountReactivatedEmail({ user }) {
   }
 }
 
+// Asynchronously send 15-minute temporary lockout notification email to User
+async function sendUserTemporaryLockoutEmail({ user, lockMinutes = 15, ipDetails }) {
+  if (!user || !user.email) return;
+
+  try {
+    const clientUrl = (process.env.CLIENT_URL || 'https://st-jb-church.vercel.app').replace('http://localhost:5173', 'https://st-jb-church.vercel.app');
+    const resetUrl = `${clientUrl}/login`;
+
+    const emailHtml = `
+<div style="background:#f8fafc; padding:30px 15px; font-family:'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:580px; margin:0 auto; background:#ffffff; border-radius:20px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
+    <div style="background:linear-gradient(135deg, #d97706, #b45309, #92400e); padding:30px 24px; text-align:center;">
+      <h1 style="margin:0; color:#ffffff; font-size:24px; font-weight:800;">🔒 Account Temporarily Locked</h1>
+      <p style="margin:6px 0 0; color:#fef3c7; font-size:13px;">St. John de Britto's Church — Security Notice</p>
+    </div>
+
+    <div style="padding:30px 25px;">
+      <p style="color:#1e293b; font-size:15px; font-weight:700; margin-top:0;">Dear ${user.name},</p>
+      
+      <p style="color:#475569; font-size:14px; line-height:1.6;">
+        Your Parish Account has been <strong>temporarily locked for ${lockMinutes} minutes</strong> due to <strong>5 consecutive failed login attempts</strong>.
+      </p>
+
+      <div style="background:#fffbe6; border-left:4px solid #f59e0b; padding:16px; border-radius:12px; margin:20px 0;">
+        <div style="font-weight:700; color:#92400e; font-size:13px; text-transform:uppercase; margin-bottom:6px;">Lockout Summary</div>
+        <div style="color:#78350f; font-size:13px; line-height:1.6;">
+          • <strong>Lock Duration:</strong> 15 Minutes<br>
+          • <strong>IP Address:</strong> ${ipDetails?.ip || 'Protected'}<br>
+          • <strong>Location:</strong> ${ipDetails?.location || 'India'}<br>
+          • <strong>Next Action:</strong> You can try logging in again after 15 minutes or reset your password immediately.
+        </div>
+      </div>
+
+      <div style="text-align:center; margin:28px 0;">
+        <a href="${resetUrl}" style="background:#1e3a8a; color:#fbbf24; font-weight:700; font-size:14px; text-decoration:none; padding:14px 28px; border-radius:12px; display:inline-block; box-shadow:0 4px 14px rgba(30,58,138,0.3); border:1px solid #fbbf24;">
+          🔑 Reset Password / Try Again
+        </a>
+      </div>
+
+      <p style="color:#94a3b8; font-size:12px; text-align:center; margin:0;">
+        If you forgot your password, click above to set a new password securely.
+      </p>
+    </div>
+
+    <div style="background:#0f172a; padding:18px; text-align:center; color:#94a3b8; font-size:12px;">
+      <p style="margin:0 0 4px;">St. John de Britto's Church, Kalayarkoil</p>
+      <p style="margin:0; color:#64748b;">Parish Management & Governance System</p>
+    </div>
+  </div>
+</div>
+    `;
+
+    sendMail({
+      to: user.email,
+      subject: `🔒 Security Alert: Account Temporarily Locked (15 Mins) — St. John de Britto's Church`,
+      html: emailHtml
+    }).catch(err => console.error('❌ Lockout email dispatch error:', err.message));
+
+  } catch (err) {
+    console.error('❌ sendUserTemporaryLockoutEmail error:', err.message);
+  }
+}
+
 module.exports = {
   parseUserAgent,
   parseClientIpAndLocation,
@@ -641,5 +704,6 @@ module.exports = {
   sendPasswordUpdatedEmail,
   sendUserSuspensionEmail,
   sendAdminSuspensionIncidentEmail,
-  sendAccountReactivatedEmail
+  sendAccountReactivatedEmail,
+  sendUserTemporaryLockoutEmail
 };

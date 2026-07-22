@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { FiEye, FiEyeOff, FiPhone, FiMail, FiShield, FiKey } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiPhone, FiMail, FiShield, FiKey, FiLock } from 'react-icons/fi';
 import { GiChurch, GiCrucifix } from 'react-icons/gi';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -30,6 +30,7 @@ export default function Login() {
   };
 
   const [suspendedMsg, setSuspendedMsg] = useState('');
+  const [lockoutMsg, setLockoutMsg] = useState('');
 
   const onLogin = async (data) => {
     try {
@@ -45,6 +46,10 @@ export default function Login() {
         setSuspendedMsg(resData.message);
         setStage('suspended');
         toast.error('Account Suspended: Exceeded failed login attempts');
+      } else if (resData?.isLockedOut) {
+        setLockoutMsg(resData.message);
+        setStage('lockedOut');
+        toast.error('Account Temporarily Locked for 15 Minutes');
       } else if (resData?.userId) {
         setUserId(resData.userId);
         setStage('otp');
@@ -188,6 +193,51 @@ export default function Login() {
                 >
                   <FiKey /> Forgot Password
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStage('login')}
+                  className="text-xs text-gray-500 hover:text-gray-700 underline pt-2"
+                >
+                  ← Back to Login
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Temporary 15-Minute Lockout Notice */}
+          {stage === 'lockedOut' && (
+            <div className="space-y-6 text-center">
+              <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center mx-auto border border-amber-200 shadow-inner">
+                <FiLock size={32} />
+              </div>
+
+              <div>
+                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                  15-Min Temporary Lock
+                </span>
+                <h2 className="text-lg font-bold text-church-royal-blue mt-2">Account Temporarily Locked</h2>
+              </div>
+
+              <div className="text-xs text-amber-900 leading-relaxed bg-amber-50/80 p-4 rounded-xl border border-amber-200 text-left">
+                {lockoutMsg || 'Your account has been temporarily locked for 15 minutes due to 5 failed login attempts. You can wait 15 minutes or reset your password immediately below.'}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setStage('forgot')}
+                  className="btn-gold w-full justify-center py-3 text-sm font-bold shadow-md flex items-center gap-2"
+                >
+                  <FiKey /> Reset Password Now
+                </button>
+
+                <Link
+                  to="/contact"
+                  className="btn-outline-gold w-full justify-center py-3 text-sm font-bold flex items-center gap-2"
+                >
+                  <FiMail /> Contact Support
+                </Link>
 
                 <button
                   type="button"

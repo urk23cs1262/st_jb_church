@@ -143,28 +143,56 @@ const login = async (req, res) => {
       }
     }
 
-    if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    if (!user) return res.status(401).json({ success: false, message: 'Incorrect password or user not found. Please try again.' });
 
-    // Check if account is suspended
+    const now = new Date();
+
+    // 1. Check if Account is Suspended
     if (user.isSuspended) {
       return res.status(403).json({
         success: false,
         isSuspended: true,
         canResetPassword: true,
-        message: 'Your account has been automatically suspended due to multiple unsuccessful login attempts for your security. Please contact the administrator to restore access.'
+        message: 'Your account has been automatically suspended due to repeated failed login attempts for your security. Please contact the administrator to restore access.'
       });
     }
 
-    const match = await bcrypt.compare(password, user.passwordHash);
-    const now = new Date();
+    // 2. Check if Account is Temporarily Locked (15-min lockout)
+    if (user.isLockedUntil) {
+      if (now < new Date(user.isLockedUntil)) {
+        const remainingMins = Math.max(1, Math.ceil((new Date(user.isLockedUntil) - now) / (60 * 1000)));
+        return res.status(429).json({
+          success: false,
+          isLockedOut: true,
+          lockedUntil: user.isLockedUntil,
+          canResetPassword: true,
+          message: `Your account is temporarily locked for 15 minutes due to multiple failed login attempts. Please try again in ${remainingMins} minute(s) or reset your password.`
+        });
+      } else {
+        // Lockout expired, clear lockout flag
+        await User.findByIdAndUpdate(user._id, { isLockedUntil: null });
+      }
+    }
 
+    const match = await bcrypt.compare(password, user.passwordHash);
+
+    // 3. Password Mismatch Handling (Progressive Lockout & Suspension)
     if (!match) {
-      // Increment failed attempts
-      const windowMs = 30 * 60 * 1000; // 30 mins window
+      // 24-hour lockout counter window reset check
+      const dayMs = 24 * 60 * 60 * 1000;
+      let lockoutCount = user.lockoutCount || 0;
+      let firstLockoutAt = user.firstLockoutAt || null;
+
+      if (firstLockoutAt && (now - new Date(firstLockoutAt)) > dayMs) {
+        lockoutCount = 0;
+        firstLockoutAt = null;
+      }
+
+      // 30-minute failed attempt window reset check
+      const windowMs = 30 * 60 * 1000;
       let failedAttempts = (user.failedLoginAttempts || 0) + 1;
       let firstAttempt = user.firstFailedAttempt || now;
 
-      // Reset window if first attempt was > 30 mins ago
       if (user.firstFailedAttempt && (now - new Date(user.firstFailedAttempt)) > windowMs) {
         failedAttempts = 1;
         firstAttempt = now;
@@ -173,22 +201,24 @@ const login = async (req, res) => {
       const updateFields = {
         failedLoginAttempts: failedAttempts,
         firstFailedAttempt: firstAttempt,
-        lastFailedAttempt: now
+        lastFailedAttempt: now,
+        lockoutCount,
+        firstLockoutAt
       };
 
-      // Check if threshold reached (10 consecutive failed attempts)
-      if (failedAttempts >= 10) {
+      const { parseUserAgent, parseClientIpAndLocation, sendUserSuspensionEmail, sendAdminSuspensionIncidentEmail, sendUserTemporaryLockoutEmail } = require('../services/loginSecurityService');
+      const ipDetails = parseClientIpAndLocation(req);
+      const uaDetails = parseUserAgent(req.headers['user-agent']);
+
+      // 🛑 RULE: 10 Failed Attempts OR 2 Lockouts within 24h = AUTOMATIC ACCOUNT SUSPENSION
+      if (failedAttempts >= 10 || lockoutCount >= 2) {
         updateFields.isSuspended = true;
         updateFields.suspendedAt = now;
-        updateFields.suspensionReason = 'Exceeded maximum allowed failed login attempts threshold (10 attempts / 30 mins)';
+        updateFields.suspensionReason = `Exceeded failed attempt threshold (${failedAttempts} attempts / ${lockoutCount} lockouts within 24h)`;
 
         await User.findByIdAndUpdate(user._id, updateFields);
 
-        // 1. Create Security Incident Record
-        const { parseUserAgent, parseClientIpAndLocation, sendUserSuspensionEmail, sendAdminSuspensionIncidentEmail } = require('../services/loginSecurityService');
-        const ipDetails = parseClientIpAndLocation(req);
-        const uaDetails = parseUserAgent(req.headers['user-agent']);
-
+        // Record Security Incident
         const incident = await SecurityIncident.create({
           userId: user._id,
           userName: user.name,
@@ -208,24 +238,21 @@ const login = async (req, res) => {
           location: ipDetails.location,
           loginMethod: 'Password',
           actionsTaken: [
-            'Automatically suspended user account after 10 consecutive failed login attempts',
-            'Prevented all future login attempts pending admin review',
-            'Logged incident in security audit log',
+            `Automatically suspended user account after ${failedAttempts} failed login attempts`,
+            'Blocked future login attempts pending administrator review',
+            'Logged incident in security audit registry',
             'Dispatched email notification to user & parish administrator'
           ]
         });
 
-        // 2. Dispatch User Suspension Email
+        // Send Email Alerts & Notifications
         sendUserSuspensionEmail({ user, incident, ipDetails }).catch(e => console.warn('User suspension email error:', e.message));
-
-        // 3. Dispatch Admin Suspension Incident Email
         sendAdminSuspensionIncidentEmail({ user, incident, ipDetails }).catch(e => console.warn('Admin suspension email error:', e.message));
 
-        // 4. Issue High-Priority Admin Dashboard Notification
         createNotification({
           recipient: 'admin',
           title: '🚨 Security Incident: Account Suspended',
-          message: `User ${user.name} (${user.email || user.phone}) has been automatically suspended after ${failedAttempts} consecutive failed login attempts.`,
+          message: `User ${user.name} (${user.email || user.phone}) has been automatically suspended after ${failedAttempts} failed login attempts.`,
           type: 'system',
           category: 'system',
           priority: 'high',
@@ -238,27 +265,74 @@ const login = async (req, res) => {
           success: false,
           isSuspended: true,
           canResetPassword: true,
-          message: 'Your account has been automatically suspended due to multiple unsuccessful login attempts for your security. Please contact the administrator to restore access.'
+          message: 'Your account has been automatically suspended due to repeated failed login attempts for your security. Please contact the administrator to restore access.'
         });
-      } else {
+
+      } 
+      // 🔒 RULE: 5 Failed Attempts = 15-MINUTE TEMPORARY LOCKOUT
+      else if (failedAttempts >= 5) {
+        const lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+        updateFields.isLockedUntil = lockUntil;
+        updateFields.lockoutCount = lockoutCount + 1;
+        updateFields.firstLockoutAt = firstLockoutAt || now;
+
         await User.findByIdAndUpdate(user._id, updateFields);
-        const remaining = 10 - failedAttempts;
+
+        // Send Lockout Email & Notification to User
+        sendUserTemporaryLockoutEmail({ user, lockMinutes: 15, ipDetails }).catch(e => console.warn('Lockout email error:', e.message));
+
+        createNotification({
+          userId: user._id,
+          recipient: 'user',
+          title: 'Account Temporarily Locked 🔒',
+          message: 'Your account has been temporarily locked for 15 minutes due to 5 consecutive failed login attempts. You can try again in 15 minutes or reset your password.',
+          type: 'general',
+          category: 'account',
+          priority: 'high',
+          actionUrl: '/login',
+          channels: ['email', 'push']
+        }).catch(e => console.warn('Lockout user notification error:', e.message));
+
+        return res.status(429).json({
+          success: false,
+          isLockedOut: true,
+          lockedUntil: lockUntil,
+          canResetPassword: true,
+          message: 'Your account has been temporarily locked for 15 minutes due to multiple failed login attempts. Please check your email or reset your password.'
+        });
+
+      } 
+      // ⚠️ RULE: 4 Failed Attempts = WARNING MESSAGE
+      else if (failedAttempts === 4) {
+        await User.findByIdAndUpdate(user._id, updateFields);
         return res.status(401).json({
           success: false,
-          message: `Invalid credentials. (${remaining} attempt${remaining === 1 ? '' : 's'} remaining before automatic account suspension)`
+          message: 'You have 1 attempt remaining before your account is temporarily locked for 15 minutes.'
+        });
+
+      } 
+      // ℹ️ RULE: 1 - 3 Failed Attempts = STANDARD ERROR MESSAGE
+      else {
+        await User.findByIdAndUpdate(user._id, updateFields);
+        return res.status(401).json({
+          success: false,
+          message: 'Incorrect password. Please try again.'
         });
       }
     }
 
     if (!user.isVerified) return res.status(403).json({ success: false, message: 'Account not verified. Please verify OTP first.', userId: user._id });
 
-    // Successful login: Reset failed attempt counters and record last Successful Login
+    // Successful login: Reset all failed attempt & lockout counters
     await User.findByIdAndUpdate(user._id, {
       lastLogin: now,
       lastSuccessfulLogin: now,
       failedLoginAttempts: 0,
       firstFailedAttempt: null,
-      lastFailedAttempt: null
+      lastFailedAttempt: null,
+      isLockedUntil: null,
+      lockoutCount: 0,
+      firstLockoutAt: null
     });
 
     const token = generateToken(user._id, user.role, user.tokenVersion || 0);

@@ -140,7 +140,18 @@ const userSchema = new mongoose.Schema({
         allowStaffContact: true,
         receiveVolunteerRequests: true
       }
-    }
+    },
+    // Progressive Security & Multi-Tier Lockout Fields
+    failedLoginAttempts: { type: Number, default: 0 },
+    firstFailedAttempt: { type: Date },
+    lastFailedAttempt: { type: Date },
+    isLockedUntil: { type: Date },
+    lockoutCount: { type: Number, default: 0 },
+    firstLockoutAt: { type: Date },
+    isSuspended: { type: Boolean, default: false },
+    suspendedAt: { type: Date },
+    suspensionReason: { type: String },
+    lastSuccessfulLogin: { type: Date }
   }
 }, { timestamps: true });
 
