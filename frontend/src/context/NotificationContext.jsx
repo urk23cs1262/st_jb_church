@@ -16,9 +16,21 @@ export const NotificationProvider = ({ children }) => {
   const seenIds = useRef(new Set());
   const isInitialLoad = useRef(true);
 
-  // Register service worker on mount
+  // Register service worker and auto-prompt for push notification permission on mount
   useEffect(() => {
     registerServiceWorker();
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          console.log('✅ Push notification permission auto-granted!');
+          showNativeNotification({
+            title: "St. John de Britto's Church ⛪",
+            body: "Real-time browser notifications auto-enabled! You will receive instant parish updates.",
+            url: "/dashboard"
+          });
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   const triggerNativePush = (notif) => {

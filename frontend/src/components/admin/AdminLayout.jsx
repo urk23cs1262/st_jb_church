@@ -127,20 +127,8 @@ export default function AdminLayout() {
             <img src={churchLogo} alt="Admin Dashboard" className="w-full h-full object-cover object-[center_15%]" />
           </Link>
 
-          {/* Top Right: Notifications, Back to Website & Logout */}
+          {/* Top Right: Back to Website & Logout */}
           <div className="flex items-center gap-2">
-            <Link
-              to="/admin/notifications"
-              className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all border border-white/10 shadow-sm"
-              title="Admin Notifications"
-            >
-              <FiBell className="text-base text-church-gold" />
-              {adminUnreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full ring-2 ring-church-royal-blue animate-pulse flex items-center justify-center text-[8px] font-black text-white">
-                  {adminUnreadCount > 9 ? '9+' : adminUnreadCount}
-                </span>
-              )}
-            </Link>
             <Link to="/" className="flex items-center gap-1.5 bg-church-gold hover:brightness-110 text-white text-xs font-bold px-3 py-2 rounded-xl shadow-md transition-all">
               <FiArrowLeft className="text-sm" /> Back to Website
             </Link>

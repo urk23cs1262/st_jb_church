@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiBell, FiSearch, FiTrash2, FiCheckCircle, FiFilter,
@@ -247,13 +247,40 @@ function NotificationDetailModal({ notif, onClose, onMarkRead, onDelete }) {
               </button>
             )}
 
-            {notif.actionUrl && (
-              <Link
-                to={notif.actionUrl}
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl bg-church-royal-blue hover:bg-church-royal-blue/90 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+            {isSecurityAlert && notif.relatedId && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await api.put(`/security/incidents/${notif.relatedId}/reactivate`);
+                    toast.success('User account reactivated successfully!');
+                    onClose();
+                  } catch (e) {
+                    toast.error(e.response?.data?.message || 'Reactivation failed');
+                  }
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm flex-shrink-0"
               >
-                Go to Module <FiArrowRight size={14} />
+                🔓 Reactivate Account
+              </button>
+            )}
+
+            {(notif.actionUrl || isSecurityAlert) && (
+              <Link
+                to={notif.actionUrl || (isSecurityAlert ? '/admin/users' : '/dashboard')}
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-church-royal-blue hover:bg-church-royal-blue/90 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm flex-shrink-0"
+              >
+                {isSecurityAlert ? '👤 View User Account →' :
+                 cat === 'bookings' ? '🗓️ Manage Bookings →' :
+                 cat === 'documents' ? '📄 Process Document →' :
+                 cat === 'donations' ? '💰 View Donations →' :
+                 cat === 'tickets' ? '🎫 Manage Tickets →' :
+                 cat === 'prayer' ? '🙏 View Prayers →' :
+                 cat === 'account' ? '👤 View User Details →' :
+                 cat === 'events' ? '📅 View Event →' :
+                 cat === 'announcements' ? '📢 View Announcement →' :
+                 'Open Page →'}
               </Link>
             )}
           </div>
@@ -370,12 +397,25 @@ function BroadcastModal({ onClose, onSent }) {
 // ── Main Admin Notifications Page ────────────────────────────────────────────
 export default function AdminNotifications() {
   const { adminNotifications, adminUnreadCount, loading, markRead, markAllAdminRead, deleteNotification, togglePin, refetch } = useNotifications();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState(null);
+
+  // Auto-open deep linked security incident or notification from email link
+  useEffect(() => {
+    const targetId = searchParams.get('incidentId') || searchParams.get('notifId') || searchParams.get('requestId');
+    if (targetId && adminNotifications.length > 0) {
+      const match = adminNotifications.find(n => n._id === targetId || String(n.relatedId) === String(targetId));
+      if (match) {
+        setSelectedNotif(match);
+        if (!match.isRead) markRead(match._id);
+      }
+    }
+  }, [searchParams, adminNotifications, markRead]);
 
   const filtered = useMemo(() => {
     return adminNotifications.filter(n => {
@@ -424,13 +464,13 @@ export default function AdminNotifications() {
             )}
           </p>
         </div>
-        <button
+        {/* <button
           onClick={() => setShowBroadcast(true)}
           className="flex items-center gap-2 bg-church-royal-blue text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-church-royal-blue/90 shadow-md transition-all"
         >
           <FiSend size={14} /> Notify Users
 
-        </button>
+        </button> */}
       </div>
 
       {/* Stats row */}

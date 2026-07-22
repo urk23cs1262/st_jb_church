@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiBell, FiSearch, FiTrash2, FiCheckCircle, FiX, FiCheck,
@@ -207,6 +207,7 @@ export default function UserNotifications() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
@@ -216,6 +217,14 @@ export default function UserNotifications() {
       navigate('/admin/notifications', { replace: true });
     }
   }, [user, navigate]);
+
+  // Deep-link handling from email link redirect
+  useEffect(() => {
+    const requestId = searchParams.get('requestId') || searchParams.get('notifId');
+    if (requestId) {
+      setActiveCategory('permission');
+    }
+  }, [searchParams]);
 
   const filtered = useMemo(() => {
     return notifications.filter(n => {

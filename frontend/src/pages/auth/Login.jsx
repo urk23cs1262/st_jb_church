@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { FiEye, FiEyeOff, FiPhone, FiMail } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiPhone, FiMail, FiShield, FiKey } from 'react-icons/fi';
 import { GiChurch, GiCrucifix } from 'react-icons/gi';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -29,6 +29,8 @@ export default function Login() {
     return '/';
   };
 
+  const [suspendedMsg, setSuspendedMsg] = useState('');
+
   const onLogin = async (data) => {
     try {
       const res = await api.post('/auth/login', { login: data.login, password: data.password });
@@ -38,9 +40,18 @@ export default function Login() {
       const redirect = searchParams.get('redirect') || getDefaultLandingRoute(res.data.user);
       navigate(redirect);
     } catch (e) {
-      const msg = e.response?.data?.message;
-      if (e.response?.data?.userId) { setUserId(e.response.data.userId); setStage('otp'); toast.error('Please verify your OTP'); }
-      else toast.error(msg || 'Login failed');
+      const resData = e.response?.data;
+      if (resData?.isSuspended) {
+        setSuspendedMsg(resData.message);
+        setStage('suspended');
+        toast.error('Account Suspended: Exceeded failed login attempts');
+      } else if (resData?.userId) {
+        setUserId(resData.userId);
+        setStage('otp');
+        toast.error('Please verify your OTP');
+      } else {
+        toast.error(resData?.message || 'Login failed');
+      }
     }
   };
 
@@ -142,6 +153,51 @@ export default function Login() {
                 <Link to="/register" className="text-church-gold font-semibold hover:underline">{t('nav.register')}</Link>
               </p>
             </form>
+          )}
+
+          {/* Account Suspended Notice */}
+          {stage === 'suspended' && (
+            <div className="space-y-6 text-center">
+              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto border border-red-200 shadow-inner">
+                <FiShield size={32} />
+              </div>
+
+              <div>
+                <span className="text-[11px] font-bold text-red-700 uppercase tracking-widest bg-red-50 px-3 py-1 rounded-full border border-red-200">
+                  Account Suspended
+                </span>
+                <h2 className="text-lg font-bold text-church-royal-blue mt-2">Access Temporarily Suspended</h2>
+              </div>
+
+              <div className="text-xs text-gray-700 leading-relaxed bg-red-50/60 p-4 rounded-xl border border-red-200 text-left">
+                {suspendedMsg || 'Your account has been automatically suspended due to multiple unsuccessful login attempts for your security. Please contact the administrator to restore access.'}
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 pt-2">
+                <Link
+                  to="/contact"
+                  className="btn-gold w-full justify-center py-3 text-sm font-bold shadow-md flex items-center gap-2"
+                >
+                  <FiMail /> Contact Administrator
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => setStage('forgot')}
+                  className="btn-outline-gold w-full justify-center py-3 text-sm font-bold flex items-center gap-2"
+                >
+                  <FiKey /> Forgot Password
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setStage('login')}
+                  className="text-xs text-gray-500 hover:text-gray-700 underline pt-2"
+                >
+                  ← Back to Login
+                </button>
+              </div>
+            </div>
           )}
 
           {/* OTP Verification */}

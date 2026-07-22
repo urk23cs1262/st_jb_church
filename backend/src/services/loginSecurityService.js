@@ -265,10 +265,381 @@ async function sendPasswordUpdatedEmail({ user }) {
   }
 }
 
+// Send "Security Alert – Your Account Has Been Suspended" Email to User
+async function sendUserSuspensionEmail({ user, incident, ipDetails = {} }) {
+  try {
+    if (!user?.email) return;
+
+    const clientUrl = (process.env.CLIENT_URL || 'https://st-jb-church.vercel.app').replace('http://localhost:5173', 'https://st-jb-church.vercel.app');
+    const contactUrl = `${clientUrl}/contact`;
+
+    const formattedSuspensionTime = new Date(incident.createdAt || Date.now()).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }) + ' IST';
+
+    const firstAttemptFormatted = incident.firstFailedAttempt ? new Date(incident.firstFailedAttempt).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }) + ' IST' : formattedSuspensionTime;
+
+    const lastAttemptFormatted = incident.lastFailedAttempt ? new Date(incident.lastFailedAttempt).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }) + ' IST' : formattedSuspensionTime;
+
+    const emailHtml = `
+<div style="background-color:#0f172a; padding:30px 15px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:600px; margin:0 auto; background-color:#1e293b; border-radius:20px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,0.5); border:1px solid #334155;">
+    
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#991b1b,#7f1d1d,#450a0a); padding:32px 24px; text-align:center; border-bottom:2px solid #ef4444;">
+      <div style="display:inline-block; background-color:rgba(255,255,255,0.15); padding:6px 16px; border-radius:30px; margin-bottom:10px;">
+        <span style="color:#fef08a; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">🔒 ACCOUNT SUSPENDED</span>
+      </div>
+      <h1 style="margin:4px 0 0; color:#ffffff; font-size:22px; font-weight:900; line-height:1.3;">Security Alert – Your Account Has Been Suspended</h1>
+      <p style="margin:6px 0 0; color:#fca5a5; font-size:13px; font-weight:600;">St. John de Britto's Church Security System</p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:28px 24px; color:#e2e8f0;">
+      <p style="color:#f8fafc; font-size:15px; font-weight:700; margin-top:0;">Hello ${user.name},</p>
+      <p style="color:#cbd5e1; font-size:14px; line-height:1.6; margin-bottom:20px;">
+        We detected multiple unsuccessful login attempts on your account. To protect your personal information and prevent unauthorized access, your account has been <strong>automatically suspended</strong>.
+      </p>
+
+      <!-- Security Summary Table -->
+      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:22px;">
+        <h3 style="margin:0 0 12px; color:#f8fafc; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+          📊 Security Summary
+        </h3>
+        
+        <table style="width:100%; border-collapse:collapse; font-size:13px; color:#cbd5e1;">
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600; width:42%;">Date & Time of Suspension:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${formattedSuspensionTime}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Failed Login Attempts:</td>
+            <td style="padding:5px 0; font-weight:800; color:#ef4444;">${incident.failedAttempts || 10} consecutive failed attempts</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">First Failed Attempt:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${firstAttemptFormatted}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Last Failed Attempt:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${lastAttemptFormatted}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">IP Address:</td>
+            <td style="padding:5px 0; font-weight:700; color:#cbd5e1; font-family:monospace;">${incident.ipAddress || ipDetails.ip || '103.45.23.12'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Device / Browser:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${incident.device || 'Desktop / Mobile'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Operating System:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${incident.os || 'Windows / Mobile'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Approximate Location:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${incident.location || 'Coimbatore, Tamil Nadu, India'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Reason:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f59e0b;">Multiple consecutive failed login attempts exceeded permitted security threshold.</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Action Guidance -->
+      <div style="background-color:#0f172a; border-left:4px solid #f59e0b; padding:14px 16px; border-radius:8px; margin-bottom:24px; font-size:13px; color:#cbd5e1; line-height:1.6;">
+        <p style="margin:0 0 8px;"><strong>If these attempts were made by you:</strong> Please contact the parish administrator to restore access to your account.</p>
+        <p style="margin:0;"><strong>If these attempts were not made by you:</strong> Your account has been protected and no further action can be performed by unauthorized users until identity verification.</p>
+      </div>
+
+      <!-- Contact Admin CTA Button -->
+      <div style="text-align:center; margin:28px 0 16px;">
+        <a href="${contactUrl}" style="display:inline-block; background-color:#2563eb; color:#ffffff; font-weight:800; font-size:14px; text-decoration:none; padding:14px 30px; border-radius:12px; box-shadow:0 4px 18px rgba(37,99,235,0.4);">
+          Contact Administrator →
+        </a>
+      </div>
+
+      <p style="color:#94a3b8; font-size:12px; line-height:1.5; text-align:center; margin-bottom:0;">
+        If you need urgent assistance, you can also use the Password Reset option on our website.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color:#0f172a; padding:18px 22px; text-align:center; color:#64748b; font-size:12px; border-top:1px solid #334155;">
+      <p style="margin:0; font-weight:700; color:#cbd5e1;">St. John de Britto's Church, Kalayarkoil</p>
+      <p style="margin:4px 0 0; color:#64748b; font-size:11px;">Parish Security System • Automated Protection Service</p>
+    </div>
+
+  </div>
+</div>
+    `;
+
+    sendMail({
+      to: user.email,
+      subject: `Security Alert – Your Account Has Been Suspended — St. John de Britto's Church`,
+      html: emailHtml
+    }).then(res => {
+      if (res.success) console.log(`📧 User suspension email sent to ${user.email}`);
+    }).catch(err => console.error('❌ User suspension email error:', err.message));
+
+  } catch (err) {
+    console.error('❌ sendUserSuspensionEmail error:', err.message);
+  }
+}
+
+// Send "Security Incident – User Account Automatically Suspended" Email to Admin(s)
+async function sendAdminSuspensionIncidentEmail({ user, incident, ipDetails = {} }) {
+  try {
+    const User = require('../models/User');
+    const adminUsers = await User.find({ role: 'admin', email: { $exists: true, $ne: null } }).select('email name');
+    const adminEmails = adminUsers.map(a => a.email).filter(Boolean);
+
+    if (adminEmails.length === 0) return;
+
+    const clientUrl = (process.env.CLIENT_URL || 'https://st-jb-church.vercel.app').replace('http://localhost:5173', 'https://st-jb-church.vercel.app');
+    const deepLinkUrl = `${clientUrl}/admin/notifications?incidentId=${incident._id}`;
+
+    const formattedSuspensionTime = new Date(incident.createdAt || Date.now()).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }) + ' IST';
+
+    const lastLoginFormatted = user.lastSuccessfulLogin ? new Date(user.lastSuccessfulLogin).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    }) + ' IST' : 'No previous successful logins';
+
+    const emailHtml = `
+<div style="background-color:#0f172a; padding:30px 15px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:640px; margin:0 auto; background-color:#1e293b; border-radius:20px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,0.5); border:1px solid #334155;">
+    
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#991b1b,#7f1d1d,#450a0a); padding:32px 24px; text-align:center; border-bottom:2px solid #ef4444;">
+      <div style="display:inline-block; background-color:rgba(255,255,255,0.15); padding:6px 16px; border-radius:30px; margin-bottom:10px;">
+        <span style="color:#fef08a; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">🚨 BRUTE-FORCE PROTECTION DISPATCH</span>
+      </div>
+      <h1 style="margin:4px 0 0; color:#ffffff; font-size:22px; font-weight:900; line-height:1.3;">Security Incident – User Account Automatically Suspended</h1>
+      <p style="margin:6px 0 0; color:#fca5a5; font-size:13px; font-weight:600;">St. John de Britto's Church — Administrative Security Monitor</p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:28px 24px; color:#e2e8f0;">
+      <p style="color:#f8fafc; font-size:15px; font-weight:700; margin-top:0;">Dear Administrator,</p>
+      <p style="color:#cbd5e1; font-size:14px; line-height:1.6; margin-bottom:22px;">
+        A user account has been <strong>automatically suspended</strong> after exceeding the permitted threshold of consecutive failed login attempts.
+      </p>
+
+      <!-- User Information -->
+      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:20px;">
+        <h3 style="margin:0 0 12px; color:#f8fafc; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+          👤 User Information
+        </h3>
+        <table style="width:100%; border-collapse:collapse; font-size:13px; color:#cbd5e1;">
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600; width:40%;">User Name:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${user.name}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">User Database ID:</td>
+            <td style="padding:5px 0; font-weight:700; color:#a855f7; font-family:monospace;">${user._id}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Email Address:</td>
+            <td style="padding:5px 0; font-weight:700; color:#38bdf8;">${user.email || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Phone Number:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${user.phone || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Last Successful Login:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${lastLoginFormatted}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Incident Details -->
+      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:20px;">
+        <h3 style="margin:0 0 12px; color:#f8fafc; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+          ⚠️ Incident Details
+        </h3>
+        <table style="width:100%; border-collapse:collapse; font-size:13px; color:#cbd5e1;">
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600; width:40%;">Total Failed Attempts:</td>
+            <td style="padding:5px 0; font-weight:800; color:#ef4444;">${incident.failedAttempts || 10} attempts</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Allowed Threshold:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">10 consecutive failed attempts / 30 mins</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">IP Address History:</td>
+            <td style="padding:5px 0; font-weight:700; color:#cbd5e1; font-family:monospace;">${incident.ipAddress || ipDetails.ip || '103.45.23.12'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Device Information:</td>
+            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${incident.device || 'Desktop / Mobile'}</td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Risk Level:</td>
+            <td style="padding:5px 0;"><span style="background-color:#7f1d1d; color:#fca5a5; font-weight:800; font-size:11px; padding:3px 10px; border-radius:20px; border:1px solid #ef4444;">HIGH</span></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Recommended Actions -->
+      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:24px;">
+        <h3 style="margin:0 0 12px; color:#f8fafc; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+          🎯 Recommended Actions
+        </h3>
+        <ul style="margin:0; padding-left:18px; font-size:13px; color:#cbd5e1; space-y:4px;">
+          <li>Review the failed login activity log.</li>
+          <li>Verify the identity of the user if they contact support.</li>
+          <li>Reactivate the account from the Admin Notifications portal after verification.</li>
+        </ul>
+      </div>
+
+      <!-- CTA Deep-Link Button -->
+      <div style="text-align:center; margin:28px 0 16px;">
+        <a href="${deepLinkUrl}" style="display:inline-block; background-color:#ef4444; color:#ffffff; font-weight:800; font-size:14px; text-decoration:none; padding:14px 28px; border-radius:12px; box-shadow:0 4px 16px rgba(239,68,68,0.4);">
+          🛡️ View Incident & Reactivate Account →
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color:#0f172a; padding:18px 22px; text-align:center; color:#64748b; font-size:12px; border-top:1px solid #334155;">
+      <p style="margin:0; font-weight:700; color:#cbd5e1;">St. John de Britto's Church, Kalayarkoil</p>
+      <p style="margin:4px 0 0; color:#64748b; font-size:11px;">Parish Security System • Automated Brute-Force Monitor</p>
+    </div>
+
+  </div>
+</div>
+    `;
+
+    adminEmails.forEach(adminEmail => {
+      sendMail({
+        to: adminEmail,
+        subject: `Security Incident – User Account Automatically Suspended — St. John de Britto's Church`,
+        html: emailHtml
+      }).then(res => {
+        if (res.success) console.log(`📧 Admin suspension alert sent to ${adminEmail}`);
+      }).catch(err => console.error('❌ Admin suspension email error:', err.message));
+    });
+
+  } catch (err) {
+    console.error('❌ sendAdminSuspensionIncidentEmail error:', err.message);
+  }
+}
+
+// Send Account Reactivated Confirmation Email
+async function sendAccountReactivatedEmail({ user }) {
+  try {
+    if (!user?.email) return;
+
+    const clientUrl = (process.env.CLIENT_URL || 'https://st-jb-church.vercel.app').replace('http://localhost:5173', 'https://st-jb-church.vercel.app');
+    const loginUrl = `${clientUrl}/login`;
+
+    const emailHtml = `
+<div style="background-color:#f8fafc; padding:30px 15px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:560px; margin:0 auto; background-color:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
+    
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#065f46,#047857,#0f766e); padding:28px 22px; text-align:center;">
+      <div style="display:inline-block; background-color:rgba(255,255,255,0.15); padding:8px 16px; border-radius:30px; margin-bottom:8px;">
+        <span style="color:#6ee7b7; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">✅ ACCESS RESTORED</span>
+      </div>
+      <h1 style="margin:4px 0 0; color:#ffffff; font-size:22px; font-weight:800; line-height:1.3;">Your Account Has Been Reactivated</h1>
+      <p style="margin:4px 0 0; color:#e2e8f0; opacity:0.9; font-size:13px;">St. John de Britto's Church</p>
+    </div>
+
+    <!-- Body -->
+    <div style="padding:26px 22px;">
+      <p style="color:#1e293b; font-size:15px; font-weight:700; margin-top:0;">Dear ${user.name},</p>
+      <p style="color:#475569; font-size:14px; line-height:1.6; margin-bottom:20px;">
+        Your Parish Account access has been successfully <strong>reactivated by the administrator</strong> following security verification.
+      </p>
+
+      <div style="background-color:#f0fdf4; border:1px solid #bbf7d0; border-radius:14px; padding:16px 18px; margin-bottom:24px;">
+        <h3 style="margin:0 0 10px; color:#166534; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">
+          Account Status Update
+        </h3>
+        <p style="margin:0; font-size:13px; color:#14532d;">
+          ✅ Account suspension lifted.<br/>
+          ✅ Login counter reset.<br/>
+          ✅ You can now log in normally using your password.
+        </p>
+      </div>
+
+      <div style="text-align:center; margin:24px 0 16px;">
+        <a href="${loginUrl}" style="display:inline-block; background-color:#059669; color:#ffffff; font-weight:800; font-size:14px; text-decoration:none; padding:12px 28px; border-radius:10px; box-shadow:0 4px 14px rgba(5,150,105,0.3);">
+          Proceed to Login →
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color:#0f172a; padding:18px 22px; text-align:center; color:#94a3b8; font-size:12px;">
+      <p style="margin:0; font-weight:700; color:#f8fafc;">St. John de Britto's Church, Kalayarkoil</p>
+    </div>
+
+  </div>
+</div>
+    `;
+
+    sendMail({
+      to: user.email,
+      subject: `✅ Account Reactivated: Your Access Has Been Restored — St. John de Britto's Church`,
+      html: emailHtml
+    }).then(res => {
+      if (res.success) console.log(`📧 Account reactivated email sent to ${user.email}`);
+    }).catch(err => console.error('❌ Account reactivated email error:', err.message));
+
+  } catch (err) {
+    console.error('❌ sendAccountReactivatedEmail error:', err.message);
+  }
+}
+
 module.exports = {
   parseUserAgent,
   parseClientIpAndLocation,
   generateSecurityReportToken,
   sendLoginAlertEmail,
-  sendPasswordUpdatedEmail
+  sendPasswordUpdatedEmail,
+  sendUserSuspensionEmail,
+  sendAdminSuspensionIncidentEmail,
+  sendAccountReactivatedEmail
 };

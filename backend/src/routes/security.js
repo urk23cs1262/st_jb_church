@@ -5,7 +5,8 @@ const {
   verifyReportToken,
   confirmUnauthorized,
   getIncidents,
-  updateIncidentStatus
+  updateIncidentStatus,
+  reactivateUserAccount
 } = require('../controllers/securityController');
 
 // Public routes for security report link from email
@@ -15,5 +16,6 @@ router.post('/confirm-unauthorized', confirmUnauthorized);
 // Protected Admin routes for incident management
 router.get('/incidents', protect, adminOnly, getIncidents);
 router.put('/incidents/:id', protect, adminOnly, updateIncidentStatus);
+router.put('/incidents/:id/reactivate', protect, adminOnly, reactivateUserAccount);
 
 module.exports = router;

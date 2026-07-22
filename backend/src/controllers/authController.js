@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
+const SecurityIncident = require('../models/SecurityIncident');
 const { generateToken } = require('../middleware/auth');
 const { sendOTP, verifyOTP } = require('../services/otpService');
 const { createNotification } = require('../services/notificationService');
@@ -144,12 +145,122 @@ const login = async (req, res) => {
 
     if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
+    // Check if account is suspended
+    if (user.isSuspended) {
+      return res.status(403).json({
+        success: false,
+        isSuspended: true,
+        canResetPassword: true,
+        message: 'Your account has been automatically suspended due to multiple unsuccessful login attempts for your security. Please contact the administrator to restore access.'
+      });
+    }
+
     const match = await bcrypt.compare(password, user.passwordHash);
-    if (!match) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    const now = new Date();
+
+    if (!match) {
+      // Increment failed attempts
+      const windowMs = 30 * 60 * 1000; // 30 mins window
+      let failedAttempts = (user.failedLoginAttempts || 0) + 1;
+      let firstAttempt = user.firstFailedAttempt || now;
+
+      // Reset window if first attempt was > 30 mins ago
+      if (user.firstFailedAttempt && (now - new Date(user.firstFailedAttempt)) > windowMs) {
+        failedAttempts = 1;
+        firstAttempt = now;
+      }
+
+      const updateFields = {
+        failedLoginAttempts: failedAttempts,
+        firstFailedAttempt: firstAttempt,
+        lastFailedAttempt: now
+      };
+
+      // Check if threshold reached (10 consecutive failed attempts)
+      if (failedAttempts >= 10) {
+        updateFields.isSuspended = true;
+        updateFields.suspendedAt = now;
+        updateFields.suspensionReason = 'Exceeded maximum allowed failed login attempts threshold (10 attempts / 30 mins)';
+
+        await User.findByIdAndUpdate(user._id, updateFields);
+
+        // 1. Create Security Incident Record
+        const { parseUserAgent, parseClientIpAndLocation, sendUserSuspensionEmail, sendAdminSuspensionIncidentEmail } = require('../services/loginSecurityService');
+        const ipDetails = parseClientIpAndLocation(req);
+        const uaDetails = parseUserAgent(req.headers['user-agent']);
+
+        const incident = await SecurityIncident.create({
+          userId: user._id,
+          userName: user.name,
+          userEmail: user.email,
+          userPhone: user.phone,
+          type: 'brute_force_suspension',
+          status: 'Awaiting Review',
+          failedAttempts,
+          threshold: 10,
+          firstFailedAttempt: firstAttempt,
+          lastFailedAttempt: now,
+          loginTime: now,
+          device: uaDetails.device,
+          browser: uaDetails.browser,
+          os: uaDetails.os,
+          ipAddress: ipDetails.ip,
+          location: ipDetails.location,
+          loginMethod: 'Password',
+          actionsTaken: [
+            'Automatically suspended user account after 10 consecutive failed login attempts',
+            'Prevented all future login attempts pending admin review',
+            'Logged incident in security audit log',
+            'Dispatched email notification to user & parish administrator'
+          ]
+        });
+
+        // 2. Dispatch User Suspension Email
+        sendUserSuspensionEmail({ user, incident, ipDetails }).catch(e => console.warn('User suspension email error:', e.message));
+
+        // 3. Dispatch Admin Suspension Incident Email
+        sendAdminSuspensionIncidentEmail({ user, incident, ipDetails }).catch(e => console.warn('Admin suspension email error:', e.message));
+
+        // 4. Issue High-Priority Admin Dashboard Notification
+        createNotification({
+          recipient: 'admin',
+          title: '🚨 Security Incident: Account Suspended',
+          message: `User ${user.name} (${user.email || user.phone}) has been automatically suspended after ${failedAttempts} consecutive failed login attempts.`,
+          type: 'system',
+          category: 'system',
+          priority: 'high',
+          actionUrl: `/admin/notifications?incidentId=${incident._id}`,
+          relatedId: incident._id,
+          relatedModel: 'SecurityIncident'
+        }).catch(e => console.warn('Suspension admin notification error:', e.message));
+
+        return res.status(403).json({
+          success: false,
+          isSuspended: true,
+          canResetPassword: true,
+          message: 'Your account has been automatically suspended due to multiple unsuccessful login attempts for your security. Please contact the administrator to restore access.'
+        });
+      } else {
+        await User.findByIdAndUpdate(user._id, updateFields);
+        const remaining = 10 - failedAttempts;
+        return res.status(401).json({
+          success: false,
+          message: `Invalid credentials. (${remaining} attempt${remaining === 1 ? '' : 's'} remaining before automatic account suspension)`
+        });
+      }
+    }
 
     if (!user.isVerified) return res.status(403).json({ success: false, message: 'Account not verified. Please verify OTP first.', userId: user._id });
 
-    await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
+    // Successful login: Reset failed attempt counters and record last Successful Login
+    await User.findByIdAndUpdate(user._id, {
+      lastLogin: now,
+      lastSuccessfulLogin: now,
+      failedLoginAttempts: 0,
+      firstFailedAttempt: null,
+      lastFailedAttempt: null
+    });
+
     const token = generateToken(user._id, user.role, user.tokenVersion || 0);
 
     // Trigger Login Security Alert Email
@@ -226,13 +337,10 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'New password must be at least 6 characters long' });
     }
 
-    const result = await verifyOTP(userId, otp);
-    if (!result.valid) return res.status(400).json({ success: false, message: result.message });
-
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    // Reject if new password matches old password
+    // Reject if new password matches old password BEFORE verifying/clearing OTP!
     const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash);
     if (isSamePassword) {
       return res.status(400).json({
@@ -240,6 +348,10 @@ const resetPassword = async (req, res) => {
         message: 'New password cannot be the same as your old password. Please enter a different password.'
       });
     }
+
+    // Now verify and consume the OTP after password validation passes
+    const result = await verifyOTP(userId, otp);
+    if (!result.valid) return res.status(400).json({ success: false, message: result.message });
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await User.findByIdAndUpdate(userId, {

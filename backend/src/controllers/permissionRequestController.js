@@ -54,7 +54,7 @@ exports.createRequest = async (req, res) => {
       message: `${req.user.name} requested changes to your settings. Reason: "${reason}". Please review and approve/reject.`,
       type: 'permission',
       category: 'permission',
-      actionUrl: `/dashboard?requestId=${request._id}`,
+      actionUrl: `/dashboard/notifications?requestId=${request._id}`,
       relatedId: request._id,
       relatedModel: 'PermissionRequest'
     });
@@ -73,7 +73,7 @@ Hello *${targetUser.name}*, administrator *${req.user.name}* requested updates t
 ${changeList}
 
 🔗 *Review & Approve/Reject on Website:*
-${clientUrl}/dashboard?requestAction=approve&requestId=${request._id}
+${clientUrl}/dashboard/notifications?requestId=${request._id}
 
 🔒 _For your privacy, settings will NOT take effect until you approve._
 ✝️ _St. John de Britto's Church, Kalayarkoil_`;
@@ -118,11 +118,8 @@ ${clientUrl}/dashboard?requestAction=approve&requestId=${request._id}
       ${diffCards}
 
       <div style="margin-top:25px; text-align:center;">
-        <a href="${clientUrl}/dashboard?requestAction=approve&requestId=${request._id}" style="background:#059669; color:#ffffff; font-weight:700; font-size:14px; text-decoration:none; padding:13px 20px; border-radius:12px; display:block; margin-bottom:10px; box-shadow:0 4px 12px rgba(5,150,105,0.25);">
-          ✓ Approve Changes
-        </a>
-        <a href="${clientUrl}/dashboard?requestAction=reject&requestId=${request._id}" style="background:#dc2626; color:#ffffff; font-weight:700; font-size:14px; text-decoration:none; padding:13px 20px; border-radius:12px; display:block; box-shadow:0 4px 12px rgba(220,38,38,0.25);">
-          ✕ Reject Request
+        <a href="${clientUrl}/dashboard/notifications?requestId=${request._id}" style="background:linear-gradient(135deg, #1e3a8a, #0f172a); color:#fbbf24; font-weight:700; font-size:15px; text-decoration:none; padding:14px 28px; border-radius:12px; display:inline-block; box-shadow:0 4px 14px rgba(30,58,138,0.35); border:1px solid #fbbf24;">
+          🔍 Review the Permission
         </a>
       </div>
 

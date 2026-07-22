@@ -64,31 +64,6 @@ export default function UserSettings() {
   const [pendingRequests, setPendingRequests] = useState([]);
   const [selectedPendingRequest, setSelectedPendingRequest] = useState(null);
 
-  const [pushStatus, setPushStatus] = useState(
-    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported'
-  );
-
-  const handleEnablePush = async () => {
-    const res = await requestNotificationPermission();
-    setPushStatus(res);
-    if (res === 'granted') {
-      setValue('settings.notifications.push', true);
-      toast.success('Browser push notifications enabled!');
-      showNativeNotification({
-        title: "St. John de Britto's Church ⛪",
-        body: "Browser push notifications enabled successfully! You will now receive instant parish alerts.",
-        url: "/dashboard/settings"
-      });
-    } else if (res === 'denied') {
-      toast.error('Notification permission was blocked in your browser settings.');
-    }
-  };
-
-  useEffect(() => {
-    api.get('/permission-requests/user/pending').then(r => setPendingRequests(r.data.requests || [])).catch(() => {});
-  }, []);
-
-
   const { register, handleSubmit, control, watch, reset, setValue, formState: { isSubmitting } } = useForm({
     defaultValues: {
       name: '',
@@ -181,7 +156,6 @@ export default function UserSettings() {
           preferredLanguage: 'Tamil',
           preferredPriest: ''
         },
-
         aiSettings: {
           notificationRecommendations: true,
           careerGuidance: false,
@@ -206,6 +180,48 @@ export default function UserSettings() {
     control,
     name: "familyMembers"
   });
+
+  const [pushStatus, setPushStatus] = useState(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported'
+  );
+
+  const pushChannelEnabled = watch('settings.notifications.push');
+
+  const handleTogglePush = async () => {
+    if (pushStatus === 'granted' && pushChannelEnabled) {
+      // Disable Push
+      setValue('settings.notifications.push', false, { shouldDirty: true });
+      toast.success('Browser push pop-ups disabled');
+    } else {
+      // Enable Push
+      const res = await requestNotificationPermission();
+      setPushStatus(res);
+      if (res === 'granted') {
+        setValue('settings.notifications.push', true, { shouldDirty: true });
+        toast.success('Browser push pop-ups enabled!');
+        showNativeNotification({
+          title: "St. John de Britto's Church ⛪",
+          body: "🔔 Push Alert Enabled! Real-time browser notifications active.",
+          url: "/dashboard/settings"
+        });
+      } else if (res === 'denied') {
+        toast.error('Notifications are blocked in your browser settings. See unblock instructions below.');
+      }
+    }
+  };
+
+  const handleTestPush = () => {
+    showNativeNotification({
+      title: "St. John de Britto's Church ⛪",
+      body: "🔔 Test Push Alert: Real-time browser notifications are working perfectly!",
+      url: "/dashboard/settings"
+    });
+    toast.success('Test Push Alert sent!');
+  };
+
+  useEffect(() => {
+    api.get('/permission-requests/user/pending').then(r => setPendingRequests(r.data.requests || [])).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchMe();
@@ -680,19 +696,57 @@ export default function UserSettings() {
                       <p className="text-gray-500 text-xs mt-1">Choose what alerts you receive and enable real-time browser push pop-ups</p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleEnablePush}
-                      className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm ${
-                        pushStatus === 'granted'
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          : 'bg-church-royal-blue text-white hover:bg-church-royal-blue/90'
-                      }`}
-                    >
-                      <FiSmartphone />
-                      {pushStatus === 'granted' ? '✅ Browser Push Pop-ups Enabled' : 'Enable Browser Push Pop-ups'}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {pushStatus === 'granted' && pushChannelEnabled ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleTestPush}
+                            className="px-3.5 py-2.5 rounded-xl bg-blue-50 text-church-royal-blue border border-blue-200 hover:bg-blue-100 font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs"
+                            title="Send a test browser push alert"
+                          >
+                            <FiBell /> Test Alert
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleTogglePush}
+                            className="px-4 py-2.5 rounded-xl bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 font-bold text-xs flex items-center gap-2 transition-all shadow-sm"
+                          >
+                            <FiSmartphone /> 🔕 Disable Browser Push
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleTogglePush}
+                          className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm ${
+                            pushStatus === 'denied'
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : 'bg-church-royal-blue text-white hover:bg-church-royal-blue/90'
+                          }`}
+                        >
+                          <FiSmartphone />
+                          {pushStatus === 'denied'
+                            ? '⚠️ Notifications Blocked in Browser'
+                            : '🔔 Enable Browser Push Pop-ups'}
+                        </button>
+                      )}
+                    </div>
                   </div>
+
+                  {pushStatus === 'denied' && (
+                    <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 text-xs text-amber-900 flex items-start gap-3">
+                      <FiInfo className="text-amber-600 flex-shrink-0 text-base mt-0.5" />
+                      <div className="space-y-1">
+                        <strong className="block font-bold text-amber-950">How to Unblock Browser Push Notifications:</strong>
+                        <ol className="list-decimal list-inside space-y-1 text-amber-800">
+                          <li>Click the <strong>tune/lock icon (🔒 or ⚙️)</strong> next to the web address URL in your browser top bar.</li>
+                          <li>Find <strong>Notifications</strong> and change setting to <strong>Allow</strong>.</li>
+                          <li>Refresh this page and tap <strong>Enable Browser Push Pop-ups</strong>.</li>
+                        </ol>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-4">
                     <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Delivery Channels</h3>
