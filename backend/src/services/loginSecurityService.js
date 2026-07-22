@@ -188,9 +188,87 @@ async function sendLoginAlertEmail({ user, req, loginMethod = 'Password' }) {
   }
 }
 
+// Asynchronously send "Password Updated Successfully" confirmation email
+async function sendPasswordUpdatedEmail({ user }) {
+  if (!user || !user.email) return;
+
+  try {
+    const clientUrl = (process.env.CLIENT_URL || 'https://st-jb-church.vercel.app').replace('http://localhost:5173', 'https://st-jb-church.vercel.app');
+
+    const emailHtml = `
+<div style="background-color:#f1f5f9; padding:20px 10px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:560px; margin:0 auto; background-color:#ffffff; border-radius:18px; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.08); border:1px solid #e2e8f0;">
+    
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#065f46,#047857,#0f766e); padding:28px 22px; text-align:center;">
+      <div style="display:inline-block; background-color:rgba(255,255,255,0.15); padding:8px 16px; border-radius:30px; margin-bottom:8px;">
+        <span style="color:#6ee7b7; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">✅ SECURITY CONFIRMATION</span>
+      </div>
+      <h1 style="margin:4px 0 0; color:#ffffff; font-size:22px; font-weight:800; line-height:1.3;">Password Updated Successfully</h1>
+      <p style="margin:4px 0 0; color:#e2e8f0; opacity:0.9; font-size:13px;">St. John de Britto's Church</p>
+    </div>
+
+    <!-- Body Content -->
+    <div style="padding:26px 22px;">
+      <p style="color:#1e293b; font-size:15px; font-weight:700; margin-top:0;">Dear ${user.name},</p>
+      <p style="color:#475569; font-size:14px; line-height:1.6; margin-bottom:16px;">
+        Your Parish Account password has been updated successfully.
+      </p>
+      <p style="color:#475569; font-size:14px; line-height:1.6; margin-bottom:20px;">
+        Your account has now been secured, and your authentication credentials have been refreshed. You can log in normally using your new password.
+      </p>
+
+      <!-- Notice Box -->
+      <div style="background-color:#f0fdf4; border:1px solid #bbf7d0; border-radius:14px; padding:16px 18px; margin-bottom:24px;">
+        <h3 style="margin:0 0 12px; color:#166534; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #dcfce7; padding-bottom:8px;">
+          Security Notice
+        </h3>
+        
+        <table style="width:100%; border-collapse:collapse; font-size:13px; color:#14532d;">
+          <tr><td style="padding:4px 0;">✅ Password updated successfully.</td></tr>
+          <tr><td style="padding:4px 0;">✅ All previous login sessions have been invalidated.</td></tr>
+          <tr><td style="padding:4px 0;">✅ Your account is now protected with your updated password.</td></tr>
+        </table>
+      </div>
+
+      <!-- Warning Disclaimer -->
+      <div style="background-color:#fffbe6; border-left:4px solid #d97706; padding:12px 14px; border-radius:8px; margin-bottom:20px; font-size:12px; color:#92400e; line-height:1.5;">
+        <strong>Important Safety Reminder:</strong>
+        <p style="margin:4px 0 0;">Please do not share your login credentials, password, OTPs, or verification links with anyone, including church staff or administrators. Our team will never ask for your password.</p>
+      </div>
+
+      <p style="color:#64748b; font-size:12px; line-height:1.5; margin-bottom:0;">
+        If you did not make this change, please contact your parish administrator immediately or use the account recovery option.
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <div style="background-color:#0f172a; padding:18px 22px; text-align:center; color:#94a3b8; font-size:12px;">
+      <p style="margin:0; font-weight:700; color:#f8fafc;">St. John de Britto's Church, Kalayarkoil</p>
+      <p style="margin:4px 0 0; color:#64748b; font-size:11px;">Parish Management System • <a href="${clientUrl}" style="color:#fbbf24; text-decoration:none;">Website</a></p>
+    </div>
+
+  </div>
+</div>
+    `;
+
+    sendMail({
+      to: user.email,
+      subject: `✅ Security Confirmation: Your Password Has Been Updated Successfully — St. John de Britto's Church`,
+      html: emailHtml
+    }).then(res => {
+      if (res.success) console.log(`📧 Password updated email sent to ${user.email}`);
+    }).catch(err => console.error('❌ Password updated email error:', err.message));
+
+  } catch (err) {
+    console.error('❌ sendPasswordUpdatedEmail error:', err.message);
+  }
+}
+
 module.exports = {
   parseUserAgent,
   parseClientIpAndLocation,
   generateSecurityReportToken,
-  sendLoginAlertEmail
+  sendLoginAlertEmail,
+  sendPasswordUpdatedEmail
 };

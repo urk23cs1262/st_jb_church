@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiBell, FiSearch, FiTrash2, FiCheckCircle, FiFilter,
-  FiRefreshCw, FiSend, FiMoreVertical, FiCheck, FiAlertCircle, FiX, FiArrowLeft
+  FiRefreshCw, FiSend, FiMoreVertical, FiCheck, FiAlertCircle, FiX, FiArrowLeft, FiArrowRight
 } from 'react-icons/fi';
 import { MdOutlinePushPin, MdPushPin } from 'react-icons/md';
 import { useNotifications } from '../../context/NotificationContext';
@@ -105,12 +105,10 @@ function AdminNotifCard({ notif, onMarkRead, onDelete, onTogglePin, onAction }) 
                     <MdOutlinePushPin className="text-church-gold" />
                     {notif.isPinned ? 'Unpin' : 'Pin'}
                   </button>
-                  {notif.actionUrl && (
-                    <button onClick={() => { onAction(notif); setMenuOpen(false); }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 font-medium">
-                      <FiAlertCircle className="text-blue-500" /> View
-                    </button>
-                  )}
+                  <button onClick={() => { onAction(notif); setMenuOpen(false); }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 font-medium">
+                    <FiAlertCircle className="text-blue-500" /> View Details
+                  </button>
                   <button onClick={() => { onDelete(notif._id); setMenuOpen(false); }}
                     className="flex items-center gap-2 w-full px-3 py-2 text-xs text-red-600 hover:bg-red-50 font-medium border-t">
                     <FiTrash2 /> Delete
@@ -126,7 +124,7 @@ function AdminNotifCard({ notif, onMarkRead, onDelete, onTogglePin, onAction }) 
         {/* Sender info if available */}
         {notif.userId?.name && (
           <p className="text-[10px] text-church-royal-blue font-semibold mt-1">
-            From: {notif.userId.name}
+            From: {notif.userId.name} ({notif.userId.email || notif.userId.phone})
           </p>
         )}
 
@@ -136,16 +134,132 @@ function AdminNotifCard({ notif, onMarkRead, onDelete, onTogglePin, onAction }) 
             {catConfig.label}
           </span>
           <span className="text-[10px] text-gray-400">{timeAgo(notif.createdAt)}</span>
-          {notif.actionUrl && (
-            <Link to={notif.actionUrl}
-              onClick={() => !notif.isRead && onMarkRead(notif._id)}
-              className="text-[10px] text-church-royal-blue hover:text-church-royal-blue/80 font-bold underline ml-auto">
-              View →
-            </Link>
-          )}
+          <button
+            onClick={() => onAction(notif)}
+            className="text-[10px] text-church-royal-blue hover:text-church-royal-blue/80 font-bold underline ml-auto cursor-pointer"
+          >
+            View →
+          </button>
         </div>
       </div>
     </motion.div>
+  );
+}
+
+// ── Notification Detail Modal ────────────────────────────────────────────────
+function NotificationDetailModal({ notif, onClose, onMarkRead, onDelete }) {
+  if (!notif) return null;
+  const cat = notif.category || notif.type || 'general';
+  const catConfig = CATEGORIES.find(c => c.key === cat) || CATEGORIES[0];
+  const isSecurityAlert = notif.title?.includes('Security') || notif.relatedModel === 'SecurityIncident';
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={onClose}>
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0, y: 10 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        className="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-lg shadow-2xl border border-gray-100 relative overflow-hidden"
+      >
+        {/* Top Accent bar */}
+        <div className={`absolute top-0 left-0 right-0 h-2 ${
+          isSecurityAlert ? 'bg-red-500' : 'bg-church-royal-blue'
+        }`} />
+
+        <div className="flex items-start justify-between gap-3 mb-4 pt-1">
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 border ${
+              CATEGORY_COLORS[cat] || CATEGORY_COLORS.general
+            }`}>
+              {catConfig.emoji}
+            </div>
+            <div>
+              <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                CATEGORY_COLORS[cat] || CATEGORY_COLORS.general
+              }`}>
+                {catConfig.label}
+              </span>
+              <h2 className="font-display font-extrabold text-gray-900 text-lg mt-1 leading-snug">
+                {notif.title}
+              </h2>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
+            <FiX size={18} />
+          </button>
+        </div>
+
+        {/* Priority & Timestamp */}
+        <div className="flex items-center gap-2 mb-4 text-xs text-gray-400">
+          {notif.priority === 'high' && (
+            <span className="text-[10px] font-black uppercase bg-red-100 text-red-600 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <FiAlertCircle size={10} /> High Priority
+            </span>
+          )}
+          <span>Received {timeAgo(notif.createdAt)}</span>
+        </div>
+
+        {/* Sender details */}
+        {notif.userId?.name && (
+          <div className="bg-slate-50 border border-slate-200/60 rounded-2xl p-3.5 mb-4 text-xs space-y-1">
+            <div className="text-gray-400 font-bold uppercase text-[10px]">User / Sender Details</div>
+            <div className="font-bold text-gray-900 text-sm">{notif.userId.name}</div>
+            <div className="text-gray-600 font-medium">{notif.userId.email || notif.userId.phone}</div>
+          </div>
+        )}
+
+        {/* Full Message */}
+        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4 mb-5 text-sm text-gray-800 leading-relaxed font-normal">
+          {notif.message}
+        </div>
+
+        {/* Security Incident Specific Box */}
+        {isSecurityAlert && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-5 text-xs text-red-900 space-y-2">
+            <div className="font-bold text-red-700 flex items-center gap-1.5 text-sm">
+              <FiAlertCircle /> Security Incident Protection Status
+            </div>
+            <ul className="space-y-1 text-red-800 list-disc list-inside">
+              <li>Active user login sessions across all devices terminated.</li>
+              <li>Emergency password reset verification OTP issued to user.</li>
+              <li>Incident logged in parish security registry for admin review.</li>
+            </ul>
+          </div>
+        )}
+
+        {/* Footer Actions */}
+        <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
+          <button
+            onClick={() => { onDelete(notif._id); onClose(); }}
+            className="px-4 py-2 rounded-xl text-red-600 hover:bg-red-50 font-bold text-xs flex items-center gap-1.5 transition-all"
+          >
+            <FiTrash2 size={14} /> Delete
+          </button>
+
+          <div className="flex items-center gap-2">
+            {!notif.isRead && (
+              <button
+                onClick={() => { onMarkRead(notif._id); onClose(); }}
+                className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center gap-1.5 transition-all"
+              >
+                <FiCheck className="text-green-600" size={14} /> Mark Read
+              </button>
+            )}
+
+            {notif.actionUrl && (
+              <Link
+                to={notif.actionUrl}
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-church-royal-blue hover:bg-church-royal-blue/90 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm"
+              >
+                Go to Module <FiArrowRight size={14} />
+              </Link>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -261,6 +375,7 @@ export default function AdminNotifications() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [showBroadcast, setShowBroadcast] = useState(false);
+  const [selectedNotif, setSelectedNotif] = useState(null);
 
   const filtered = useMemo(() => {
     return adminNotifications.filter(n => {
@@ -284,7 +399,7 @@ export default function AdminNotifications() {
 
   const handleAction = (notif) => {
     if (!notif.isRead) markRead(notif._id);
-    if (notif.actionUrl) navigate(notif.actionUrl);
+    setSelectedNotif(notif);
   };
 
   // Stats
@@ -431,6 +546,18 @@ export default function AdminNotifications() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Detail Dialogue Box Modal */}
+      <AnimatePresence>
+        {selectedNotif && (
+          <NotificationDetailModal
+            notif={selectedNotif}
+            onClose={() => setSelectedNotif(null)}
+            onMarkRead={markRead}
+            onDelete={handleDelete}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Broadcast Modal */}
       <AnimatePresence>

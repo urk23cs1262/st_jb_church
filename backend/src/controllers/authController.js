@@ -3,7 +3,7 @@ const User = require('../models/User');
 const { generateToken } = require('../middleware/auth');
 const { sendOTP, verifyOTP } = require('../services/otpService');
 const { createNotification } = require('../services/notificationService');
-const { sendLoginAlertEmail } = require('../services/loginSecurityService');
+const { sendLoginAlertEmail, sendPasswordUpdatedEmail } = require('../services/loginSecurityService');
 
 // @POST /api/auth/register
 const register = async (req, res) => {
@@ -222,10 +222,34 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
   try {
     const { userId, otp, newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters long' });
+    }
+
     const result = await verifyOTP(userId, otp);
     if (!result.valid) return res.status(400).json({ success: false, message: result.message });
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Reject if new password matches old password
+    const isSamePassword = await bcrypt.compare(newPassword, user.passwordHash);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password cannot be the same as your old password. Please enter a different password.'
+      });
+    }
+
     const passwordHash = await bcrypt.hash(newPassword, 12);
-    await User.findByIdAndUpdate(userId, { passwordHash });
+    await User.findByIdAndUpdate(userId, {
+      passwordHash,
+      $inc: { tokenVersion: 1 }
+    });
+
+    // Send "Password Updated Successfully" Security Confirmation Email
+    sendPasswordUpdatedEmail({ user }).catch(e => console.warn('Password updated email error:', e.message));
+
     res.json({ success: true, message: 'Password reset successful' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
