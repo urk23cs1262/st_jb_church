@@ -28,14 +28,33 @@ const create = async (req, res) => {
     // ✅ NEW: Confirm to the user that their message was received
     createNotification({
       userId: req.user._id,
+      recipient: 'user',
       title: 'We Received Your Message ✉️',
-      message: `Dear ${req.user.name},\n\nThank you for contacting St. John de Britto's Church. We have received your inquiry:\n\n📌 Subject: ${subject}\n💬 Message: ${message}\n\nOur team will get back to you soon. God bless you!`,
+      message: `Dear ${req.user.name}, thank you for contacting St. John de Britto's Church. We received your inquiry about "${subject}". Our team will get back to you soon.`,
       type: 'ticket',
+      category: 'tickets',
+      priority: 'low',
+      actionUrl: '/dashboard/tickets',
       relatedId: ticket._id,
+      relatedModel: 'Ticket',
       channels: ['email'],
     }).catch(e => console.error('Ticket user notification error:', e.message));
 
-    // Notify admins
+    // Admin in-app notification
+    createNotification({
+      recipient: 'admin',
+      title: `🎫 New Support Ticket`,
+      message: `${req.user.name} submitted a ticket (${category || 'General'}): "${subject}".`,
+      type: 'ticket',
+      category: 'tickets',
+      priority: priority || 'medium',
+      actionUrl: '/admin/tickets',
+      relatedId: ticket._id,
+      relatedModel: 'Ticket',
+      channels: []
+    }).catch(e => console.error('Ticket admin in-app notification error:', e.message));
+
+    // Also email/WhatsApp admins
     notifyAdmins({
       title: 'New Support Ticket',
       message: `A new inquiry has been received:\n\n👤 User: ${req.user.name}\n📞 Phone: ${req.user.phone || 'N/A'}\n📧 Email: ${req.user.email || 'N/A'}\n📁 Category: ${category || 'General'}\n📌 Subject: ${subject}\n💬 Message: ${message}\n\nView details: ${process.env.CLIENT_URL}/admin/tickets`
@@ -59,10 +78,15 @@ const reply = async (req, res) => {
     if (from === 'admin' && ticket.userId) {
       createNotification({
         userId: ticket.userId._id || ticket.userId,
+        recipient: 'user',
         title: 'Reply to Your Inquiry 💬',
-        message: `Dear ${ticket.userId.name || 'Parishioner'},\n\nThe parish office has replied to your inquiry:\n\n📌 Subject: ${ticket.subject}\n💬 Reply: ${message}\n\nIf you have further questions, please contact us again.`,
+        message: `The parish office replied to your inquiry "${ticket.subject}": ${message}`,
         type: 'ticket',
+        category: 'tickets',
+        priority: 'medium',
+        actionUrl: '/dashboard/tickets',
         relatedId: ticket._id,
+        relatedModel: 'Ticket',
         channels: ['email'],
       }).catch(e => console.error('Ticket reply notification error:', e.message));
     }
@@ -82,10 +106,15 @@ const updateStatus = async (req, res) => {
     if (status === 'resolved' && ticket.userId) {
       createNotification({
         userId: ticket.userId._id || ticket.userId,
+        recipient: 'user',
         title: 'Your Inquiry Has Been Resolved ✅',
-        message: `Dear ${ticket.userId.name || 'Parishioner'},\n\nYour inquiry regarding "${ticket.subject}" has been marked as resolved by our team.\n\nThank you for contacting St. John de Britto's Church. God bless you!`,
+        message: `Your inquiry regarding "${ticket.subject}" has been marked as resolved. Thank you for contacting St. John de Britto's Church.`,
         type: 'ticket',
+        category: 'tickets',
+        priority: 'medium',
+        actionUrl: '/dashboard/tickets',
         relatedId: ticket._id,
+        relatedModel: 'Ticket',
         channels: ['email'],
       }).catch(e => console.error('Ticket resolved notification error:', e.message));
     }

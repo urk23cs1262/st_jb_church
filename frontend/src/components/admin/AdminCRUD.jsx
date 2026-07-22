@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { FiPlus, FiTrash2, FiEdit, FiX } from 'react-icons/fi';
 
-import api, { UPLOADS_URL } from '../../services/api';
+import api, { UPLOADS_URL, getMediaUrl } from '../../services/api';
 import { SectionLoader } from '../common/Loader';
 
 export default function AdminCRUD({ resource, title, fields, hasImage }) {
@@ -12,6 +12,8 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isImageRemoved, setIsImageRemoved] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [generatingAi, setGeneratingAi] = useState({});
@@ -54,8 +56,8 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
 
   useEffect(() => { fetchItems(); }, [page, resource]);
 
-  const openAdd = () => { setEditing(null); reset(); setModal(true); };
-  const openEdit = (item) => { setEditing(item); fields.forEach(f => setValue(f.name, item[f.name])); setModal(true); };
+  const openAdd = () => { setEditing(null); setImagePreview(null); setIsImageRemoved(false); reset(); setModal(true); };
+  const openEdit = (item) => { setEditing(item); setImagePreview(item.imageUrl || item.photo || item.image || null); setIsImageRemoved(false); fields.forEach(f => setValue(f.name, item[f.name])); setModal(true); };
 
   const onSubmit = async (data) => {
     try {
@@ -64,6 +66,9 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
         if (k === 'imageFile' && v?.[0]) formData.append('image', v[0]);
         else if (v !== undefined && v !== '') formData.append(k, v);
       });
+      if (isImageRemoved && !data.imageFile?.[0]) {
+        formData.append('removeImage', 'true');
+      }
       const config = hasImage ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
       if (editing) {
         await api.put(`/${resource}/${editing._id}`, hasImage ? formData : data, config);
@@ -203,9 +208,60 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
                 </div>
               ))}
               {hasImage && (
-                <div>
-                  <label className="church-label">Image{editing ? ' (leave blank to keep existing)' : ''}</label>
-                  <input {...register('imageFile')} type="file" accept="image/*" className="church-input" />
+                <div className="border-t border-gray-100 pt-3">
+                  <label className="church-label mb-2 block">Image</label>
+                  {(imagePreview || (editing?.image && !isImageRemoved)) && (
+                    <div className="mb-3 flex items-center justify-between gap-3 bg-gray-50 p-2.5 rounded-xl border border-gray-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                          <img
+                            src={imagePreview?.startsWith('blob:') ? imagePreview : getMediaUrl(imagePreview || editing?.image)}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-800">
+                            {imagePreview?.startsWith('blob:') ? 'New Image Selected' : 'Existing Image'}
+                          </p>
+                          <p className="text-[11px] text-gray-500">
+                            {imagePreview?.startsWith('blob:') ? 'Will replace existing image' : 'Leave empty to keep existing image'}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsImageRemoved(true);
+                          setImagePreview(null);
+                          setValue('imageFile', null);
+                        }}
+                        className="flex items-center gap-1 text-xs text-red-600 hover:bg-red-100 bg-red-50 border border-red-200 px-2.5 py-1.5 rounded-lg font-bold transition-all flex-shrink-0"
+                        title="Remove Image"
+                      >
+                        <FiTrash2 size={12} /> Remove
+                      </button>
+                    </div>
+                  )}
+
+                  {isImageRemoved && !imagePreview && (
+                    <div className="mb-3 p-2 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 font-medium">
+                      ⚠️ Image will be removed upon saving unless a new image is selected below.
+                    </div>
+                  )}
+
+                  <input
+                    {...register('imageFile')}
+                    type="file"
+                    accept="image/*"
+                    className="church-input"
+                    onChange={e => {
+                      if (e.target.files?.[0]) {
+                        setImagePreview(URL.createObjectURL(e.target.files[0]));
+                        setIsImageRemoved(false);
+                      }
+                    }}
+                  />
                 </div>
               )}
               <button type="submit" disabled={isSubmitting} className="btn-gold w-full justify-center py-3">

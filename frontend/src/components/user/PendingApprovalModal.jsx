@@ -4,22 +4,26 @@ import { FiX, FiCheck, FiXCircle, FiShield, FiUserCheck, FiCalendar } from 'reac
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
+import { useNotifications } from '../../context/NotificationContext';
+
 export default function PendingApprovalModal({ request, onClose, onResponded }) {
-  const [submitting, setSubmitting] = useState(false);
+  const [submittingAction, setSubmittingAction] = useState(null);
+  const { refetch } = useNotifications();
 
   if (!request) return null;
 
   const handleRespond = async (status) => {
-    setSubmitting(true);
+    setSubmittingAction(status);
     try {
       await api.put(`/permission-requests/${request._id}/respond`, { status });
       toast.success(status === 'approved' ? 'Settings changes approved and applied!' : 'Settings request rejected.');
+      refetch();
       if (onResponded) onResponded(request._id, status);
       onClose();
     } catch {
       toast.error('Failed to process response.');
     } finally {
-      setSubmitting(false);
+      setSubmittingAction(null);
     }
   };
 
@@ -110,17 +114,17 @@ export default function PendingApprovalModal({ request, onClose, onResponded }) 
         <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end gap-3">
           <button
             onClick={() => handleRespond('rejected')}
-            disabled={submitting}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-100 text-red-700 font-bold text-xs sm:text-sm hover:bg-red-200 transition-colors"
+            disabled={!!submittingAction}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-100 text-red-700 font-bold text-xs sm:text-sm hover:bg-red-200 transition-colors disabled:opacity-50"
           >
-            <FiXCircle /> Reject Request
+            <FiXCircle /> {submittingAction === 'rejected' ? 'Rejecting...' : 'Reject Request'}
           </button>
           <button
             onClick={() => handleRespond('approved')}
-            disabled={submitting}
-            className="btn-gold flex items-center gap-1.5 px-5 py-2.5 text-xs sm:text-sm shadow-gold"
+            disabled={!!submittingAction}
+            className="btn-gold flex items-center gap-1.5 px-5 py-2.5 text-xs sm:text-sm shadow-gold disabled:opacity-50"
           >
-            <FiCheck /> {submitting ? 'Applying...' : 'Approve Changes'}
+            <FiCheck /> {submittingAction === 'approved' ? 'Approving...' : 'Approve Changes'}
           </button>
         </div>
       </motion.div>

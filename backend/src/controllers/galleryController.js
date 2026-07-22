@@ -1,4 +1,5 @@
 const Gallery = require('../models/Gallery');
+const { createNotification } = require('../services/notificationService');
 
 const getAll = async (req, res) => {
   try {
@@ -17,6 +18,18 @@ const create = async (req, res) => {
     const data = { ...req.body, uploadedBy: req.user._id };
     if (req.file) data.imageUrl = `/uploads/gallery/${req.file.filename}`;
     const item = await Gallery.create(data);
+
+    // Send broadcast notification to all users
+    createNotification({
+      isBroadcast: true,
+      recipient: 'user',
+      title: `🖼️ New Photos in Church Gallery`,
+      message: `New photo "${item.title || 'Parish Memories'}" has been added to our church gallery.`,
+      type: 'general',
+      category: 'general',
+      actionUrl: '/gallery'
+    }).catch(e => console.warn('Gallery notification error:', e.message));
+
     res.status(201).json({ success: true, item });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };

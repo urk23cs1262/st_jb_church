@@ -8,6 +8,8 @@ import { GiChurch, GiCrucifix, GiPrayer } from 'react-icons/gi';
 import api from '../../services/api';
 import { SectionLoader } from '../../components/common/Loader';
 
+import { useNotifications } from '../../context/NotificationContext';
+
 const COLORS = ['#d4a017', '#1e3a8a', '#800020', '#059669', '#7c3aed'];
 
 const NAV_ITEMS = [
@@ -20,16 +22,15 @@ const NAV_ITEMS = [
   { icon: <FiFileText />, label: 'Documents', path: '/admin/documents', color: 'bg-teal-600' },
   { icon: <FiDollarSign />, label: 'Donations', path: '/admin/donations', color: 'bg-yellow-600' },
   { icon: <FiMessageSquare />, label: 'Tickets', path: '/admin/tickets', color: 'bg-rose-600' },
-  // { icon: <FiUsers />, label: 'Registrations', path: '/admin/registrations', color: 'bg-indigo-500' },
   { icon: <GiPrayer />, label: 'Prayers', path: '/admin/prayers', color: 'bg-church-gold' },
   { icon: <SiWhatsapp />, label: 'WhatsApp Bot', path: '/admin/whatsapp', color: 'bg-[#25D366]' },
   { icon: <FiSettings />, label: 'Settings', path: '/admin/settings', color: 'bg-gray-600' },
 ];
 
-
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { adminUnreadCount } = useNotifications();
 
   useEffect(() => {
     api.get('/admin/dashboard').then(r => setStats(r.data)).catch(() => {}).finally(() => setLoading(false));
@@ -47,9 +48,29 @@ export default function AdminDashboard() {
   return (
     <div className="w-full">
       {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-xs">
         <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">SJDB Admin Dashboard</h1>
+        <Link
+          to="/admin/notifications"
+          className="relative flex items-center gap-2 px-3.5 py-2 rounded-xl bg-church-royal-blue/5 text-church-royal-blue hover:bg-church-royal-blue/10 border border-church-royal-blue/20 transition-all text-xs sm:text-sm font-bold shadow-xs"
+          title="Admin Notifications"
+        >
+          <span className="relative flex items-center justify-center">
+            <FiBell className="text-base sm:text-lg text-church-gold" />
+            {adminUnreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse ring-2 ring-white" />
+            )}
+          </span>
+          <span className="hidden sm:inline">Notifications</span>
+          {adminUnreadCount > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
+              {adminUnreadCount}
+            </span>
+          )}
+        </Link>
       </div>
+
+      
 
       <div className="p-4 sm:p-6">
 

@@ -28,9 +28,35 @@ const requestDocument = async (req, res) => {
     const { type, requestDetails } = req.body;
     const doc = await Document.create({ userId: req.user._id, type, requestDetails });
     // Notify user (Async)
-    createNotification({ userId: req.user._id, title: 'Document Request Received', message: `Your request for ${type.replace('_', ' ')} certificate has been received.`, type: 'document', relatedId: doc._id, channels: ['email'] }).catch(e => console.error('Doc notification error:', e.message));
+    createNotification({ 
+      userId: req.user._id, 
+      recipient: 'user',
+      title: 'Document Request Received 📝', 
+      message: `Your request for ${type.replace('_', ' ')} certificate has been received and is being processed.`, 
+      type: 'document', 
+      category: 'documents',
+      priority: 'low',
+      actionUrl: '/dashboard/documents',
+      relatedId: doc._id, 
+      relatedModel: 'Document',
+      channels: ['email'] 
+    }).catch(e => console.error('Doc notification error:', e.message));
     
-    // Notify admins (Async)
+    // Admin in-app notification
+    createNotification({
+      recipient: 'admin',
+      title: `📄 New Document Request`,
+      message: `${req.user.name} requested a ${type.replace('_', ' ')} certificate. Details: ${requestDetails || 'None'}.`,
+      type: 'document',
+      category: 'documents',
+      priority: 'medium',
+      actionUrl: '/admin/documents',
+      relatedId: doc._id,
+      relatedModel: 'Document',
+      channels: []
+    }).catch(e => console.error('Doc admin notification error:', e.message));
+    
+    // Also email/WhatsApp admins
     notifyAdmins({
       title: 'New Document Request',
       message: `A new document request has been received:\n\n👤 User: ${req.user.name}\n📞 Phone: ${req.user.phone || 'N/A'}\n📧 Email: ${req.user.email}\n📄 Type: ${type.replace('_', ' ')}\n📝 Details: ${requestDetails || 'None'}\n\nView details: ${process.env.CLIENT_URL || 'http://localhost:5173'}/admin/documents`
@@ -49,10 +75,15 @@ const updateDocumentStatus = async (req, res) => {
     // Notify user and admins (Async)
     createNotification({ 
       userId: doc.userId, 
-      title: `Document ${status}`, 
-      message: `Your ${doc.type.replace('_', ' ')} certificate request has been ${status}.${status === 'approved' ? ' You can now download it below.' : ''}`, 
+      recipient: 'user',
+      title: `Document ${status === 'approved' ? 'Ready for Download 📥' : 'Status Updated'}`, 
+      message: `Your ${doc.type.replace('_', ' ')} certificate request has been ${status}.${status === 'approved' ? ' You can now download it from your dashboard.' : ''}`, 
       type: 'document', 
+      category: 'documents',
+      priority: status === 'approved' ? 'high' : 'medium',
+      actionUrl: '/dashboard/documents',
       relatedId: doc._id, 
+      relatedModel: 'Document',
       fileUrl: doc.uploadedFile,
       channels: ['email', 'whatsapp'] 
     }).catch(e => console.error('Doc status notification error:', e.message));

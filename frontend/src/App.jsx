@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
 
 import './i18n';
 import PageLoader from './components/common/Loader';
@@ -41,6 +42,7 @@ const UserDocuments = lazy(() => import('./pages/user/Documents'));
 const UserTickets = lazy(() => import('./pages/user/Tickets'));
 const UserProfile = lazy(() => import('./pages/user/Profile'));
 const UserSettings = lazy(() => import('./pages/user/Settings'));
+const UserNotifications = lazy(() => import('./pages/user/Notifications'));
 
 
 // Admin dashboard
@@ -57,6 +59,7 @@ const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
 const AdminPrayers = lazy(() => import('./pages/admin/Prayers'));
 const AdminSettings = lazy(() => import('./pages/admin/Settings'));
 const AdminWhatsApp = lazy(() => import('./pages/admin/WhatsApp'));
+const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
 
 // Route guards
 const ProtectedRoute = ({ children }) => {
@@ -106,6 +109,7 @@ function AppRoutes() {
             <Route path="/dashboard/tickets" element={<ProtectedRoute><UserTickets /></ProtectedRoute>} />
             <Route path="/dashboard/settings" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
             <Route path="/dashboard/profile" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
+            <Route path="/dashboard/notifications" element={<ProtectedRoute><UserNotifications /></ProtectedRoute>} />
 
           </Route>
 
@@ -128,6 +132,7 @@ function AppRoutes() {
             <Route path="prayers" element={<AdminPrayers />} />
             <Route path="settings" element={<AdminSettings />} />
             <Route path="whatsapp" element={<AdminWhatsApp />} />
+            <Route path="notifications" element={<AdminNotifications />} />
           </Route>
 
           {/* 404 */}
@@ -141,15 +146,17 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 4000,
-          style: { background: '#1e3a8a', color: '#fff', borderRadius: '12px' },
-          success: { iconTheme: { primary: '#d4a017', secondary: '#fff' } },
-        }}
-      />
+      <NotificationProvider>
+        <AppRoutes />
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: { background: '#1e3a8a', color: '#fff', borderRadius: '12px' },
+            success: { iconTheme: { primary: '#d4a017', secondary: '#fff' } },
+          }}
+        />
+      </NotificationProvider>
     </AuthProvider>
   );
 }

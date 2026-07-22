@@ -1,6 +1,7 @@
 const Event = require('../models/Event');
 const User = require('../models/User');
 const { sendSMS } = require('../config/twilio');
+const { createNotification } = require('../services/notificationService');
 function sendWA(phone, text) {
   return require('../bot/whatsapp').sendWhatsAppMessage(phone, text).catch(() => {});
 }
@@ -54,6 +55,35 @@ ${clientUrl}/events
           }
         });
       }).catch(err => console.error("Error notifying users:", err));
+
+      // In-app broadcast notification for all users
+      createNotification({
+        isBroadcast: true,
+        recipient: 'user',
+        title: `📅 New Event: ${event.title}`,
+        message: `A new church event has been announced: ${event.title}${event.date ? ' on ' + new Date(event.date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}${event.venue ? ' at ' + event.venue : ''}.`,
+        type: 'event',
+        category: 'events',
+        priority: 'medium',
+        actionUrl: '/events',
+        relatedId: event._id,
+        relatedModel: 'Event',
+        channels: []
+      }).catch(e => console.error('Event broadcast notification error:', e.message));
+
+      // Admin in-app notification
+      createNotification({
+        recipient: 'admin',
+        title: `📅 New Event Created: ${event.title}`,
+        message: `A new event "${event.title}" has been published.${event.date ? ' Date: ' + new Date(event.date).toLocaleDateString('en-IN') : ''}`,
+        type: 'event',
+        category: 'events',
+        priority: 'low',
+        actionUrl: '/admin/events',
+        relatedId: event._id,
+        relatedModel: 'Event',
+        channels: []
+      }).catch(e => console.error('Event admin notification error:', e.message));
     }
 
 
@@ -64,7 +94,11 @@ ${clientUrl}/events
 const update = async (req, res) => {
   try {
     const data = { ...req.body };
-    if (req.file) data.image = `/uploads/events/${req.file.filename}`;
+    if (req.body.removeImage === 'true') {
+      data.image = '';
+    } else if (req.file) {
+      data.image = `/uploads/events/${req.file.filename}`;
+    }
     const event = await Event.findByIdAndUpdate(req.params.id, data, { new: true });
 
     // Notify all users about Updated Event in background
@@ -118,6 +152,36 @@ const registerForEvent = async (req, res) => {
       registeredAt: new Date()
     });
     await event.save();
+
+    // In-app: confirm registration to user
+    createNotification({
+      userId: req.user._id,
+      recipient: 'user',
+      title: `✅ Event Registration Confirmed`,
+      message: `You have successfully registered for "${event.title}"${event.date ? ' on ' + new Date(event.date).toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }) : ''}.`,
+      type: 'event',
+      category: 'events',
+      priority: 'low',
+      actionUrl: '/events',
+      relatedId: event._id,
+      relatedModel: 'Event',
+      channels: []
+    }).catch(e => console.error('Event reg notification error:', e.message));
+
+    // Admin in-app notification
+    createNotification({
+      recipient: 'admin',
+      title: `📋 New Event Registration`,
+      message: `${req.user.name} has registered for "${event.title}". Total registrations: ${event.registrations.length}`,
+      type: 'event',
+      category: 'events',
+      priority: 'low',
+      actionUrl: '/admin/events',
+      relatedId: event._id,
+      relatedModel: 'Event',
+      channels: []
+    }).catch(e => console.error('Event reg admin notification error:', e.message));
+
     res.json({ success: true, message: 'Registered successfully' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };

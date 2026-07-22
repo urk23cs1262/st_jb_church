@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { UPLOADS_URL, getMediaUrl } from '../../services/api';
 
 
@@ -32,6 +33,7 @@ const MORE_LINKS = [
 export default function Navbar() {
   const { t, i18n } = useTranslation();
   const { user, logout, isAdmin, isAuthenticated } = useAuth();
+  const { unreadCount, adminUnreadCount } = useNotifications();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -232,7 +234,7 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl transition-all duration-200"
+                    className="relative flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl transition-all duration-200"
                   >
                     <div className="w-7 h-7 rounded-full bg-church-gold flex items-center justify-center overflow-hidden border border-gold-400/50">
                       {user?.profilePhoto ? (
@@ -247,6 +249,9 @@ export default function Navbar() {
                       )}
                     </div>
                     <span className="hidden sm:block text-sm font-medium max-w-[80px] truncate">{user?.name}</span>
+                    {(isAdmin ? adminUnreadCount : unreadCount) > 0 && (
+                      <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full ring-2 ring-church-royal-blue animate-pulse" />
+                    )}
                   </button>
                   <AnimatePresence>
                     {userMenuOpen && (
@@ -267,6 +272,20 @@ export default function Navbar() {
                         )}
                         <Link to="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gold-50 transition-colors">
                           <FiUser className="text-church-gold" /> {t('nav.dashboard')}
+                        </Link>
+                        <Link to={isAdmin ? "/admin/notifications" : "/dashboard/notifications"} onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gold-50 transition-colors">
+                          <span className="relative flex items-center justify-center">
+                            <FiBell className="text-church-gold text-base" />
+                            {(isAdmin ? adminUnreadCount : unreadCount) > 0 && (
+                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse ring-2 ring-white" />
+                            )}
+                          </span>
+                          <span>Notifications</span>
+                          {(isAdmin ? adminUnreadCount : unreadCount) > 0 && (
+                            <span className="ml-auto bg-red-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-xs">
+                              {isAdmin ? adminUnreadCount : unreadCount}
+                            </span>
+                          )}
                         </Link>
                         <Link to="/dashboard/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gold-50 transition-colors">
                           <FiSettings className="text-church-gold" /> Settings

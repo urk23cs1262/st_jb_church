@@ -4,7 +4,9 @@ const SiteSettings = require('../models/SiteSettings');
 const getSettings = async (req, res) => {
   try {
     const settings = await SiteSettings.find();
-    const map = {};
+    const map = {
+      videoAdId: 'i1dEoV-p03k'
+    };
     settings.forEach(s => { map[s.key] = s.value; });
     res.json({ success: true, settings: map });
   } catch (err) {
@@ -16,7 +18,11 @@ const getSettings = async (req, res) => {
 const getSetting = async (req, res) => {
   try {
     const setting = await SiteSettings.findOne({ key: req.params.key });
-    res.json({ success: true, value: setting?.value || null });
+    let value = setting?.value || null;
+    if (!value && req.params.key === 'videoAdId') {
+      value = 'i1dEoV-p03k';
+    }
+    res.json({ success: true, value });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

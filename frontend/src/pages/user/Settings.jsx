@@ -52,11 +52,12 @@ const SETTINGS_SECTIONS = [
   { id: 'feedback_about', label: 'Feedback & About', icon: <FiInfo /> },
 ];
 
-export default function Settings() {
+export default function UserSettings() {
   const { user, fetchMe, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('account');
   const [photo, setPhoto] = useState(null);
+  const [isPhotoRemoved, setIsPhotoRemoved] = useState(false);
   const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -349,7 +350,11 @@ export default function Settings() {
           formData.append(k, v);
         }
       });
-      if (photo) formData.append('photo', photo);
+      if (isPhotoRemoved && !photo) {
+        formData.append('removeProfilePhoto', 'true');
+      } else if (photo) {
+        formData.append('photo', photo);
+      }
 
       await api.put('/users/profile', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -362,6 +367,7 @@ export default function Settings() {
       applyUserSettings(formDataRaw.settings);
 
       setPhoto(null);
+      setIsPhotoRemoved(false);
       await fetchMe();
       toast.success('Settings saved successfully!');
 
@@ -428,13 +434,13 @@ export default function Settings() {
               Personalize your account, notifications, privacy, family preferences, and app experience
             </p> */}
           </div>
-          <button
+          {/* <button
             onClick={handleSubmit(onSaveProfile)}
             disabled={isSubmitting}
             className="btn-gold py-3 px-8 text-sm font-bold shadow-gold-lg self-start md:self-auto flex items-center gap-2 mr-8"
           >
             <FiSave className="text-lg" /> {isSubmitting ? 'Saving...' : 'Save All Settings'}
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -521,21 +527,35 @@ export default function Settings() {
                       <div className="w-20 h-20 rounded-full bg-church-gradient flex items-center justify-center overflow-hidden shadow-gold">
                         {photo ? (
                           <img src={URL.createObjectURL(photo)} className="w-full h-full object-cover" />
-                        ) : user?.profilePhoto ? (
+                        ) : (user?.profilePhoto && !isPhotoRemoved) ? (
                           <img src={getMediaUrl(user.profilePhoto)} className="w-full h-full object-cover" />
                         ) : (
                           <FiUser className="text-white text-3xl" />
                         )}
-
                       </div>
-                      <label className="absolute bottom-0 right-0 w-7 h-7 bg-church-gold rounded-full flex items-center justify-center cursor-pointer hover:bg-church-gold-light transition-colors shadow">
+                      <label className="absolute bottom-0 right-0 w-7 h-7 bg-church-gold rounded-full flex items-center justify-center cursor-pointer hover:bg-church-gold-light transition-colors shadow" title="Upload Photo">
                         <span className="text-white text-xs">📷</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={e => setPhoto(e.target.files[0])} />
+                        <input type="file" accept="image/*" className="hidden" onChange={e => { setPhoto(e.target.files[0]); setIsPhotoRemoved(false); }} />
                       </label>
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-800 text-lg">{user?.name}</h3>
-                      <p className="text-gray-500 text-xs">{user?.phone} • {user?.email || 'No email attached'}</p>
+                      <p className="text-gray-500 text-xs mb-1.5">{user?.phone} • {user?.email || 'No email attached'}</p>
+                      {(photo || (user?.profilePhoto && !isPhotoRemoved)) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPhoto(null);
+                            setIsPhotoRemoved(true);
+                          }}
+                          className="flex items-center gap-1 text-xs text-red-600 hover:bg-red-50 font-bold px-2 py-1 rounded-md transition-colors border border-red-200"
+                        >
+                          <FiTrash2 size={12} /> Remove Profile Photo
+                        </button>
+                      )}
+                      {isPhotoRemoved && !photo && (
+                        <p className="text-[11px] text-red-600 font-semibold mt-1">Photo will be removed on Save</p>
+                      )}
                     </div>
                   </div>
 

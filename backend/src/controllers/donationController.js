@@ -40,9 +40,13 @@ const create = async (req, res) => {
       const donationTypeLabel = DONATION_TYPES.find(t => t.id === type)?.label || type;
       createNotification({
         userId: req.user._id,
-        title: 'Thank You for Your Donation',
-        message: `Dear ${donation.donorName},\n\nThank you for your generous contribution of ₹${amount} towards the ${donationTypeLabel} of St. John de Britto's Church.\n\nGod bless you!`,
+        recipient: 'user',
+        title: 'Thank You for Your Donation 🙏',
+        message: `Dear ${donation.donorName}, thank you for your generous contribution of ₹${amount} towards the ${donationTypeLabel} of St. John de Britto's Church. God bless you!`,
         type: 'donation',
+        category: 'donations',
+        priority: 'medium',
+        actionUrl: '/dashboard',
         relatedId: donation._id,
         relatedModel: 'Donation',
         fileUrl: receiptUrl,
@@ -50,7 +54,21 @@ const create = async (req, res) => {
       }).catch(e => console.error('User notification error:', e.message));
     }
 
-    // 3. Notify Admins
+    // Admin in-app notification
+    createNotification({
+      recipient: 'admin',
+      title: `💰 New Donation: ₹${amount}`,
+      message: `A donation of ₹${amount} (${type}) received from ${donation.donorName}. Transaction: ${transactionId || 'N/A'}.`,
+      type: 'donation',
+      category: 'donations',
+      priority: 'high',
+      actionUrl: '/admin/donations',
+      relatedId: donation._id,
+      relatedModel: 'Donation',
+      channels: []
+    }).catch(e => console.error('Donation admin in-app notification error:', e.message));
+
+    // Also email/WhatsApp admins
     notifyAdmins({
       title: 'New Donation Received',
       message: `A new donation of ₹${amount} has been received for ${type}.\n\n👤 Donor: ${donation.donorName}\n📧 Email: ${req.user?.email || 'N/A'}\n📱 Phone: ${req.user?.phone || 'N/A'}\n💰 Amount: ₹${amount}\n📁 Category: ${type}\n💳 Method: ${paymentMethod}\n🆔 Transaction ID: ${transactionId || 'N/A'}\n📝 Note: ${note || 'None'}\n\nView all donations: ${process.env.CLIENT_URL || 'http://localhost:5173'}/admin/donations`,
@@ -73,9 +91,15 @@ const verify = async (req, res) => {
     if (donation.userId) {
       createNotification({
         userId: donation.userId,
+        recipient: 'user',
         title: 'Donation Verified ✅',
-        message: `Your donation of ₹${donation.amount} has been verified by the parish office. Thank you!`,
+        message: `Your donation of ₹${donation.amount} has been verified by the parish office. Thank you for your generosity!`,
         type: 'donation',
+        category: 'donations',
+        priority: 'medium',
+        actionUrl: '/dashboard',
+        relatedId: donation._id,
+        relatedModel: 'Donation',
         channels: ['email']
       }).catch(e => console.error('Verification notification error:', e.message));
     }
@@ -95,9 +119,15 @@ const rejectDonation = async (req, res) => {
     if (donation.userId) {
       createNotification({
         userId: donation.userId,
+        recipient: 'user',
         title: 'Donation Rejected ❌',
         message: `Your donation of ₹${donation.amount} could not be verified. Please contact the parish office for details.`,
         type: 'donation',
+        category: 'donations',
+        priority: 'high',
+        actionUrl: '/dashboard',
+        relatedId: donation._id,
+        relatedModel: 'Donation',
         channels: ['email']
       }).catch(e => console.error('Rejection notification error:', e.message));
     }

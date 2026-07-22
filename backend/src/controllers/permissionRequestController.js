@@ -28,6 +28,17 @@ exports.createRequest = async (req, res) => {
       return res.status(404).json({ message: 'Target user not found.' });
     }
 
+    // Cancel/supersede any existing pending permission requests for this user so only ONE active request exists at a time
+    await PermissionRequest.updateMany(
+      { userId, status: 'pending' },
+      { $set: { status: 'superseded' } }
+    );
+    await Notification.deleteMany({
+      userId,
+      isRead: false,
+      $or: [{ relatedModel: 'PermissionRequest' }, { category: 'permission' }]
+    });
+
     const request = await PermissionRequest.create({
       userId,
       adminId: req.user._id,
@@ -41,7 +52,9 @@ exports.createRequest = async (req, res) => {
       userId,
       title: 'Settings Change Approval Required',
       message: `${req.user.name} requested changes to your settings. Reason: "${reason}". Please review and approve/reject.`,
-      type: 'general',
+      type: 'permission',
+      category: 'permission',
+      actionUrl: `/dashboard?requestId=${request._id}`,
       relatedId: request._id,
       relatedModel: 'PermissionRequest'
     });
@@ -206,9 +219,11 @@ exports.respondToRequest = async (req, res) => {
       // Notify Admin in-app
       await Notification.create({
         userId: request.adminId,
+        recipient: 'admin',
         title: 'Permission Request Approved',
         message: `${req.user.name} approved your requested settings changes.`,
-        type: 'general',
+        type: 'permission',
+        category: 'permission',
         relatedId: request._id,
         relatedModel: 'PermissionRequest'
       });
@@ -217,15 +232,43 @@ exports.respondToRequest = async (req, res) => {
       // Notify Admin in-app
       await Notification.create({
         userId: request.adminId,
+        recipient: 'admin',
         title: 'Permission Request Rejected',
         message: `${req.user.name} rejected your requested settings changes.`,
-        type: 'general',
+        type: 'permission',
+        category: 'permission',
         relatedId: request._id,
         relatedModel: 'PermissionRequest'
       });
     }
 
     await request.save();
+
+    // Automatically update the user's notification title, message, and read state for this permission request
+    try {
+      const isApproved = status === 'approved';
+      await Notification.updateMany(
+        {
+          userId: req.user._id,
+          $or: [
+            { relatedId: request._id },
+            { relatedModel: 'PermissionRequest' },
+            { category: 'permission' }
+          ]
+        },
+        {
+          $set: {
+            isRead: true,
+            title: isApproved ? 'Settings Change Approved' : 'Settings Change Rejected',
+            message: isApproved
+              ? `You approved the settings changes requested by the administrator.`
+              : `You rejected the settings changes requested by the administrator.`
+          }
+        }
+      );
+    } catch (e) {
+      console.warn('Error updating permission request notification:', e.message);
+    }
 
     // Send WhatsApp & Email notifications to Admin if admin user exists
     try {

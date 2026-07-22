@@ -1,6 +1,8 @@
 const Announcement = require('../models/Announcement');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 const { sendSMS } = require('../config/twilio');
+const { createNotification } = require('../services/notificationService');
 function sendWA(phone, text) {
   return require('../bot/whatsapp').sendWhatsAppMessage(phone, text).catch(() => {});
 }
@@ -12,9 +14,33 @@ const getAll = async (req, res) => {
     if (type) query.type = type;
     const now = new Date();
     query.$or = [{ expiresAt: { $gt: now } }, { expiresAt: null }];
-    const total = await Announcement.countDocuments(query);
-    const announcements = await Announcement.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(Number(limit));
-    res.json({ success: true, total, announcements });
+
+    let announcements = await Announcement.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(Number(limit));
+
+    // Auto-sync broadcast notifications of category 'announcements' into Announcement collection
+    try {
+      const broadcastNotifs = await Notification.find({
+        isBroadcast: true,
+        $or: [{ category: 'announcements' }, { type: 'announcement' }]
+      }).sort({ createdAt: -1 });
+
+      for (const notif of broadcastNotifs) {
+        const exists = announcements.some(a => a.title === notif.title || (notif.relatedId && String(a._id) === String(notif.relatedId)));
+        if (!exists) {
+          const created = await Announcement.create({
+            title: notif.title,
+            content: notif.message,
+            priority: notif.priority === 'high' ? 'urgent' : 'medium',
+            type: 'general',
+            isPublished: true,
+            createdAt: notif.createdAt
+          }).catch(() => null);
+          if (created) announcements.unshift(created);
+        }
+      }
+    } catch { /* silent */ }
+
+    res.json({ success: true, total: announcements.length, announcements });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
@@ -44,6 +70,35 @@ ${clientUrl}/announcements
           }
         });
       }).catch(err => console.error("Error notifying users:", err));
+
+      // In-app broadcast notification for all users
+      createNotification({
+        isBroadcast: true,
+        recipient: 'user',
+        title: `📢 ${ann.title}`,
+        message: ann.content ? (ann.content.length > 150 ? ann.content.slice(0, 150) + '...' : ann.content) : 'A new announcement from the church.',
+        type: 'announcement',
+        category: 'announcements',
+        priority: 'medium',
+        actionUrl: '/announcements',
+        relatedId: ann._id,
+        relatedModel: 'Announcement',
+        channels: []
+      }).catch(e => console.error('Announcement broadcast notification error:', e.message));
+
+      // Admin confirmation in-app
+      createNotification({
+        recipient: 'admin',
+        title: `✅ Announcement Published: ${ann.title}`,
+        message: `The announcement "${ann.title}" has been published successfully.`,
+        type: 'announcement',
+        category: 'announcements',
+        priority: 'low',
+        actionUrl: '/admin/announcements',
+        relatedId: ann._id,
+        relatedModel: 'Announcement',
+        channels: []
+      }).catch(e => console.error('Announcement admin notification error:', e.message));
     }
 
 
@@ -54,7 +109,13 @@ ${clientUrl}/announcements
 const update = async (req, res) => {
   try {
     const data = { ...req.body };
-    if (req.file) data.attachment = `/uploads/announcements/${req.file.filename}`;
+    if (req.body.removeImage === 'true') {
+      data.attachment = '';
+      data.image = '';
+    } else if (req.file) {
+      data.attachment = `/uploads/announcements/${req.file.filename}`;
+      data.image = `/uploads/announcements/${req.file.filename}`;
+    }
     const ann = await Announcement.findByIdAndUpdate(req.params.id, data, { new: true });
 
     // Notify all users about Updated Announcement in background

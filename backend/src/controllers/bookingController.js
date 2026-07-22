@@ -25,9 +25,35 @@ const createBooking = async (req, res) => {
     const booking = await Booking.create({ userId: req.user._id, massDate, massTime, intentionType, intentionDetails, familyName, familyDetails, offertory });
     
     // Notify user
-    createNotification({ userId: req.user._id, title: 'Mass Booking Received', message: `Your mass booking for ${new Date(massDate).toDateString()} has been received and is pending approval.`, type: 'booking', relatedId: booking._id, channels: ['email'] }).catch(e => console.error('Booking notification error:', e.message));
+    createNotification({ 
+      userId: req.user._id, 
+      recipient: 'user',
+      title: 'Mass Booking Received 🗣️', 
+      message: `Your mass booking for ${new Date(massDate).toDateString()} (${massTime}) has been received and is pending approval.`, 
+      type: 'booking', 
+      category: 'bookings',
+      priority: 'medium',
+      actionUrl: '/dashboard/booking',
+      relatedId: booking._id, 
+      relatedModel: 'Booking',
+      channels: ['email'] 
+    }).catch(e => console.error('Booking notification error:', e.message));
     
-    // Notify admins (Async - don't await to speed up user response)
+    // Admin in-app notification
+    createNotification({
+      recipient: 'admin',
+      title: `✗️ New Mass Booking`,
+      message: `${req.user.name} booked a mass for ${new Date(massDate).toDateString()} (${massTime}). Intention: ${intentionType}.`,
+      type: 'booking',
+      category: 'bookings',
+      priority: 'medium',
+      actionUrl: '/admin/bookings',
+      relatedId: booking._id,
+      relatedModel: 'Booking',
+      channels: []
+    }).catch(e => console.error('Booking admin notification error:', e.message));
+    
+    // Also email/WhatsApp admins
     notifyAdmins({
       title: 'New Mass Booking',
       message: `A new mass booking has been requested:\n\n👤 User: ${req.user.name}\n📞 Phone: ${req.user.phone || 'N/A'}\n📅 Date: ${new Date(massDate).toDateString()}\n⏰ Time: ${massTime}\n✨ Intention: ${intentionType}\n📝 Details: ${intentionDetails || 'None'}\n\nView details: ${process.env.CLIENT_URL || 'http://localhost:5173'}/admin/bookings`
@@ -45,10 +71,15 @@ const updateBookingStatus = async (req, res) => {
     // Notify user (Async)
     createNotification({ 
         userId: booking.userId, 
-        title: `Mass Booking ${status}`, 
+        recipient: 'user',
+        title: `Mass Booking ${status === 'approved' ? 'Approved ✅' : 'Rejected ❌'}`, 
         message: `Your mass booking for ${new Date(booking.massDate).toDateString()} has been ${status}.${adminNote ? ' Note: ' + adminNote : ''}`, 
         type: 'booking', 
+        category: 'bookings',
+        priority: status === 'rejected' ? 'high' : 'medium',
+        actionUrl: '/dashboard/booking',
         relatedId: booking._id, 
+        relatedModel: 'Booking',
         channels: ['email'] 
     }).catch(e => console.error('Booking status notification error:', e.message));
     

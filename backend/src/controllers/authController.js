@@ -61,12 +61,29 @@ const verifyOtp = async (req, res) => {
     // Send Welcome Notification
     await createNotification({
       userId: user._id,
-      isBroadcast: false,
+      recipient: 'user',
       title: "Welcome to St. John de Britto's Church! ⛪",
       message: `Dear ${user.name}, thank you for registering with our Parish platform. Our website allows you to book Mass intentions, request documents, view daily readings, and stay updated with church events. We are glad to have you with us!`,
       type: 'general',
+      category: 'account',
+      priority: 'low',
+      actionUrl: '/dashboard',
       channels: ['email']
     });
+
+    // Admin in-app notification: new user registered
+    createNotification({
+      recipient: 'admin',
+      title: `👤 New Member Registered`,
+      message: `${user.name} has registered and verified their account.${user.familyName ? ' Family: ' + user.familyName : ''}${user.subStation ? ' | Sub-station: ' + user.subStation : ''}`,
+      type: 'general',
+      category: 'account',
+      priority: 'medium',
+      actionUrl: '/admin/users',
+      relatedId: user._id,
+      relatedModel: 'User',
+      channels: []
+    }).catch(e => console.error('New user admin notification error:', e.message));
 
     // Check if it's their birthday TODAY and send birthday wish if so
     if (user.dob) {

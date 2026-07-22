@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiChevronLeft, FiPlay, FiYoutube } from 'react-icons/fi';
 import api from '../../services/api';
 
-// Reliable public YouTube video ID for Catholic St. John de Britto / Church video
-const DEFAULT_VIDEO_ID = 'kJQP7kiw5Fk';
+// Default YouTube video ID for Catholic Church video (https://youtu.be/i1dEoV-p03k)
+const DEFAULT_VIDEO_ID = 'i1dEoV-p03k';
 
 
 export default function VideoAdWidget({ onOpenChange }) {

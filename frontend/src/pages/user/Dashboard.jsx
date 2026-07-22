@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { FiUser, FiCalendar, FiFileText, FiMessageSquare, FiBell, FiEdit, FiSettings, FiDownload, FiCheckCircle, FiX, FiInfo } from 'react-icons/fi';
+import { useNotifications } from '../../context/NotificationContext';
+import { FiUser, FiCalendar, FiFileText, FiMessageSquare, FiBell, FiEdit, FiSettings, FiDownload, FiCheckCircle, FiX, FiInfo, FiShield } from 'react-icons/fi';
 
 import { FaDonate } from "react-icons/fa";
 import { GiChurch, GiCrucifix, GiPrayer, GiHeartBottle } from 'react-icons/gi';
@@ -14,7 +15,6 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import toast from 'react-hot-toast';
 import churchLogo from '../../assets/image.png';
-import { FiShield } from 'react-icons/fi';
 import PendingApprovalModal from '../../components/user/PendingApprovalModal';
 
 const DONATION_TYPES = [
@@ -26,10 +26,10 @@ const DONATION_TYPES = [
 
 export default function UserDashboard() {
   const { user } = useAuth();
+  const { notifications, unreadCount, markRead } = useNotifications();
   const [searchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [documents, setDocuments] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [tickets, setTickets] = useState([]);
   const [donations, setDonations] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -43,7 +43,6 @@ export default function UserDashboard() {
     Promise.all([
       api.get('/bookings/my').then(r => setBookings(r.data.bookings || [])),
       api.get('/documents/my').then(r => setDocuments(r.data.documents || [])),
-      api.get('/notifications').then(r => setNotifications(r.data.notifications || [])),
       api.get('/tickets/my').then(r => setTickets(r.data.tickets || [])),
       api.get('/donations/my').then(r => setDonations(r.data.donations || [])),
       api.get('/permission-requests/user/pending').then(r => {
@@ -60,9 +59,17 @@ export default function UserDashboard() {
     ]).finally(() => setLoading(false));
   }, [searchParams]);
 
+  const activePendingRequests = useMemo(() => {
+    const map = new Map();
+    (pendingRequests || []).forEach(req => {
+      if (req.status === 'pending' && !map.has(req._id)) {
+        map.set(req._id, req);
+      }
+    });
+    return Array.from(map.values());
+  }, [pendingRequests]);
 
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   const downloadReceipt = async (donation) => {
     setIsGeneratingPDF(true);
@@ -171,9 +178,29 @@ export default function UserDashboard() {
                 </p>
               </div>
             </div>
-            <Link to="/dashboard/settings" className="btn-outline-gold text-xs sm:text-sm md:text-base py-1.5 px-2.5 sm:py-2.5 sm:px-5 md:py-3 md:px-6 shadow-md border border-church-gold/60 rounded-xl whitespace-nowrap flex-shrink-0">
-              <FiSettings className="text-xs sm:text-sm md:text-lg" /> Settings
-            </Link>
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+              <Link
+                to="/dashboard/notifications"
+                className="btn-outline-gold text-xs sm:text-sm md:text-base py-1.5 px-2.5 sm:py-2.5 sm:px-5 md:py-3 md:px-6 shadow-md border border-church-gold/60 rounded-xl whitespace-nowrap relative flex items-center gap-2"
+                title="Notifications"
+              >
+                <div className="relative flex items-center justify-center">
+                  <FiBell className="text-base sm:text-xl" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse ring-2 ring-gray-600" />
+                  )}
+                </div>
+                <span>Notifications</span>
+                {unreadCount > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded-full ml-0.5 shadow-sm">
+                    {unreadCount}
+                  </span>
+                )}
+              </Link>
+              <Link to="/dashboard/settings" className="btn-outline-gold text-xs sm:text-sm md:text-base py-1.5 px-2.5 sm:py-2.5 sm:px-5 md:py-3 md:px-6 shadow-md border border-church-gold/60 rounded-xl whitespace-nowrap flex items-center gap-2">
+                <FiSettings className="text-xs sm:text-sm md:text-lg" /> Settings
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -181,9 +208,9 @@ export default function UserDashboard() {
 
       <div className="max-w-6xl mx-auto px-4 py-10">
         {/* Pending Settings Change Request Banner */}
-        {pendingRequests.length > 0 && (
+        {activePendingRequests.length > 0 && (
           <div className="space-y-4 mb-8">
-            {pendingRequests.map(req => (
+            {activePendingRequests.map(req => (
               <motion.div key={req._id} initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-amber-50 border-2 border-church-gold rounded-2xl p-4 sm:p-5 shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-start sm:items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-church-gold text-white flex items-center justify-center font-bold flex-shrink-0 shadow-sm">
@@ -202,7 +229,13 @@ export default function UserDashboard() {
                 </div>
 
                 <button
-                  onClick={() => setSelectedPendingRequest(req)}
+                  onClick={() => {
+                    setSelectedPendingRequest(req);
+                    const notif = notifications.find(n => n.relatedId === req._id || n.relatedModel === 'PermissionRequest' || n.title?.includes('Settings'));
+                    if (notif && !notif.isRead) {
+                      markRead(notif._id);
+                    }
+                  }}
                   className="btn-gold px-4 py-2 text-xs sm:text-sm whitespace-nowrap self-start sm:self-auto flex items-center gap-1.5 shadow-gold"
                 >
                   <FiShield /> Review Request
@@ -307,55 +340,6 @@ export default function UserDashboard() {
 
           {/* Right Sidebar Area */}
           <div className="space-y-6">
-            {/* Notifications */}
-            <div className="glass-card p-6 border border-gray-100">
-              <h2 className="font-display text-lg font-bold text-church-royal-blue mb-5 flex items-center gap-2">
-                <FiBell className={unreadCount > 0 ? 'text-church-gold' : 'text-gray-400'} />
-                Recent Alerts
-                {unreadCount > 0 && <span className="bg-church-gold text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">{unreadCount}</span>}
-              </h2>
-              <div className="space-y-3">
-                {notifications.slice(0, 7).map((n) => {
-                  const isPermissionAlert = n.relatedModel === 'PermissionRequest' || n.title?.includes('Settings');
-                  return (
-                    <div
-                      key={n._id}
-                      onClick={async () => {
-                        if (isPermissionAlert) {
-                          let match = pendingRequests.find(r => r._id === n.relatedId);
-                          if (!match) {
-                            try {
-                              const res = await api.get('/permission-requests/user/pending');
-                              const reqs = res.data.requests || [];
-                              setPendingRequests(reqs);
-                              match = reqs.find(r => r._id === n.relatedId) || reqs[0];
-                            } catch (e) {}
-                          }
-                          if (match) {
-                            setSelectedPendingRequest(match);
-                          } else {
-                            toast.error('This permission request has already been processed.');
-                          }
-                        }
-                      }}
-                      className={`p-4 rounded-xl transition-all cursor-pointer hover:shadow-md ${isPermissionAlert ? 'border-2 border-amber-400 bg-amber-50/80 hover:bg-amber-100 ring-2 ring-amber-400/30' : n.isRead ? 'bg-gray-50' : 'bg-gold-50 border-l-4 border-church-gold'}`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="font-bold text-gray-800 text-xs">{n.title}</p>
-                        {isPermissionAlert && (
-                          <span className="text-[9px] font-black uppercase text-amber-900 bg-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs animate-pulse">
-                            <FiShield size={10} /> Action Required
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-gray-600 text-[11px] mt-1 leading-relaxed line-clamp-2">{n.message}</p>
-                    </div>
-                  );
-                })}
-                {notifications.length === 0 && <p className="text-gray-400 text-xs italic text-center py-4">No new alerts</p>}
-
-              </div>
-            </div>
 
             {/* My Documents */}
             <div className="glass-card p-6 border border-gray-100">

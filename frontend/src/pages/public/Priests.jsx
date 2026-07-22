@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { GiChurch } from 'react-icons/gi';
 import { FiPhone, FiMail, FiCalendar } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
-import api, { UPLOADS_URL } from '../../services/api';
+import api, { UPLOADS_URL, getMediaUrl } from '../../services/api';
 import { SectionLoader } from '../../components/common/Loader';
 import PageHero from '../../components/common/PageHero';
 
@@ -31,14 +31,14 @@ function PriestCard({ priest, index }) {
         <div className="w-32 h-32 mx-auto rounded-full overflow-hidden border-4 border-gold-200 shadow-gold group-hover:border-church-gold transition-all duration-300">
           {priest.photo ? (
             <img 
-              src={priest.photo.startsWith('http') ? priest.photo : `${UPLOADS_URL.replace('/uploads', '')}${priest.photo.startsWith('/') ? '' : '/'}${priest.photo}`} 
+              src={getMediaUrl(priest.photo)} 
               alt={priest.name} 
               className="w-full h-full object-cover" 
             />
           ) : (
-            <div className="w-full h-full mx-auto mb-4 rounded-full overflow-hidden border-2 shadow-gold">
-            <img src='' alt="Father photo" className="w-full h-full object-cover object-[center_20%] rounded-full" />
-          </div>
+            <div className="w-full h-full mx-auto flex items-center justify-center bg-church-gradient text-white">
+              <GiChurch className="text-4xl" />
+            </div>
           )}
         </div>
         {priest.isCurrent && (

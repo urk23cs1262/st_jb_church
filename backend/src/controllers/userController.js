@@ -1,3 +1,4 @@
+const fs = require('fs');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
@@ -56,8 +57,19 @@ const updateProfile = async (req, res) => {
     };
     if (settings) updateData.settings = settings;
 
-    
-    if (req.file) updateData.profilePhoto = `/uploads/profiles/${req.file.filename}`;
+    if (req.body.removeProfilePhoto === 'true' || req.body.profilePhoto === '') {
+      updateData.profilePhoto = '';
+    } else if (req.file) {
+      try {
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const mime = req.file.mimetype || 'image/jpeg';
+        updateData.profilePhoto = `data:${mime};base64,${fileBuffer.toString('base64')}`;
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+      } catch (e) {
+        console.error('Error converting photo to base64:', e.message);
+        updateData.profilePhoto = `/uploads/profiles/${req.file.filename}`;
+      }
+    }
     
     const user = await User.findByIdAndUpdate(req.user._id, updateData, { new: true }).select('-passwordHash -otp -otpExpires');
     res.json({ success: true, user });

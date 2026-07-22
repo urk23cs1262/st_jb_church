@@ -1,6 +1,6 @@
 const PrayerRequest = require('../models/PrayerRequest');
 const User = require('../models/User');
-const { notifyAdmins } = require('../services/notificationService');
+const { notifyAdmins, createNotification } = require('../services/notificationService');
 
 const getPublic = async (req, res) => {
   try {
@@ -35,7 +35,21 @@ const create = async (req, res) => {
       preferredDate
     });
     
-    // Notify admins (Async) - Fixed ReferenceError for phone/email
+    // Admin in-app notification
+    createNotification({
+      recipient: 'admin',
+      title: `🙏 New Prayer Request`,
+      message: `${name || req.user?.name || 'Anonymous'} submitted a prayer request (${type}): "${intention.slice(0, 100)}${intention.length > 100 ? '...' : ''}".`,
+      type: 'prayer',
+      category: 'prayer',
+      priority: 'medium',
+      actionUrl: '/admin/prayers',
+      relatedId: prayer._id,
+      relatedModel: 'PrayerRequest',
+      channels: []
+    }).catch(e => console.error('Prayer in-app admin notification error:', e.message));
+
+    // Also email/WhatsApp admins
     notifyAdmins({
       title: 'New Prayer Request',
       message: `A new prayer request has been received:\n\n👤 Name: ${name || req.user?.name || 'Anonymous'}\n📝 Type: ${type}\n📍 Location: ${prayerLocation}\n💭 Intention: ${intention}\n\nView details: ${process.env.CLIENT_URL || 'http://localhost:5173'}/admin/prayers`
