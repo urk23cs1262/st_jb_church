@@ -31,9 +31,10 @@ const NearbyParishes = lazy(() => import('./pages/public/NearbyParishes'));
 
 import AdminLayout from './components/admin/AdminLayout';
 
-// Auth pages
+// Auth & Security pages
 const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
+const ReportUnauthorized = lazy(() => import('./pages/security/ReportUnauthorized'));
 
 // User dashboard
 const UserDashboard = lazy(() => import('./pages/user/Dashboard'));
@@ -113,9 +114,10 @@ function AppRoutes() {
 
           </Route>
 
-          {/* Auth routes */}
+          {/* Auth & Security routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/security/report-unauthorized" element={<ReportUnauthorized />} />
 
           {/* Admin dashboard routes */}
           <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>

@@ -3,6 +3,7 @@ const User = require('../models/User');
 const { generateToken } = require('../middleware/auth');
 const { sendOTP, verifyOTP } = require('../services/otpService');
 const { createNotification } = require('../services/notificationService');
+const { sendLoginAlertEmail } = require('../services/loginSecurityService');
 
 // @POST /api/auth/register
 const register = async (req, res) => {
@@ -56,7 +57,10 @@ const verifyOtp = async (req, res) => {
     if (!result.valid) return res.status(400).json({ success: false, message: result.message });
 
     const user = await User.findById(userId);
-    const token = generateToken(user._id, user.role);
+    const token = generateToken(user._id, user.role, user.tokenVersion || 0);
+
+    // Trigger Login Alert Email
+    sendLoginAlertEmail({ user, req, loginMethod: 'OTP' }).catch(e => console.error('Login alert email error:', e));
 
     // Send Welcome Notification
     await createNotification({
@@ -146,7 +150,11 @@ const login = async (req, res) => {
     if (!user.isVerified) return res.status(403).json({ success: false, message: 'Account not verified. Please verify OTP first.', userId: user._id });
 
     await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
-    const token = generateToken(user._id, user.role);
+    const token = generateToken(user._id, user.role, user.tokenVersion || 0);
+
+    // Trigger Login Security Alert Email
+    sendLoginAlertEmail({ user, req, loginMethod: 'Password' }).catch(e => console.error('Login alert email error:', e));
+
     return res.json({
       success: true,
       token,

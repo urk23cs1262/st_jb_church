@@ -67,6 +67,7 @@ app.use('/api/tickets', require('./routes/tickets'));
 app.use('/api/anbiyam', require('./routes/anbiyam'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/permission-requests', require('./routes/permissionRequests'));
+app.use('/api/security', require('./routes/security'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/ai', require('./routes/ai'));
 

@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema({
   profilePhoto: { type: String },
   isActive: { type: Boolean, default: true },
   lastLogin: { type: Date },
+  tokenVersion: { type: Number, default: 0 },
   preferredLanguage: { type: String, enum: ['en', 'ta', 'both'], default: 'en' },
   // WhatsApp Bot preferences — defaults to opted-in for website registrants
   whatsappOptIn: { type: Boolean, default: true },

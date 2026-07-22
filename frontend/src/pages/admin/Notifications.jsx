@@ -215,13 +215,13 @@ function BroadcastModal({ onClose, onSent }) {
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none font-medium"
               >
-                <option value="announcements">📢 Announcements</option>
-                <option value="events">📅 Events</option>
-                <option value="general">✝️ General</option>
-                <option value="bookings">🗓️ Mass / Bookings</option>
+                <option value="announcements">Announcements</option>
+                <option value="events">Events</option>
+                <option value="general">General</option>
+                {/* <option value="bookings">🗓️ Mass / Bookings</option>
                 <option value="documents">📄 Documents</option>
                 <option value="donations">💰 Donations</option>
-                <option value="prayer">🙏 Prayers</option>
+                <option value="prayer">🙏 Prayers</option> */}
               </select>
             </div>
             <div>
