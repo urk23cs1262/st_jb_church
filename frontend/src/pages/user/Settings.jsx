@@ -14,6 +14,7 @@ import api, { UPLOADS_URL, getMediaUrl } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { applyUserSettings } from '../../utils/applySettings';
 import PendingApprovalModal from '../../components/user/PendingApprovalModal';
+import { requestNotificationPermission, showNativeNotification } from '../../services/webPushService';
 
 const SUB_STATIONS = [
   "Kalayarkoil (Main Parish)",
@@ -62,6 +63,26 @@ export default function UserSettings() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [selectedPendingRequest, setSelectedPendingRequest] = useState(null);
+
+  const [pushStatus, setPushStatus] = useState(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported'
+  );
+
+  const handleEnablePush = async () => {
+    const res = await requestNotificationPermission();
+    setPushStatus(res);
+    if (res === 'granted') {
+      setValue('settings.notifications.push', true);
+      toast.success('Browser push notifications enabled!');
+      showNativeNotification({
+        title: "St. John de Britto's Church ⛪",
+        body: "Browser push notifications enabled successfully! You will now receive instant parish alerts.",
+        url: "/dashboard/settings"
+      });
+    } else if (res === 'denied') {
+      toast.error('Notification permission was blocked in your browser settings.');
+    }
+  };
 
   useEffect(() => {
     api.get('/permission-requests/user/pending').then(r => setPendingRequests(r.data.requests || [])).catch(() => {});
@@ -651,36 +672,69 @@ export default function UserSettings() {
               {/* 2. Notifications */}
               {activeTab === 'notifications' && (
                 <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
-                  <div className="border-b border-gray-100 pb-4">
-                    <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
-                      <FiBell className="text-church-gold" /> Notification Settings
-                    </h2>
-                    <p className="text-gray-500 text-xs mt-1">Choose what alerts and updates you receive</p>
+                  <div className="border-b border-gray-100 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
+                        <FiBell className="text-church-gold" /> Notification Settings & Channels
+                      </h2>
+                      <p className="text-gray-500 text-xs mt-1">Choose what alerts you receive and enable real-time browser push pop-ups</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleEnablePush}
+                      className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm ${
+                        pushStatus === 'granted'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : 'bg-church-royal-blue text-white hover:bg-church-royal-blue/90'
+                      }`}
+                    >
+                      <FiSmartphone />
+                      {pushStatus === 'granted' ? '✅ Browser Push Pop-ups Enabled' : 'Enable Browser Push Pop-ups'}
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                      { key: 'eventReminders', label: 'Event Reminders' },
-                      { key: 'massSchedule', label: 'Mass Schedule Updates' },
-                      { key: 'prayerMeetings', label: 'Prayer Meeting Notifications' },
-                      { key: 'feastDays', label: 'Feast Day Alerts' },
-                      { key: 'saintOfTheDay', label: 'Saint of the Day' },
-                      { key: 'donationReceipts', label: 'Donation Receipts' },
-                      { key: 'birthdayWishes', label: 'Birthday Wishes' },
-                      { key: 'anniversaryWishes', label: 'Anniversary Wishes' },
-                      { key: 'whatsapp', label: 'WhatsApp Notifications' },
-                      { key: 'email', label: 'Email Notifications' },
-                      { key: 'push', label: 'Push Notifications' },
-                    ].map(item => (
-                      <label key={item.key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100 transition-colors">
-                        <input
-                          type="checkbox"
-                          {...register(`settings.notifications.${item.key}`)}
-                          className="w-4 h-4 text-church-gold rounded focus:ring-church-gold"
-                        />
-                        <span className="text-xs font-semibold text-gray-800">{item.label}</span>
-                      </label>
-                    ))}
+                  <div className="space-y-4">
+                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Delivery Channels</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {[
+                        { key: 'push', label: '🌐 Browser Push Pop-ups' },
+                        { key: 'email', label: '📧 Email Notifications' },
+                        { key: 'whatsapp', label: '📱 WhatsApp Notifications' }
+                      ].map(ch => (
+                        <label key={ch.key} className="flex items-center gap-3 p-3.5 bg-blue-50/50 rounded-xl hover:bg-blue-50 cursor-pointer border border-blue-100 transition-colors">
+                          <input
+                            type="checkbox"
+                            {...register(`settings.notifications.${ch.key}`)}
+                            className="w-4 h-4 text-church-gold rounded focus:ring-church-gold"
+                          />
+                          <span className="text-xs font-bold text-church-royal-blue">{ch.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider pt-2">Notification Categories</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {[
+                        { key: 'eventReminders', label: '🔔 Event Updates & Feasts' },
+                        { key: 'announcements', label: '📢 Parish Announcements' },
+                        { key: 'donationReceipts', label: '💰 Donation Campaigns & Receipts' },
+                        { key: 'prayerMeetings', label: '🙏 Prayer Requests & Meetings' },
+                        { key: 'massSchedule', label: '🗓️ Mass Schedule Changes' },
+                        { key: 'securityAlerts', label: '👤 Security Alerts & Logins' },
+                        { key: 'saintOfTheDay', label: '✝️ Saint of the Day' },
+                        { key: 'birthdayWishes', label: '🎂 Birthday & Anniversary Wishes' }
+                      ].map(item => (
+                        <label key={item.key} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 cursor-pointer border border-gray-100 transition-colors">
+                          <input
+                            type="checkbox"
+                            {...register(`settings.notifications.${item.key}`)}
+                            className="w-4 h-4 text-church-gold rounded focus:ring-church-gold"
+                          />
+                          <span className="text-xs font-semibold text-gray-800">{item.label}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}

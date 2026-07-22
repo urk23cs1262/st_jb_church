@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 import { useAuth } from './AuthContext';
+import { registerServiceWorker, showNativeNotification } from '../services/webPushService';
 
 const NotificationContext = createContext(null);
 
@@ -12,22 +13,86 @@ export const NotificationProvider = ({ children }) => {
   const [adminUnreadCount, setAdminUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const pollInterval = useRef(null);
+  const seenIds = useRef(new Set());
+  const isInitialLoad = useRef(true);
+
+  // Register service worker on mount
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
+  const triggerNativePush = (notif) => {
+    let title = "St. John de Britto's Church ⛪";
+    let body = notif.message || notif.title;
+    let url = notif.actionUrl || '/dashboard';
+
+    const cat = notif.category || notif.type;
+    if (cat === 'events' || cat === 'event') {
+      title = "🔔 St. John de Britto's Church — New Event";
+      url = '/events';
+    } else if (cat === 'announcements' || cat === 'announcement') {
+      title = "📢 Church Announcement";
+      url = '/announcements';
+    } else if (cat === 'donations' || cat === 'donation') {
+      title = "🙏 Donation Campaign";
+      url = '/donate';
+    } else if (cat === 'prayer' || cat === 'prayers') {
+      title = "🙏 Community Prayer Request";
+      url = '/prayers';
+    } else if (cat === 'permission') {
+      title = "🛡️ Permission Request Alert";
+      url = '/dashboard';
+    } else if (cat === 'system' || notif.title?.includes('Security')) {
+      title = "🚨 Security Alert";
+      url = '/dashboard/notifications';
+    }
+
+    showNativeNotification({
+      title,
+      body: `${notif.title}\n${body}`,
+      url,
+      tag: `notif-${notif._id}`
+    });
+  };
 
   const fetchUserNotifications = useCallback(async () => {
     try {
       const res = await api.get('/notifications');
-      setNotifications(res.data.notifications || []);
-      const count = (res.data.notifications || []).filter(n => !n.isRead).length;
+      const list = res.data.notifications || [];
+      setNotifications(list);
+      const count = list.filter(n => !n.isRead).length;
       setUnreadCount(count);
+
+      // Check for newly arrived unread notifications
+      list.forEach(n => {
+        if (!seenIds.current.has(n._id)) {
+          seenIds.current.add(n._id);
+          // If not initial page load and unread, pop up browser push notification!
+          if (!isInitialLoad.current && !n.isRead) {
+            triggerNativePush(n);
+          }
+        }
+      });
     } catch { /* silent */ }
   }, []);
 
   const fetchAdminNotifications = useCallback(async () => {
     try {
       const res = await api.get('/notifications/admin');
-      setAdminNotifications(res.data.notifications || []);
-      const count = (res.data.notifications || []).filter(n => !n.isRead).length;
+      const list = res.data.notifications || [];
+      setAdminNotifications(list);
+      const count = list.filter(n => !n.isRead).length;
       setAdminUnreadCount(count);
+
+      // Check for newly arrived unread admin notifications
+      list.forEach(n => {
+        if (!seenIds.current.has(n._id)) {
+          seenIds.current.add(n._id);
+          if (!isInitialLoad.current && !n.isRead) {
+            triggerNativePush(n);
+          }
+        }
+      });
     } catch { /* silent */ }
   }, []);
 
@@ -39,22 +104,25 @@ export const NotificationProvider = ({ children }) => {
       if (isAdmin) await fetchAdminNotifications();
     } finally {
       setLoading(false);
+      if (isInitialLoad.current) isInitialLoad.current = false;
     }
   }, [isAuthenticated, isAdmin, fetchUserNotifications, fetchAdminNotifications]);
 
-  // Initial load + polling every 60 seconds
+  // Initial load + 20-second polling interval for real-time notifications
   useEffect(() => {
     if (!isAuthenticated) {
       setNotifications([]);
       setAdminNotifications([]);
       setUnreadCount(0);
       setAdminUnreadCount(0);
+      seenIds.current.clear();
+      isInitialLoad.current = true;
       if (pollInterval.current) clearInterval(pollInterval.current);
       return;
     }
 
     refetch();
-    pollInterval.current = setInterval(refetch, 60000);
+    pollInterval.current = setInterval(refetch, 20000);
     return () => clearInterval(pollInterval.current);
   }, [isAuthenticated, refetch]);
 
@@ -98,17 +166,11 @@ export const NotificationProvider = ({ children }) => {
 
   const deleteAll = async () => {
     try {
-      await api.delete('/notifications/delete-all');
-      setNotifications(prev => prev.filter(n => n.isPinned));
+      await api.delete('/notifications');
+      setNotifications([]);
+      setAdminNotifications([]);
       setUnreadCount(0);
-    } catch { /* silent */ }
-  };
-
-  const togglePin = async (id) => {
-    try {
-      const res = await api.put(`/notifications/${id}/pin`);
-      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isPinned: res.data.isPinned } : n));
-      setAdminNotifications(prev => prev.map(n => n._id === id ? { ...n, isPinned: res.data.isPinned } : n));
+      setAdminUnreadCount(0);
     } catch { /* silent */ }
   };
 
@@ -124,8 +186,8 @@ export const NotificationProvider = ({ children }) => {
       markAllAdminRead,
       deleteNotification,
       deleteAll,
-      togglePin,
       refetch,
+      triggerNativePush
     }}>
       {children}
     </NotificationContext.Provider>

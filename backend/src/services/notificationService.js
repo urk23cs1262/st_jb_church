@@ -24,9 +24,20 @@ const createNotification = async ({ userId, isBroadcast, title, message, type, c
     });
 
     // ── Email channel ──────────────────────────────────────────────────────
-    if (channels.includes('email') && userId) {
-      const user = await User.findById(userId);
-      if (user?.email) {
+    const shouldSendEmail = isBroadcast || channels.includes('email') || (recipient === 'user' && userId);
+    if (shouldSendEmail) {
+      let recipientEmails = [];
+      if (userId) {
+        const u = await User.findById(userId);
+        if (u?.email) recipientEmails.push(u.email);
+      } else if (isBroadcast || recipient === 'user') {
+        const users = await User.find({ email: { $exists: true, $ne: null } }).select('email settings');
+        recipientEmails = users
+          .filter(u => u.email && u.settings?.notifications?.email !== false)
+          .map(u => u.email);
+      }
+
+      if (recipientEmails.length > 0) {
         const attachments = [];
         if (fileUrl) {
           const absolutePath = path.join(__dirname, '..', '..', fileUrl);
@@ -35,11 +46,15 @@ const createNotification = async ({ userId, isBroadcast, title, message, type, c
           }
         }
 
-        sendMail({
-          to: user.email,
-          subject: `${title} — St. John de Britto's Church`,
-          attachments,
-          html: `
+        const clientUrl = (process.env.CLIENT_URL || 'https://st-jb-church.vercel.app').replace('http://localhost:5173', 'https://st-jb-church.vercel.app');
+        const targetUrl = actionUrl ? (actionUrl.startsWith('http') ? actionUrl : `${clientUrl}${actionUrl}`) : `${clientUrl}/dashboard`;
+
+        recipientEmails.forEach(toEmail => {
+          sendMail({
+            to: toEmail,
+            subject: `${title} — St. John de Britto's Church`,
+            attachments,
+            html: `
 <div style="font-family:'Segoe UI',Arial,sans-serif;background:#f5f7fb;padding:40px 20px;">
   <div style="max-width:650px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 10px 35px rgba(0,0,0,0.12);border:1px solid #e5e7eb;">
     <!-- HEADER -->
@@ -62,11 +77,9 @@ const createNotification = async ({ userId, isBroadcast, title, message, type, c
           <p style="margin:0;font-size:14px;color:#92400e;font-weight:bold;">📎 Your document is attached to this email.</p>
         </div>
       ` : ''}
-      ${actionUrl ? `
-        <div style="text-align:center;margin:25px 0;">
-          <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}${actionUrl}" style="background:#1e3a8a;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">View Details →</a>
-        </div>
-      ` : ''}
+      <div style="text-align:center;margin:25px 0;">
+        <a href="${targetUrl}" style="background:#1e3a8a;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:14px;">View Details →</a>
+      </div>
       <!-- BIBLE VERSE -->
       <div style="background:linear-gradient(135deg,#fef3c7,#fff7ed);border:1px solid #fcd34d;padding:25px;border-radius:16px;text-align:center;margin-top:10px;">
         <div style="font-size:36px;color:#d97706;margin-bottom:10px;">✝</div>
@@ -82,8 +95,9 @@ const createNotification = async ({ userId, isBroadcast, title, message, type, c
       <p style="margin:0;font-size:12px;color:#9ca3af;">"May the peace of Christ be with you always."</p>
     </div>
   </div>
-</div>`,
-        }).catch(err => console.error(`❌ Email failed to ${user.email}:`, err.message));
+</div>`
+          }).catch(err => console.error(`❌ Email failed to ${toEmail}:`, err.message));
+        });
       }
     }
 
