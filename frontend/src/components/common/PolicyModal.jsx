@@ -148,9 +148,9 @@ export default function PolicyModal({ isOpen, onClose, initialTab = 'terms' }) {
         className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-3xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]"
       >
         {/* Top Accent Header */}
-        <div className="bg-gradient-to-r from-church-royal-blue via-blue-900 to-indigo-900 text-white px-4 sm:px-6 py-3.5 sm:py-5 flex items-start sm:items-center justify-between gap-2.5 relative overflow-hidden flex-shrink-0">
-          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 relative z-10">
-            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white/10 flex items-center justify-center text-lg sm:text-xl text-gold-300 border border-white/10 shadow-inner flex-shrink-0 mt-0.5 sm:mt-0">
+        <div className="bg-gradient-to-r from-church-royal-blue via-blue-900 to-indigo-900 text-white px-4 sm:px-6 py-3.5 sm:py-5 flex items-center justify-between relative overflow-hidden flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 relative z-10">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white/10 flex items-center justify-center text-lg sm:text-xl text-gold-300 border border-white/10 shadow-inner flex-shrink-0">
               {currentPolicy.icon}
             </div>
             <div className="min-w-0 flex-1">
@@ -162,13 +162,6 @@ export default function PolicyModal({ isOpen, onClose, initialTab = 'terms' }) {
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors relative z-10 flex-shrink-0 ml-1"
-            aria-label="Close Modal"
-          >
-            <FiX className="text-base sm:text-lg" />
-          </button>
         </div>
 
         {/* Policy Tab Bar without ugly browser scrollbar */}
@@ -239,7 +232,7 @@ export default function PolicyModal({ isOpen, onClose, initialTab = 'terms' }) {
             onClick={onClose}
             className="btn-gold w-full sm:w-auto px-6 py-2.5 text-xs font-bold shadow-md rounded-xl justify-center"
           >
-            I Understand & Close
+            I Understood
           </button>
         </div>
       </motion.div>
