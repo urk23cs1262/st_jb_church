@@ -48,18 +48,19 @@ export default function Navbar() {
 
   const toggleGoogleTranslate = () => {
     const nextLang = isTamil ? 'en' : 'ta';
-    setIsTamil(!isTamil);
+    sessionStorage.setItem('scrollPos', window.scrollY);
 
-    const select = document.querySelector('.goog-te-combo');
-    if (select) {
-      select.value = nextLang;
-      select.dispatchEvent(new Event('change'));
+    if (nextLang === 'ta') {
+      document.cookie = 'googtrans=/en/ta; path=/';
+      document.cookie = `googtrans=/en/ta; domain=${window.location.hostname}; path=/`;
     } else {
-      sessionStorage.setItem('scrollPos', window.scrollY);
-      document.cookie = `googtrans=/en/${nextLang}; path=/`;
-      document.cookie = `googtrans=/en/${nextLang}; domain=${window.location.hostname}; path=/`;
-      window.location.reload();
+      document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=${window.location.hostname}; path=/;`;
+      document.cookie = 'googtrans=/en/en; path=/';
+      document.cookie = `googtrans=/en/en; domain=${window.location.hostname}; path=/`;
     }
+
+    window.location.reload();
   };
 
   useEffect(() => {
