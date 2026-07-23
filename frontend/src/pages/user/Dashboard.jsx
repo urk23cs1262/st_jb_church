@@ -157,8 +157,8 @@ export default function UserDashboard() {
       <div className="bg-gray-600 py-6 sm:py-10 md:py-12">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-row items-center justify-between gap-2.5 sm:gap-6 md:gap-8">
-            <div className="flex items-center gap-2.5 sm:gap-5 min-w-0 flex-1">
-              <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0 ring-2 md:ring-4 ring-white/20">
+            <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0 ring-2 md:ring-4 ring-white/20">
                 {user?.profilePhoto ? (
                   <img
                     src={getMediaUrl(user.profilePhoto)}
@@ -166,15 +166,15 @@ export default function UserDashboard() {
                     className="w-full h-full object-cover rounded-full"
                   />
                 ) : (
-                  <span className="text-white text-xl sm:text-3xl md:text-4xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>
+                  <span className="text-white text-2xl sm:text-3xl md:text-4xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-gold-400 text-[10px] sm:text-sm md:text-lg font-medium tracking-wide">Welcome back</p>
-                <h1 className="text-white font-display text-sm sm:text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight break-words my-0.5 md:my-1 leading-snug">
+                <p className="text-gold-400 text-xs sm:text-sm md:text-lg font-semibold tracking-wide">Welcome back</p>
+                <h1 className="text-white font-display text-xl sm:text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight break-words my-0.5 md:my-1 leading-tight">
                   {user?.name}
                 </h1>
-                <p className="text-gray-200 text-[10px] sm:text-xs md:text-lg font-medium break-words opacity-90">
+                <p className="text-gray-200 text-xs sm:text-sm md:text-lg font-medium break-words opacity-90">
                   {user?.phone} {user?.parishMemberId ? `• ID: ${user.parishMemberId}` : ''}
                 </p>
               </div>
