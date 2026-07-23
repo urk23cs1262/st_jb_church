@@ -60,7 +60,7 @@ const sendOTP = async (userId, phone, email) => {
       <div style="width:100%; height:1px; background:rgba(255,255,255,0.08); margin:18px 0;"></div>
       <p style="margin:0; color:white; font-size:18px;">This is an automated email. Please do not reply.</p>
       <br><br>
-      <p style="margin:0; color:#9ca3af; font-size:12px;">© 2026 St. John de Britto Church. All Rights Reserved.</p>
+      <p style="margin:0; color:#9ca3af; font-size:12px;">© ${new Date().getFullYear()} St. John de Britto Church. All Rights Reserved.</p>
     </div>
   </div>
 </div>`

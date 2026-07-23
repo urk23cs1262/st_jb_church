@@ -129,7 +129,7 @@ ${clientUrl}/dashboard/notifications?requestId=${request._id}
     </div>
     <div style="background:#0f172a; padding:16px; text-align:center; color:#94a3b8; font-size:11px;">
       <p style="margin:0;">St. John de Britto's Church, Kalayarkoil</p>
-      <p style="margin:4px 0 0; color:#64748b;">© 2026 St. John de Britto Church. All rights reserved.</p>
+      <p style="margin:4px 0 0; color:#64748b;">© ${new Date().getFullYear()} St. John de Britto Church. All rights reserved.</p>
     </div>
   </div>
 </div>
@@ -319,7 +319,7 @@ ${clientUrl}/admin/users?tab=requests
     </div>
     <div style="background:#0f172a; padding:16px; text-align:center; color:#94a3b8; font-size:11px;">
       <p style="margin:0;">St. John de Britto's Church, Kalayarkoil</p>
-      <p style="margin:4px 0 0; color:#64748b;">© 2026 St. John de Britto Church. All rights reserved.</p>
+      <p style="margin:4px 0 0; color:#64748b;">© ${new Date().getFullYear()} St. John de Britto Church. All rights reserved.</p>
     </div>
   </div>
 </div>
