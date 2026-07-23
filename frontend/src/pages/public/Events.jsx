@@ -12,6 +12,8 @@ import { SectionLoader } from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import PageHero from '../../components/common/PageHero';
 
+import LoginRequiredModal from '../../components/common/LoginRequiredModal';
+
 const CATEGORIES = ['all', 'feast', 'mass', 'meeting', 'youth', 'choir', 'catechism', 'community', 'other'];
 const SUB_STATIONS = [
   "Kalayarkoil (Main Parish)",
@@ -38,6 +40,8 @@ export default function Events() {
   const [withdrawingEvent, setWithdrawingEvent] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingTargetUrl, setPendingTargetUrl] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -72,10 +76,25 @@ export default function Events() {
     fetchEvents();
   }, [category, view]);
 
+  // Auto-open registration modal if returning from login with eventId & action=register
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const targetEventId = searchParams.get('eventId');
+    const action = searchParams.get('action');
+
+    if (targetEventId && action === 'register' && events.length > 0) {
+      const match = events.find(e => e._id === targetEventId);
+      if (match) {
+        setRegisteringEvent(match);
+        setIsSuccess(false);
+      }
+    }
+  }, [events]);
+
   const handleRegisterClick = (event) => {
     if (!isAuthenticated) {
-      toast.error('Please login to register');
-      navigate('/login');
+      setPendingTargetUrl(`/events?eventId=${event._id}&action=register`);
+      setShowAuthModal(true);
       return;
     }
     setRegisteringEvent(event);
@@ -374,6 +393,12 @@ export default function Events() {
           </div>
         )}
       </AnimatePresence>
+
+      <LoginRequiredModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        targetUrl={pendingTargetUrl}
+      />
     </div>
   );
 }

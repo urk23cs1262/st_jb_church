@@ -156,9 +156,9 @@ export default function UserDashboard() {
       {/* Header */}
       <div className="bg-gray-600 py-6 sm:py-10 md:py-12">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-row items-center justify-between gap-3 sm:gap-6 md:gap-8">
-            <div className="flex items-center gap-3 sm:gap-5 min-w-0 flex-1">
-              <div className="w-12 h-12 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0 ring-2 md:ring-4 ring-white/20">
+          <div className="flex flex-row items-center justify-between gap-2.5 sm:gap-6 md:gap-8">
+            <div className="flex items-center gap-2.5 sm:gap-5 min-w-0 flex-1">
+              <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-28 md:h-28 rounded-full bg-church-gold flex items-center justify-center shadow-gold-lg flex-shrink-0 ring-2 md:ring-4 ring-white/20">
                 {user?.profilePhoto ? (
                   <img
                     src={getMediaUrl(user.profilePhoto)}
@@ -166,26 +166,28 @@ export default function UserDashboard() {
                     className="w-full h-full object-cover rounded-full"
                   />
                 ) : (
-
-                  <span className="text-white text-lg sm:text-3xl md:text-4xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>
+                  <span className="text-white text-xl sm:text-3xl md:text-4xl font-bold">{user?.name?.[0]?.toUpperCase()}</span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-gold-400 text-[10px] sm:text-sm md:text-lg font-medium tracking-wide">Welcome back</p>
-                <h1 className="text-white font-display text-base sm:text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight truncate my-0.5 md:my-1">{user?.name}</h1>
-                <p className="text-gray-200 text-[10px] sm:text-xs md:text-lg font-medium truncate">
+                <h1 className="text-white font-display text-sm sm:text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight break-words my-0.5 md:my-1 leading-snug">
+                  {user?.name}
+                </h1>
+                <p className="text-gray-200 text-[10px] sm:text-xs md:text-lg font-medium break-words opacity-90">
                   {user?.phone} {user?.parishMemberId ? `• ID: ${user.parishMemberId}` : ''}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+            {/* Vertical layout on Mobile (< 640px), Horizontal on Tablet/Desktop (≥ 640px) */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
               <Link
                 to="/dashboard/notifications"
-                className="btn-outline-gold text-xs sm:text-sm md:text-base py-1.5 px-2.5 sm:py-2.5 sm:px-5 md:py-3 md:px-6 shadow-md border border-church-gold/60 rounded-xl whitespace-nowrap relative flex items-center gap-2"
+                className="btn-outline-gold text-xs sm:text-sm md:text-base py-1.5 px-2.5 sm:py-2.5 sm:px-5 md:py-3 md:px-6 shadow-md border border-church-gold/60 rounded-xl whitespace-nowrap relative flex items-center justify-center gap-1.5 sm:gap-2"
                 title="Notifications"
               >
                 <div className="relative flex items-center justify-center">
-                  <FiBell className="text-base sm:text-xl" />
+                  <FiBell className="text-sm sm:text-xl" />
                   {unreadCount > 0 && (
                     <span className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse ring-2 ring-gray-600" />
                   )}
@@ -197,8 +199,12 @@ export default function UserDashboard() {
                   </span>
                 )}
               </Link>
-              <Link to="/dashboard/settings" className="btn-outline-gold text-xs sm:text-sm md:text-base py-1.5 px-2.5 sm:py-2.5 sm:px-5 md:py-3 md:px-6 shadow-md border border-church-gold/60 rounded-xl whitespace-nowrap flex items-center gap-2">
-                <FiSettings className="text-xs sm:text-sm md:text-lg" /> Settings
+              <Link
+                to="/dashboard/settings"
+                className="btn-outline-gold text-xs sm:text-sm md:text-base py-1.5 px-2.5 sm:py-2.5 sm:px-5 md:py-3 md:px-6 shadow-md border border-church-gold/60 rounded-xl whitespace-nowrap flex items-center justify-center gap-1.5 sm:gap-2"
+              >
+                <FiSettings className="text-sm sm:text-xl" />
+                <span>Settings</span>
               </Link>
             </div>
           </div>

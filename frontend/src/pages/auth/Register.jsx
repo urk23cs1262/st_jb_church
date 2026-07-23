@@ -9,6 +9,8 @@ import api from '../../services/api';
 import churchLogo from '../../assets/image.png';
 
 
+import PolicyModal from '../../components/common/PolicyModal';
+
 const SUB_STATIONS = [
   "Kalayarkoil (Main Parish)",
   "Pallithammam",
@@ -40,6 +42,18 @@ export default function Register() {
   const [userId, setUserId] = useState(null);
   const [devOtp, setDevOtp] = useState(null);
   const [isOtpLoading, setIsOtpLoading] = useState(false);
+
+  // Policy agreements state
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeSecurity, setAgreeSecurity] = useState(false);
+  const [policyModalOpen, setPolicyModalOpen] = useState(false);
+  const [policyTab, setPolicyTab] = useState('terms');
+
+  const openPolicyModal = (tab) => {
+    setPolicyTab(tab);
+    setPolicyModalOpen(true);
+  };
 
   // Family lookup state
   const [suggestedFamilies, setSuggestedFamilies] = useState([]);
@@ -388,12 +402,85 @@ export default function Register() {
                     </div>
                   </div>
 
+                  {/* Policy Checkboxes */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3 text-xs text-gray-700">
+                    <div className="font-bold text-church-royal-blue text-sm border-b border-slate-200 pb-2 flex items-center justify-between">
+                      <span>📋 Terms & Policy Agreements</span>
+                      <span className="text-[10px] text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full font-bold">Required</span>
+                    </div>
+
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={agreeTerms}
+                        onChange={e => setAgreeTerms(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded text-church-gold border-gray-300 focus:ring-church-gold"
+                      />
+                      <span>
+                        I have read and agree to the{' '}
+                        <button
+                          type="button"
+                          onClick={() => openPolicyModal('terms')}
+                          className="text-church-gold font-bold hover:underline"
+                        >
+                          Terms & Conditions
+                        </button>
+                      </span>
+                    </label>
+
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={agreePrivacy}
+                        onChange={e => setAgreePrivacy(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded text-church-gold border-gray-300 focus:ring-church-gold"
+                      />
+                      <span>
+                        I have read and understand the{' '}
+                        <button
+                          type="button"
+                          onClick={() => openPolicyModal('privacy')}
+                          className="text-church-gold font-bold hover:underline"
+                        >
+                          Privacy Policy
+                        </button>
+                      </span>
+                    </label>
+
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={agreeSecurity}
+                        onChange={e => setAgreeSecurity(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 rounded text-church-gold border-gray-300 focus:ring-church-gold"
+                      />
+                      <span>
+                        I understand and agree to the{' '}
+                        <button
+                          type="button"
+                          onClick={() => openPolicyModal('security')}
+                          className="text-church-gold font-bold hover:underline"
+                        >
+                          Security & Account Protection Policy
+                        </button>
+                      </span>
+                    </label>
+
+                    <p className="text-[11px] text-gray-500 pt-2 border-t border-slate-200/80">
+                      By creating an account, you agree to follow our community guidelines and use this platform responsibly.
+                    </p>
+                  </div>
+
                   <div className="flex gap-4 mt-8">
                     <button type="button" onClick={prevStep} className="flex-1 btn-ghost justify-center py-3.5">
                       <FiChevronLeft className="mr-2" /> Back
                     </button>
-                    <button type="submit" disabled={isSubmitting} className="flex-[2] btn-gold justify-center py-3.5">
-                      {isSubmitting ? '⏳ Processing...' : 'Proceed to OTP Verification'}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting || !agreeTerms || !agreePrivacy || !agreeSecurity}
+                      className="flex-[2] btn-gold justify-center py-3.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                    >
+                      {isSubmitting ? '⏳ Processing...' : 'Create Account & Verify OTP'}
                     </button>
                   </div>
                 </motion.div>
@@ -482,6 +569,12 @@ export default function Register() {
           )}
         </div>
       </motion.div>
+
+      <PolicyModal
+        isOpen={policyModalOpen}
+        onClose={() => setPolicyModalOpen(false)}
+        initialTab={policyTab}
+      />
     </div>
   );
 }

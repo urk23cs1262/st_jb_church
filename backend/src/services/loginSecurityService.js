@@ -419,8 +419,12 @@ async function sendAdminSuspensionIncidentEmail({ user, incident, ipDetails = {}
 
     if (adminEmails.length === 0) return;
 
-    const clientUrl = (process.env.CLIENT_URL || 'https://st-jb-church.vercel.app').replace('http://localhost:5173', 'https://st-jb-church.vercel.app');
+    let clientUrl = process.env.CLIENT_URL || 'https://st-jb-church.vercel.app';
+    if (clientUrl.includes('localhost')) clientUrl = 'https://st-jb-church.vercel.app';
+    clientUrl = clientUrl.replace(/\/$/, '');
+
     const deepLinkUrl = `${clientUrl}/admin/notifications?incidentId=${incident._id}`;
+    const incidentCode = incident._id.toString().slice(-6).toUpperCase();
 
     const formattedSuspensionTime = new Date(incident.createdAt || Date.now()).toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
@@ -443,117 +447,137 @@ async function sendAdminSuspensionIncidentEmail({ user, incident, ipDetails = {}
     }) + ' IST' : 'No previous successful logins';
 
     const emailHtml = `
-<div style="background-color:#0f172a; padding:30px 15px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <div style="max-width:640px; margin:0 auto; background-color:#1e293b; border-radius:20px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,0.5); border:1px solid #334155;">
+<div style="display:none !important; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#0f172a; opacity:0;">
+  [Security-Susp-Ref: ${incident._id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}]
+</div>
+<div style="background-color:#0f172a; padding:25px 12px; font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:600px; margin:0 auto; background-color:#1e293b; border-radius:18px; overflow:hidden; box-shadow:0 12px 40px rgba(0,0,0,0.5); border:1px solid #334155;">
     
     <!-- Header -->
-    <div style="background:linear-gradient(135deg,#991b1b,#7f1d1d,#450a0a); padding:32px 24px; text-align:center; border-bottom:2px solid #ef4444;">
-      <div style="display:inline-block; background-color:rgba(255,255,255,0.15); padding:6px 16px; border-radius:30px; margin-bottom:10px;">
-        <span style="color:#fef08a; font-size:12px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">🚨 BRUTE-FORCE PROTECTION DISPATCH</span>
+    <div style="background:linear-gradient(135deg,#991b1b,#7f1d1d,#450a0a); padding:28px 20px; text-align:center; border-bottom:2px solid #ef4444;">
+      <div style="display:inline-block; background-color:rgba(255,255,255,0.15); padding:4px 14px; border-radius:30px; margin-bottom:8px;">
+        <span style="color:#fef08a; font-size:11px; font-weight:800; letter-spacing:1px; text-transform:uppercase;">🚨 BRUTE-FORCE PROTECTION DISPATCH</span>
       </div>
-      <h1 style="margin:4px 0 0; color:#ffffff; font-size:22px; font-weight:900; line-height:1.3;">Security Incident – User Account Automatically Suspended</h1>
-      <p style="margin:6px 0 0; color:#fca5a5; font-size:13px; font-weight:600;">St. John de Britto's Church — Administrative Security Monitor</p>
+      <h1 style="margin:4px 0 0; color:#ffffff; font-size:20px; font-weight:900; line-height:1.3;">Security Incident – User Account Automatically Suspended</h1>
+      <p style="margin:6px 0 0; color:#fca5a5; font-size:12px; font-weight:600;">St. John de Britto's Church — Administrative Security Monitor</p>
     </div>
 
     <!-- Body -->
-    <div style="padding:28px 24px; color:#e2e8f0;">
-      <p style="color:#f8fafc; font-size:15px; font-weight:700; margin-top:0;">Dear Administrator,</p>
-      <p style="color:#cbd5e1; font-size:14px; line-height:1.6; margin-bottom:22px;">
+    <div style="padding:22px 18px; color:#e2e8f0;">
+      <p style="color:#f8fafc; font-size:14px; font-weight:700; margin-top:0;">Dear Administrator,</p>
+      <p style="color:#cbd5e1; font-size:13px; line-height:1.6; margin-bottom:20px;">
         A user account has been <strong>automatically suspended</strong> after exceeding the permitted threshold of consecutive failed login attempts.
       </p>
 
       <!-- User Information -->
-      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:20px;">
-        <h3 style="margin:0 0 12px; color:#f8fafc; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:18px;">
+        <h3 style="margin:0 0 14px; color:#f8fafc; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
           👤 User Information
         </h3>
-        <table style="width:100%; border-collapse:collapse; font-size:13px; color:#cbd5e1;">
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600; width:40%;">User Name:</td>
-            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${user.name}</td>
-          </tr>
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">User Database ID:</td>
-            <td style="padding:5px 0; font-weight:700; color:#a855f7; font-family:monospace;">${user._id}</td>
-          </tr>
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Email Address:</td>
-            <td style="padding:5px 0; font-weight:700; color:#38bdf8;">${user.email || 'N/A'}</td>
-          </tr>
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Phone Number:</td>
-            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${user.phone || 'N/A'}</td>
-          </tr>
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Last Successful Login:</td>
-            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${lastLoginFormatted}</td>
-          </tr>
-        </table>
+        
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">User Name</div>
+          <div style="font-size:13px; font-weight:700; color:#f8fafc; word-break:break-word; margin-top:2px;">${user.name}</div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">User Database ID</div>
+          <div style="font-size:13px; font-weight:700; color:#c084fc; font-family:monospace; word-break:break-all; margin-top:2px;">${user._id}</div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Email Address</div>
+          <div style="font-size:13px; font-weight:700; color:#38bdf8; word-break:break-all; margin-top:2px;">${user.email || 'N/A'}</div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Phone Number</div>
+          <div style="font-size:13px; font-weight:700; color:#f8fafc; margin-top:2px;">${user.phone || 'N/A'}</div>
+        </div>
+
+        <div>
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Last Successful Login</div>
+          <div style="font-size:13px; font-weight:700; color:#f8fafc; margin-top:2px;">${lastLoginFormatted}</div>
+        </div>
       </div>
 
       <!-- Incident Details -->
-      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:20px;">
-        <h3 style="margin:0 0 12px; color:#f8fafc; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:18px;">
+        <h3 style="margin:0 0 14px; color:#f8fafc; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
           ⚠️ Incident Details
         </h3>
-        <table style="width:100%; border-collapse:collapse; font-size:13px; color:#cbd5e1;">
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600; width:40%;">Total Failed Attempts:</td>
-            <td style="padding:5px 0; font-weight:800; color:#ef4444;">${incident.failedAttempts || 10} attempts</td>
-          </tr>
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Allowed Threshold:</td>
-            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">10 consecutive failed attempts / 30 mins</td>
-          </tr>
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">IP Address History:</td>
-            <td style="padding:5px 0; font-weight:700; color:#cbd5e1; font-family:monospace;">${incident.ipAddress || ipDetails.ip || '103.45.23.12'}</td>
-          </tr>
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Device Information:</td>
-            <td style="padding:5px 0; font-weight:700; color:#f8fafc;">${incident.device || 'Desktop / Mobile'}</td>
-          </tr>
-          <tr>
-            <td style="padding:5px 0; color:#94a3b8; font-weight:600;">Risk Level:</td>
-            <td style="padding:5px 0;"><span style="background-color:#7f1d1d; color:#fca5a5; font-weight:800; font-size:11px; padding:3px 10px; border-radius:20px; border:1px solid #ef4444;">HIGH</span></td>
-          </tr>
-        </table>
+        
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Total Failed Attempts</div>
+          <div style="font-size:13px; font-weight:800; color:#ef4444; margin-top:2px;">${incident.failedAttempts || 10} attempts</div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Allowed Threshold</div>
+          <div style="font-size:13px; font-weight:700; color:#f8fafc; margin-top:2px;">10 consecutive failed attempts / 30 mins</div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">IP Address History</div>
+          <div style="font-size:13px; font-weight:700; color:#cbd5e1; font-family:monospace; margin-top:2px;">${incident.ipAddress || ipDetails.ip || '103.45.23.12'}</div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Device Information</div>
+          <div style="font-size:13px; font-weight:700; color:#f8fafc; margin-top:2px;">${incident.device || 'Desktop / Mobile'}</div>
+        </div>
+
+        <div>
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Risk Level</div>
+          <div style="margin-top:3px;"><span style="background-color:#7f1d1d; color:#fca5a5; font-weight:800; font-size:11px; padding:3px 10px; border-radius:20px; border:1px solid #ef4444; display:inline-block;">HIGH</span></div>
+        </div>
       </div>
 
       <!-- Recommended Actions -->
-      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:24px;">
-        <h3 style="margin:0 0 12px; color:#f8fafc; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
+      <div style="background-color:#0f172a; border:1px solid #334155; border-radius:14px; padding:16px 18px; margin-bottom:22px;">
+        <h3 style="margin:0 0 12px; color:#f8fafc; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #1e293b; padding-bottom:8px;">
           🎯 Recommended Actions
         </h3>
-        <ul style="margin:0; padding-left:18px; font-size:13px; color:#cbd5e1; space-y:4px;">
-          <li>Review the failed login activity log.</li>
-          <li>Verify the identity of the user if they contact support.</li>
-          <li>Reactivate the account from the Admin Notifications portal after verification.</li>
+        <ul style="margin:0; padding-left:16px; font-size:13px; color:#cbd5e1;">
+          <li style="padding:2px 0;">Review the failed login activity log.</li>
+          <li style="padding:2px 0;">Verify the identity of the user if they contact support.</li>
+          <li style="padding:2px 0;">Reactivate the account from the Admin Notifications portal after verification.</li>
         </ul>
       </div>
 
       <!-- CTA Deep-Link Button -->
-      <div style="text-align:center; margin:28px 0 16px;">
-        <a href="${deepLinkUrl}" style="display:inline-block; background-color:#ef4444; color:#ffffff; font-weight:800; font-size:14px; text-decoration:none; padding:14px 28px; border-radius:12px; box-shadow:0 4px 16px rgba(239,68,68,0.4);">
+      <div style="text-align:center; margin:28px 0 20px;">
+        <a href="${deepLinkUrl}" style="display:block; width:100%; box-sizing:border-box; background:linear-gradient(135deg,#ef4444,#dc2626); color:#ffffff; font-weight:800; font-size:15px; text-decoration:none; padding:16px 20px; border-radius:14px; text-align:center; box-shadow:0 4px 18px rgba(239,68,68,0.4);">
           🛡️ View Incident & Reactivate Account →
         </a>
+      </div>
+
+      <!-- AUDIT REFERENCE -->
+      <div style="background-color:#0f172a; border-top:1px solid #334155; padding:14px; border-radius:10px; font-size:11px; color:#94a3b8; margin-top:20px; line-height:1.6;">
+        <strong style="color:#cbd5e1;">Security Audit Reference:</strong><br/>
+        Incident ID: <span style="color:#c084fc; font-family:monospace; word-break:break-all;">${incident._id}</span><br/>
+        Audit Log Reference: <span style="color:#c084fc; font-family:monospace;">LOG-${incidentCode}</span><br/>
+        Generated By: Church Management System Security Monitor
       </div>
     </div>
 
     <!-- Footer -->
-    <div style="background-color:#0f172a; padding:18px 22px; text-align:center; color:#64748b; font-size:12px; border-top:1px solid #334155;">
+    <div style="background-color:#0f172a; padding:16px 20px; text-align:center; color:#94a3b8; font-size:12px; border-top:1px solid #334155;">
       <p style="margin:0; font-weight:700; color:#cbd5e1;">St. John de Britto's Church, Kalayarkoil</p>
       <p style="margin:4px 0 0; color:#64748b; font-size:11px;">Parish Security System • Automated Brute-Force Monitor</p>
     </div>
 
   </div>
 </div>
+<div style="display:none !important; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#0f172a; opacity:0;">
+  [Security-End-Ref: ${incident._id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}]
+</div>
     `;
 
     adminEmails.forEach(adminEmail => {
       sendMail({
         to: adminEmail,
-        subject: `Security Incident – User Account Automatically Suspended — St. John de Britto's Church`,
+        subject: `🚨 Security Incident #${incidentCode}: User Account Automatically Suspended — St. John de Britto's Church`,
         html: emailHtml
       }).then(res => {
         if (res.success) console.log(`📧 Admin suspension alert sent to ${adminEmail}`);
@@ -570,7 +594,9 @@ async function sendAccountReactivatedEmail({ user }) {
   try {
     if (!user?.email) return;
 
-    const clientUrl = (process.env.CLIENT_URL || 'https://st-jb-church.vercel.app').replace('http://localhost:5173', 'https://st-jb-church.vercel.app');
+    let clientUrl = process.env.CLIENT_URL || 'https://st-jb-church.vercel.app';
+    if (clientUrl.includes('localhost')) clientUrl = 'https://st-jb-church.vercel.app';
+    clientUrl = clientUrl.replace(/\/$/, '');
     const loginUrl = `${clientUrl}/login`;
 
     const emailHtml = `
@@ -588,25 +614,34 @@ async function sendAccountReactivatedEmail({ user }) {
 
     <!-- Body -->
     <div style="padding:26px 22px;">
-      <p style="color:#1e293b; font-size:15px; font-weight:700; margin-top:0;">Dear ${user.name},</p>
+      <p style="color:#1e293b; font-size:15px; font-weight:700; margin-top:0;">Hello ${user.name},</p>
       <p style="color:#475569; font-size:14px; line-height:1.6; margin-bottom:20px;">
-        Your Parish Account access has been successfully <strong>reactivated by the administrator</strong> following security verification.
+        Your account has been successfully <strong>reactivated by an administrator</strong> following a temporary security lock caused by multiple unsuccessful login attempts.
       </p>
 
+      <p style="color:#334155; font-size:14px; line-height:1.6; margin-bottom:20px;">
+        You can now sign in using your registered email address and password.
+      </p>
+
+      <!-- Security Guidance Box -->
       <div style="background-color:#f0fdf4; border:1px solid #bbf7d0; border-radius:14px; padding:16px 18px; margin-bottom:24px;">
         <h3 style="margin:0 0 10px; color:#166534; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">
-          Account Status Update
+          🔒 For Your Security:
         </h3>
-        <p style="margin:0; font-size:13px; color:#14532d;">
-          ✅ Account suspension lifted.<br/>
-          ✅ Login counter reset.<br/>
-          ✅ You can now log in normally using your password.
-        </p>
+        <ul style="margin:0; padding-left:18px; font-size:13px; color:#14532d; line-height:1.7;">
+          <li>Ensure your password is strong and unique.</li>
+          <li>Do not share your login credentials with anyone.</li>
+          <li>If you did not attempt to sign in previously, please change your password immediately after logging in.</li>
+        </ul>
       </div>
 
-      <div style="text-align:center; margin:24px 0 16px;">
-        <a href="${loginUrl}" style="display:inline-block; background-color:#059669; color:#ffffff; font-weight:800; font-size:14px; text-decoration:none; padding:12px 28px; border-radius:10px; box-shadow:0 4px 14px rgba(5,150,105,0.3);">
-          Proceed to Login →
+      <p style="color:#64748b; font-size:13px; margin-bottom:20px;">
+        If you continue to experience issues, please contact the administrator.
+      </p>
+
+      <div style="text-align:center; margin:28px 0 16px;">
+        <a href="${loginUrl}" style="display:inline-block; background-color:#059669; color:#ffffff; font-weight:800; font-size:15px; text-decoration:none; padding:14px 32px; border-radius:12px; box-shadow:0 4px 16px rgba(5,150,105,0.35);">
+          Sign In →
         </a>
       </div>
     </div>
@@ -614,6 +649,7 @@ async function sendAccountReactivatedEmail({ user }) {
     <!-- Footer -->
     <div style="background-color:#0f172a; padding:18px 22px; text-align:center; color:#94a3b8; font-size:12px;">
       <p style="margin:0; font-weight:700; color:#f8fafc;">St. John de Britto's Church, Kalayarkoil</p>
+      <p style="margin:4px 0 0; color:#64748b; font-size:11px;">Parish Management System Security Service</p>
     </div>
 
   </div>
@@ -622,7 +658,7 @@ async function sendAccountReactivatedEmail({ user }) {
 
     sendMail({
       to: user.email,
-      subject: `✅ Account Reactivated: Your Access Has Been Restored — St. John de Britto's Church`,
+      subject: `✅ Your Account Has Been Reactivated — St. John de Britto's Church`,
       html: emailHtml
     }).then(res => {
       if (res.success) console.log(`📧 Account reactivated email sent to ${user.email}`);

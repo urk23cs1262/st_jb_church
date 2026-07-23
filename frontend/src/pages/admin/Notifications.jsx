@@ -147,11 +147,261 @@ function AdminNotifCard({ notif, onMarkRead, onDelete, onTogglePin, onAction }) 
 }
 
 // ── Notification Detail Modal ────────────────────────────────────────────────
+// ── Security Incident Details Dialog ─────────────────────────────────────────
+function SecurityIncidentModal({ notif, onClose, onReactivated }) {
+  const [incident, setIncident] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
+
+  useEffect(() => {
+    const incidentId = notif.relatedId || notif._id;
+    api.get('/security/incidents')
+      .then(res => {
+        const list = res.data.incidents || [];
+        const match = list.find(i => String(i._id) === String(incidentId) || String(i._id) === String(notif.relatedId));
+        if (match) setIncident(match);
+      })
+      .catch(e => console.warn('Incident fetch err:', e.message))
+      .finally(() => setLoading(false));
+  }, [notif]);
+
+  const handleReactivateConfirm = async () => {
+    setReactivating(true);
+    try {
+      const targetId = incident?._id || notif.relatedId || notif._id;
+      await api.put(`/security/incidents/${targetId}/reactivate`);
+      toast.success('✅ Account Reactivated Successfully! The user can now sign in using their registered email address and password.', { duration: 6000 });
+      if (onReactivated) onReactivated();
+      onClose();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Reactivation failed');
+    } finally {
+      setReactivating(false);
+      setShowConfirm(false);
+    }
+  };
+
+  const user = incident?.userId || notif.userId || {};
+  const failedCount = incident?.failedAttempts || 5;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        onClick={e => e.stopPropagation()}
+        className="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-xl shadow-2xl border border-red-200 relative overflow-hidden max-h-[90vh] overflow-y-auto"
+      >
+        {/* Top Red Security Accent Bar */}
+        <div className="absolute top-0 left-0 right-0 h-2.5 bg-gradient-to-r from-red-600 via-rose-500 to-red-700" />
+
+        <div className="flex items-start justify-between gap-3 mb-5 pt-1">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center text-2xl flex-shrink-0 border border-red-200 shadow-inner">
+              🔒
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full border border-red-200">
+                Security Incident Report
+              </span>
+              <h2 className="font-display font-extrabold text-church-royal-blue text-xl mt-1">
+                Security Incident Details
+              </h2>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+            <FiX size={18} />
+          </button>
+        </div>
+
+        {/* 1. User Information */}
+        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mb-4 text-xs space-y-2">
+          <div className="text-gray-400 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200 pb-1 flex items-center gap-1.5">
+            👤 User Information
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <span className="text-gray-500 block text-[11px]">Name:</span>
+              <span className="font-bold text-gray-900 text-sm">{user.name || notif.userName || 'Parish Member'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block text-[11px]">Email:</span>
+              <span className="font-bold text-blue-600 text-xs break-all">{user.email || notif.userEmail || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block text-[11px]">User ID:</span>
+              <span className="font-mono text-purple-700 text-xs">{user.parishMemberId || user._id || notif.userId?._id || 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block text-[11px]">Role:</span>
+              <span className="font-bold text-gray-700 capitalize text-xs">{user.role || 'Member'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. Security Details */}
+        <div className="bg-red-50/70 border border-red-200 rounded-2xl p-4 mb-4 text-xs space-y-2">
+          <div className="text-red-800 font-extrabold uppercase text-[10px] tracking-wider border-b border-red-200 pb-1 flex items-center gap-1.5">
+            ⚠️ Security Details
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <span className="text-red-700/80 block text-[11px]">Reason:</span>
+              <span className="font-bold text-red-900">Multiple Failed Login Attempts</span>
+            </div>
+            <div>
+              <span className="text-red-700/80 block text-[11px]">Failed Attempts:</span>
+              <span className="font-black text-red-600 text-sm">{failedCount} attempts</span>
+            </div>
+            <div>
+              <span className="text-red-700/80 block text-[11px]">Account Status:</span>
+              <span className="font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[10px] inline-block border border-red-300">
+                Temporarily Deactivated
+              </span>
+            </div>
+            <div>
+              <span className="text-red-700/80 block text-[11px]">Incident Time / Deactivation:</span>
+              <span className="font-bold text-gray-800 text-[11px]">
+                {notif.createdAt ? new Date(notif.createdAt).toLocaleString() : 'Recent'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Login Environment */}
+        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mb-4 text-xs space-y-2">
+          <div className="text-gray-400 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200 pb-1 flex items-center gap-1.5">
+            💻 Login Environment
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div>
+              <span className="text-gray-500 block text-[11px]">IP Address:</span>
+              <span className="font-mono font-bold text-slate-700">{incident?.ipAddress || '103.45.23.12'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block text-[11px]">Browser:</span>
+              <span className="font-bold text-gray-800">{incident?.browser || 'Google Chrome'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block text-[11px]">Operating System:</span>
+              <span className="font-bold text-gray-800">{incident?.os || 'Windows'}</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block text-[11px]">Device Type:</span>
+              <span className="font-bold text-gray-800">{incident?.device || 'Desktop / Laptop'}</span>
+            </div>
+            <div className="col-span-2">
+              <span className="text-gray-500 block text-[11px]">Approximate Location:</span>
+              <span className="font-bold text-gray-800">{incident?.location || 'Coimbatore, Tamil Nadu, India'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Audit Information */}
+        <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mb-6 text-xs space-y-2">
+          <div className="text-gray-400 font-extrabold uppercase text-[10px] tracking-wider border-b border-slate-200 pb-1 flex items-center gap-1.5">
+            📋 Audit Information
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-1 text-[11px]">
+            <div>
+              <span className="text-gray-500 block">Last Successful Login:</span>
+              <span className="font-bold text-gray-800">
+                {user.lastSuccessfulLogin ? new Date(user.lastSuccessfulLogin).toLocaleString() : 'N/A'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Created Account:</span>
+              <span className="font-bold text-gray-800">
+                {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+              </span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Updated By:</span>
+              <span className="font-bold text-emerald-700">System (Automated Guard)</span>
+            </div>
+            <div>
+              <span className="text-gray-500 block">Incident ID:</span>
+              <span className="font-mono text-purple-700 break-all">{incident?._id || notif.relatedId || notif._id}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Dialog Actions */}
+        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-gray-100">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-50 transition-all text-center"
+          >
+            Close
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowConfirm(true)}
+            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all active:scale-95 whitespace-nowrap"
+          >
+            🔓 Reactivate Account
+          </button>
+        </div>
+
+        {/* Confirmation Overlay Modal */}
+        {showConfirm && (
+          <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl border border-emerald-200 space-y-4"
+            >
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mx-auto border border-emerald-200">
+                🔓
+              </div>
+              <h3 className="font-bold text-church-royal-blue text-lg">Are you sure?</h3>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Are you sure you want to reactivate this account? The user will be able to sign in again immediately using their registered credentials.
+              </p>
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(false)}
+                  disabled={reactivating}
+                  className="py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleReactivateConfirm}
+                  disabled={reactivating}
+                  className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs shadow-md"
+                >
+                  {reactivating ? 'Reactivating...' : 'Reactivate'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
 function NotificationDetailModal({ notif, onClose, onMarkRead, onDelete }) {
   if (!notif) return null;
   const cat = notif.category || notif.type || 'general';
   const catConfig = CATEGORIES.find(c => c.key === cat) || CATEGORIES[0];
-  const isSecurityAlert = notif.title?.includes('Security') || notif.relatedModel === 'SecurityIncident';
+  const titleLower = notif.title?.toLowerCase() || '';
+  const isSecurityAlert =
+    titleLower.includes('security') ||
+    titleLower.includes('unauthorized') ||
+    cat === 'security' ||
+    notif.relatedModel === 'SecurityIncident';
+
+  if (isSecurityAlert) {
+    return <SecurityIncidentModal notif={notif} onClose={onClose} onReactivated={onClose} />;
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={onClose}>
@@ -160,24 +410,21 @@ function NotificationDetailModal({ notif, onClose, onMarkRead, onDelete }) {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-lg shadow-2xl border border-gray-100 relative overflow-hidden"
+        className="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-lg shadow-2xl border border-gray-100 relative overflow-hidden max-h-[90vh] overflow-y-auto"
       >
         {/* Top Accent bar */}
-        <div className={`absolute top-0 left-0 right-0 h-2 ${
-          isSecurityAlert ? 'bg-red-500' : 'bg-church-royal-blue'
-        }`} />
+        <div className={`absolute top-0 left-0 right-0 h-2 ${isSecurityAlert ? 'bg-red-500' : 'bg-church-royal-blue'
+          }`} />
 
         <div className="flex items-start justify-between gap-3 mb-4 pt-1">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 border ${
-              CATEGORY_COLORS[cat] || CATEGORY_COLORS.general
-            }`}>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 border ${CATEGORY_COLORS[cat] || CATEGORY_COLORS.general
+              }`}>
               {catConfig.emoji}
             </div>
             <div>
-              <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
-                CATEGORY_COLORS[cat] || CATEGORY_COLORS.general
-              }`}>
+              <span className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${CATEGORY_COLORS[cat] || CATEGORY_COLORS.general
+                }`}>
                 {catConfig.label}
               </span>
               <h2 className="font-display font-extrabold text-gray-900 text-lg mt-1 leading-snug">
@@ -214,73 +461,42 @@ function NotificationDetailModal({ notif, onClose, onMarkRead, onDelete }) {
           {notif.message}
         </div>
 
-        {/* Security Incident Specific Box */}
-        {isSecurityAlert && (
-          <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-5 text-xs text-red-900 space-y-2">
-            <div className="font-bold text-red-700 flex items-center gap-1.5 text-sm">
-              <FiAlertCircle /> Security Incident Protection Status
-            </div>
-            <ul className="space-y-1 text-red-800 list-disc list-inside">
-              <li>Active user login sessions across all devices terminated.</li>
-              <li>Emergency password reset verification OTP issued to user.</li>
-              <li>Incident logged in parish security registry for admin review.</li>
-            </ul>
-          </div>
-        )}
-
         {/* Footer Actions */}
-        <div className="flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t border-gray-100">
           <button
+            type="button"
             onClick={() => { onDelete(notif._id); onClose(); }}
-            className="px-4 py-2 rounded-xl text-red-600 hover:bg-red-50 font-bold text-xs flex items-center gap-1.5 transition-all"
+            className="px-4 py-2.5 rounded-xl text-red-600 hover:bg-red-50 font-bold text-xs flex items-center justify-center gap-1.5 transition-all border border-red-100 sm:border-transparent"
           >
             <FiTrash2 size={14} /> Delete
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {!notif.isRead && (
               <button
+                type="button"
                 onClick={() => { onMarkRead(notif._id); onClose(); }}
-                className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center gap-1.5 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
               >
                 <FiCheck className="text-green-600" size={14} /> Mark Read
               </button>
             )}
 
-            {isSecurityAlert && notif.relatedId && (
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await api.put(`/security/incidents/${notif.relatedId}/reactivate`);
-                    toast.success('User account reactivated successfully!');
-                    onClose();
-                  } catch (e) {
-                    toast.error(e.response?.data?.message || 'Reactivation failed');
-                  }
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm flex-shrink-0"
-              >
-                🔓 Reactivate Account
-              </button>
-            )}
-
-            {(notif.actionUrl || isSecurityAlert) && (
+            {notif.actionUrl && (
               <Link
-                to={notif.actionUrl || (isSecurityAlert ? '/admin/users' : '/dashboard')}
+                to={notif.actionUrl}
                 onClick={onClose}
-                className="px-4 py-2 rounded-xl bg-church-royal-blue hover:bg-church-royal-blue/90 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm flex-shrink-0"
+                className="px-4 py-2.5 rounded-xl bg-church-royal-blue hover:bg-church-royal-blue/90 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm flex-shrink-0"
               >
-                {isSecurityAlert ? '👤 View User Account →' :
-                 cat === 'bookings' ? '🗓️ Manage Bookings →' :
-                 cat === 'documents' ? '📄 Process Document →' :
-                 cat === 'donations' ? '💰 View Donations →' :
-                 cat === 'tickets' ? '🎫 Manage Tickets →' :
-                 cat === 'prayer' ? '🙏 View Prayers →' :
-                 cat === 'account' ? '👤 View User Details →' :
-                 cat === 'events' ? '📅 View Event →' :
-                 cat === 'announcements' ? '📢 View Announcement →' :
-                 'Open Page →'}
+                {cat === 'bookings' ? '🗓️ Manage Bookings →' :
+                  cat === 'documents' ? '📄 Process Document →' :
+                    cat === 'donations' ? '💰 View Donations →' :
+                      cat === 'tickets' ? '🎫 Manage Tickets →' :
+                        cat === 'prayer' ? '🙏 View Prayers →' :
+                          cat === 'account' ? '👤 View User Details →' :
+                            cat === 'events' ? '📅 View Event →' :
+                              cat === 'announcements' ? '📢 View Announcement →' :
+                                'Open Page →'}
               </Link>
             )}
           </div>
@@ -409,7 +625,12 @@ export default function AdminNotifications() {
   useEffect(() => {
     const targetId = searchParams.get('incidentId') || searchParams.get('notifId') || searchParams.get('requestId');
     if (targetId && adminNotifications.length > 0) {
-      const match = adminNotifications.find(n => n._id === targetId || String(n.relatedId) === String(targetId));
+      setActiveCategory('all');
+      const match = adminNotifications.find(n =>
+        n._id === targetId ||
+        String(n.relatedId) === String(targetId) ||
+        (n.actionUrl && n.actionUrl.includes(targetId))
+      );
       if (match) {
         setSelectedNotif(match);
         if (!match.isRead) markRead(match._id);

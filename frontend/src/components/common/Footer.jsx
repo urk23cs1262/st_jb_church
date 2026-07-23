@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { GiChurch, GiCrucifix, GiDove } from 'react-icons/gi';
-import { FiFacebook, FiYoutube, FiInstagram, FiMapPin, FiPhone, FiMail, FiClock } from 'react-icons/fi';
+import { FiFacebook, FiYoutube, FiInstagram, FiMapPin, FiPhone, FiMail, FiClock, FiShield, FiFileText, FiLock } from 'react-icons/fi';
 import churchLogo from '../../assets/image.png';
+import PolicyModal from './PolicyModal';
 
 const quickLinks = [
   { label: 'nav.home', path: '/' },
@@ -12,6 +14,7 @@ const quickLinks = [
   { label: 'nav.mass', path: '/mass-timings' },
   { label: 'nav.events', path: '/events' },
   { label: 'nav.gallery', path: '/gallery' },
+  { label: 'nav.faq', path: '/faq' },
 ];
 
 const serviceLinks = [
@@ -22,25 +25,27 @@ const serviceLinks = [
   { label: 'nav.donate', path: '/donate' },
   { label: 'nav.live', path: '/live' },
   { label: 'nav.rosary', path: '/rosary' },
-  { label: 'nav.calendar', path: '/calendar' },
-  { label: 'nav.faq', path: '/faq' },
-  { label: 'nav.parish-council', path: '/parish-council' },
 ];
 
 export default function Footer() {
   const { t } = useTranslation();
+  const [policyModalOpen, setPolicyModalOpen] = useState(false);
+  const [policyTab, setPolicyTab] = useState('terms');
+
+  const openPolicyModal = (tab) => {
+    setPolicyTab(tab);
+    setPolicyModalOpen(true);
+  };
 
   return (
-      
-    <footer className="bg-church-dark  text-white">
-      
+    <footer className="bg-church-dark text-white">
       {/* Top section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           {/* Brand */}
-          <div className="lg:col-span-1">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gold-400/30 shadow-gold flex items-center justify-center bg-white/5">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gold-400/30 shadow-gold flex items-center justify-center bg-white/5">
                 <img src={churchLogo} alt="Church Logo" className="w-full h-full object-cover object-[center_20%]" />
               </div>
               <div>
@@ -48,34 +53,34 @@ export default function Footer() {
                 <p className="text-gold-400 text-sm font-tamil">புனித அருளானந்தர்</p>
               </div>
             </div>
-            <p className="text-gray-300 text-sm leading-relaxed mb-5">
-              A Roman Catholic parish serving the faithful community of Kalayarkoil with love, faith, and devotion.
+            <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
+              A Roman Catholic parish serving the faithful community of Kalayarkoil with love, faith, and devotion. Protected with enterprise-grade security, encrypted credentials, and transparent privacy policies.
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pt-1">
               <a href="https://facebook.com" target="_blank" rel="noreferrer"
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-church-gold hover:scale-110 transition-all duration-300">
-                <FiFacebook className="text-sm" />
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-church-gold hover:scale-110 transition-all duration-300">
+                <FiFacebook className="text-xs" />
               </a>
               <a href="https://youtube.com" target="_blank" rel="noreferrer"
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300">
-                <FiYoutube className="text-sm" />
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300">
+                <FiYoutube className="text-xs" />
               </a>
               <a href="https://instagram.com" target="_blank" rel="noreferrer"
-                className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center hover:bg-pink-600 hover:scale-110 transition-all duration-300">
-                <FiInstagram className="text-sm" />
+                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-pink-600 hover:scale-110 transition-all duration-300">
+                <FiInstagram className="text-xs" />
               </a>
             </div>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="font-semibold text-gold-300 mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+            <h4 className="font-semibold text-gold-300 mb-4 uppercase tracking-wider text-xs flex items-center gap-2">
               <GiCrucifix className="text-gold-400" /> {t('footer.quickLinks')}
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-2 text-xs">
               {quickLinks.map(link => (
                 <li key={link.path}>
-                  <Link to={link.path} className="text-gray-300 hover:text-gold-300 text-sm transition-colors duration-200 hover:translate-x-1 inline-block">
+                  <Link to={link.path} className="text-gray-300 hover:text-gold-300 transition-colors duration-200 hover:translate-x-1 inline-block">
                     {t(link.label)}
                   </Link>
                 </li>
@@ -85,13 +90,13 @@ export default function Footer() {
 
           {/* Services */}
           <div>
-            <h4 className="font-semibold text-gold-300 mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
+            <h4 className="font-semibold text-gold-300 mb-4 uppercase tracking-wider text-xs flex items-center gap-2">
               <GiDove className="text-gold-400" /> {t('footer.services')}
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-2 text-xs">
               {serviceLinks.map(link => (
                 <li key={link.path}>
-                  <Link to={link.path} className="text-gray-300 hover:text-gold-300 text-sm transition-colors duration-200 hover:translate-x-1 inline-block">
+                  <Link to={link.path} className="text-gray-300 hover:text-gold-300 transition-colors duration-200 hover:translate-x-1 inline-block">
                      {t(link.label)}
                   </Link>
                 </li>
@@ -99,38 +104,77 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Legal & Trust Policies */}
           <div>
-            <h4 className="font-semibold text-gold-300 mb-4 uppercase tracking-wider text-sm">{t('nav.contact')}</h4>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3">
-                <FiMapPin className="text-gold-400 mt-0.5 flex-shrink-0" />
-                <p className="text-gray-300 text-sm">Murthi Nagar, Kalayarkoil,<br />Tamil Nadu 630551, India</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <FiPhone className="text-gold-400 flex-shrink-0" />
-                <a href="tel:+91" className="text-gray-300 hover:text-gold-300 text-sm transition-colors">+91 04577 XXXXXX</a>
-              </div>
-              <div className="flex items-center gap-3">
-                <FiMail className="text-gold-400 flex-shrink-0" />
-                <a href="mailto:sjdbchurch@gmail.com" className="text-gray-300 hover:text-gold-300 text-sm transition-colors">sjdbchurch@gmail.com</a>
-              </div>
-              <div className="flex items-center gap-3">
-                <FiClock className="text-gold-400 flex-shrink-0" />
-                <p className="text-gray-300 text-sm">{t('footer.officeTiming')}</p>
-              </div>
-            </div>
+            <h4 className="font-semibold text-gold-300 mb-4 uppercase tracking-wider text-xs flex items-center gap-2">
+              <FiShield className="text-gold-400" /> Legal & Security
+            </h4>
+            <ul className="space-y-2 text-xs">
+              <li>
+                <button onClick={() => openPolicyModal('terms')} className="text-gray-300 hover:text-gold-300 transition-colors text-left">
+                  Terms & Conditions
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('privacy')} className="text-gray-300 hover:text-gold-300 transition-colors text-left">
+                  Privacy Policy
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('security')} className="text-gray-300 hover:text-gold-300 transition-colors text-left">
+                  Security & Trust Policy
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('cookies')} className="text-gray-300 hover:text-gold-300 transition-colors text-left">
+                  Cookie Policy
+                </button>
+              </li>
+              <li>
+                <button onClick={() => openPolicyModal('guidelines')} className="text-gray-300 hover:text-gold-300 transition-colors text-left">
+                  Community Guidelines
+                </button>
+              </li>
+              <li className="pt-1">
+                {/* <button
+                  onClick={() => openPolicyModal('security')}
+                  className="text-amber-400 hover:text-amber-300 font-bold transition-colors text-left flex items-center gap-1"
+                >
+                  🚨 Report Security Issue
+                </button> */}
+              </li>
+            </ul>
           </div>
         </div>
       </div>
 
       {/* Bottom bar */}
-      <div className="border-t border-white/10 bg-black/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-gray-400 text-xs">{t('footer.copyright', { year: new Date().getFullYear() })}</p>
-          <p className="text-gray-400 text-xs">{t('footer.madeWith')}</p>
+      <div className="border-t border-white/15 bg-black/30 py-6">
+        <div className="max-w-7xl mx-auto px-4 text-center flex flex-col items-center justify-center gap-2">
+          <p className="text-white font-medium text-xs sm:text-sm tracking-wide">
+            © {new Date().getFullYear()} St. John de Britto's Church, Kalayarkoil. All rights reserved.
+          </p>
+          
+          <p className="text-gold-300 font-bold text-xs flex items-center justify-center gap-1.5">
+            <span className="italic">"Made with God's Glory"</span>
+            {/* <span className="text-white"></span> */}
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-white/90 pt-1">
+            <button onClick={() => openPolicyModal('privacy')} className="hover:text-gold-300 transition-colors">Privacy Policy</button>
+            <span className="text-white/40">•</span>
+            <button onClick={() => openPolicyModal('terms')} className="hover:text-gold-300 transition-colors">Terms & Conditions</button>
+            <span className="text-white/40">•</span>
+            <button onClick={() => openPolicyModal('security')} className="hover:text-gold-300 transition-colors">Security Policy</button>
+          </div>
         </div>
       </div>
+
+      <PolicyModal
+        isOpen={policyModalOpen}
+        onClose={() => setPolicyModalOpen(false)}
+        initialTab={policyTab}
+      />
     </footer>
   );
 }

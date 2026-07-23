@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -65,14 +65,25 @@ const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
 // Route guards
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <PageLoader />;
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    const fullPath = location.pathname + location.search + location.hash;
+    sessionStorage.setItem("redirectAfterLogin", fullPath);
+    return <Navigate to={`/login?redirect=${encodeURIComponent(fullPath)}`} replace />;
+  }
+  return children;
 };
 
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <PageLoader />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    const fullPath = location.pathname + location.search + location.hash;
+    sessionStorage.setItem("redirectAfterLogin", fullPath);
+    return <Navigate to={`/login?redirect=${encodeURIComponent(fullPath)}`} replace />;
+  }
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return children;
 };

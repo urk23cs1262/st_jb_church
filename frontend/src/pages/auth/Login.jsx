@@ -9,6 +9,7 @@ import { GiChurch, GiCrucifix } from 'react-icons/gi';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import churchLogo from '../../assets/image.png';
+import PolicyModal from '../../components/common/PolicyModal';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -21,6 +22,16 @@ export default function Login() {
   const [devOtp, setDevOtp] = useState(null);
   const [isOtpLoading, setIsOtpLoading] = useState(false);
 
+  // Policy modal state
+  const [agreePolicy, setAgreePolicy] = useState(true);
+  const [policyModalOpen, setPolicyModalOpen] = useState(false);
+  const [policyTab, setPolicyTab] = useState('terms');
+
+  const openPolicyModal = (tab) => {
+    setPolicyTab(tab);
+    setPolicyModalOpen(true);
+  };
+
   const getDefaultLandingRoute = (u) => {
     if (u?.role === 'admin') return '/admin';
     const pref = u?.settings?.appPreferences?.defaultHomePage;
@@ -32,14 +43,21 @@ export default function Login() {
   const [suspendedMsg, setSuspendedMsg] = useState('');
   const [lockoutMsg, setLockoutMsg] = useState('');
 
+  const getRedirectDestination = (userData) => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const urlRedirect = searchParams.get('redirect');
+    const sessionRedirect = sessionStorage.getItem('redirectAfterLogin');
+    sessionStorage.removeItem('redirectAfterLogin');
+    return urlRedirect || sessionRedirect || getDefaultLandingRoute(userData);
+  };
+
   const onLogin = async (data) => {
     try {
       const res = await api.post('/auth/login', { login: data.login, password: data.password });
       login(res.data.user, res.data.token);
       toast.success(t('auth.loginSuccess'));
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirect = searchParams.get('redirect') || getDefaultLandingRoute(res.data.user);
-      navigate(redirect);
+      const target = getRedirectDestination(res.data.user);
+      navigate(target);
     } catch (e) {
       const resData = e.response?.data;
       if (resData?.isSuspended) {
@@ -65,7 +83,8 @@ export default function Login() {
       const res = await api.post('/auth/verify-otp', { userId, otp: data.otp });
       login(res.data.user, res.data.token);
       toast.success('Verified! Welcome.');
-      navigate(getDefaultLandingRoute(res.data.user));
+      const target = getRedirectDestination(res.data.user);
+      navigate(target);
     } catch (e) { toast.error(e.response?.data?.message || 'Invalid OTP'); }
   };
 
@@ -153,29 +172,69 @@ export default function Login() {
               <button type="submit" disabled={isSubmitting} className="btn-gold w-full justify-center py-3.5 text-base">
                 {isSubmitting ? '⏳ Logging in...' : t('auth.login')}
               </button>
-              <p className="text-center text-gray-500 text-sm">
+
+              <div className="pt-2 text-[11px] text-gray-500 text-center space-y-1">
+                <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={agreePolicy}
+                    onChange={e => setAgreePolicy(e.target.checked)}
+                    className="rounded text-church-gold border-gray-300 focus:ring-church-gold"
+                  />
+                  <span>
+                    I agree to the latest{' '}
+                    <button type="button" onClick={() => openPolicyModal('terms')} className="text-church-gold font-bold hover:underline">
+                      Terms
+                    </button>
+                    ,{' '}
+                    <button type="button" onClick={() => openPolicyModal('privacy')} className="text-church-gold font-bold hover:underline">
+                      Privacy Policy
+                    </button>{' '}
+                    and{' '}
+                    <button type="button" onClick={() => openPolicyModal('security')} className="text-church-gold font-bold hover:underline">
+                      Security Guidelines
+                    </button>
+                    .
+                  </span>
+                </label>
+              </div>
+
+              <p className="text-center text-gray-500 text-sm pt-1">
                 {t('auth.registerPrompt')}{' '}
                 <Link to="/register" className="text-church-gold font-semibold hover:underline">{t('nav.register')}</Link>
               </p>
             </form>
           )}
 
-          {/* Account Suspended Notice */}
+          {/* Account Under Security Review Notice */}
           {stage === 'suspended' && (
             <div className="space-y-6 text-center">
               <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto border border-red-200 shadow-inner">
-                <FiShield size={32} />
+                <FiLock size={32} />
               </div>
 
               <div>
                 <span className="text-[11px] font-bold text-red-700 uppercase tracking-widest bg-red-50 px-3 py-1 rounded-full border border-red-200">
-                  Account Suspended
+                  🔒 Account Under Security Review
                 </span>
-                <h2 className="text-lg font-bold text-church-royal-blue mt-2">Access Temporarily Suspended</h2>
+                <h2 className="text-xl font-display font-extrabold text-church-royal-blue mt-2">
+                  Account Under Security Review
+                </h2>
               </div>
 
-              <div className="text-xs text-gray-700 leading-relaxed bg-red-50/60 p-4 rounded-xl border border-red-200 text-left">
-                {suspendedMsg || 'Your account has been automatically suspended due to multiple unsuccessful login attempts for your security. Please contact the administrator to restore access.'}
+              <div className="text-xs text-slate-700 leading-relaxed bg-red-50/70 p-4 rounded-2xl border border-red-200 text-left space-y-2">
+                <p className="font-semibold text-red-900">
+                  Your account has been temporarily deactivated because multiple unsuccessful login attempts were detected.
+                </p>
+                <p className="text-slate-600">
+                  An administrator has been notified and is currently reviewing your account.
+                </p>
+                <p className="text-slate-600">
+                  Until the review is complete and your account is reactivated, you won't be able to sign in.
+                </p>
+                <p className="text-slate-500 pt-1 border-t border-red-200/60">
+                  If you believe this action was taken in error or you need immediate assistance, please contact the administrator.
+                </p>
               </div>
 
               <div className="grid grid-cols-1 gap-3 pt-2">
@@ -183,24 +242,15 @@ export default function Login() {
                   to="/contact"
                   className="btn-gold w-full justify-center py-3 text-sm font-bold shadow-md flex items-center gap-2"
                 >
-                  <FiMail /> Contact Administrator
+                  <FiMail size={16} /> Contact Support →
                 </Link>
 
-                <button
-                  type="button"
-                  onClick={() => setStage('forgot')}
+                <Link
+                  to="/"
                   className="btn-outline-gold w-full justify-center py-3 text-sm font-bold flex items-center gap-2"
                 >
-                  <FiKey /> Forgot Password
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setStage('login')}
-                  className="text-xs text-gray-500 hover:text-gray-700 underline pt-2"
-                >
-                  ← Back to Login
-                </button>
+                  Back to Home →
+                </Link>
               </div>
             </div>
           )}
@@ -376,6 +426,12 @@ export default function Login() {
           )}
         </div>
       </motion.div>
+
+      <PolicyModal
+        isOpen={policyModalOpen}
+        onClose={() => setPolicyModalOpen(false)}
+        initialTab={policyTab}
+      />
     </div>
   );
 }
