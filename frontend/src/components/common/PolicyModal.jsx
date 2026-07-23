@@ -139,47 +139,48 @@ export default function PolicyModal({ isOpen, onClose, initialTab = 'terms' }) {
   );
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-5" onClick={onClose}>
       <motion.div
-        initial={{ scale: 0.92, opacity: 0, y: 20 }}
+        initial={{ scale: 0.94, opacity: 0, y: 15 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="bg-white rounded-3xl w-full max-w-3xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[90vh]"
+        className="bg-white rounded-2xl sm:rounded-3xl w-full max-w-3xl shadow-2xl border border-gray-200 overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]"
       >
         {/* Top Accent Header */}
-        <div className="bg-gradient-to-r from-church-royal-blue via-blue-900 to-indigo-900 text-white px-6 py-5 flex items-center justify-between relative overflow-hidden">
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center text-xl text-gold-300 border border-white/10 shadow-inner">
+        <div className="bg-gradient-to-r from-church-royal-blue via-blue-900 to-indigo-900 text-white px-4 sm:px-6 py-3.5 sm:py-5 flex items-start sm:items-center justify-between gap-2.5 relative overflow-hidden flex-shrink-0">
+          <div className="flex items-start sm:items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1 relative z-10">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-white/10 flex items-center justify-center text-lg sm:text-xl text-gold-300 border border-white/10 shadow-inner flex-shrink-0 mt-0.5 sm:mt-0">
               {currentPolicy.icon}
             </div>
-            <div>
-              <h2 className="font-display font-extrabold text-xl text-white leading-snug tracking-wide uppercase">
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display font-black text-sm sm:text-xl text-white leading-tight uppercase tracking-tight sm:tracking-wide truncate">
                 {currentPolicy.title}
               </h2>
-              <p className="text-[11px] text-blue-200 opacity-90 font-medium">
-                Official St. John de Britto's Church Policy • Last Updated: {currentPolicy.lastUpdated}
+              <p className="text-[10px] sm:text-xs text-blue-200/90 font-medium truncate mt-0.5">
+                Official Policy • Updated: {currentPolicy.lastUpdated}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors relative z-10"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors relative z-10 flex-shrink-0 ml-1"
+            aria-label="Close Modal"
           >
-            <FiX size={20} />
+            <FiX className="text-base sm:text-lg" />
           </button>
         </div>
 
         {/* Policy Tab Bar without ugly browser scrollbar */}
         <div 
-          className="flex items-center gap-2 px-5 py-3 bg-slate-100/80 border-b border-slate-200 overflow-x-auto"
+          className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 bg-slate-100/90 border-b border-slate-200 overflow-x-auto flex-shrink-0"
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
           {Object.values(POLICY_DATA).map(p => (
             <button
               key={p.id}
               onClick={() => { setActiveTab(p.id); setSearchTerm(''); }}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 sm:gap-2 ${
                 activeTab === p.id
                   ? 'bg-church-royal-blue text-white shadow-md shadow-blue-900/20 scale-[1.02]'
                   : 'bg-white text-gray-700 hover:bg-gray-200/80 border border-gray-200'
@@ -192,8 +193,8 @@ export default function PolicyModal({ isOpen, onClose, initialTab = 'terms' }) {
         </div>
 
         {/* Search Bar */}
-        <div className="px-6 py-3 border-b border-gray-100 bg-white flex items-center gap-2">
-          <FiSearch className="text-gray-400" />
+        <div className="px-4 sm:px-6 py-2.5 sm:py-3 border-b border-gray-100 bg-white flex items-center gap-2 flex-shrink-0">
+          <FiSearch className="text-gray-400 text-sm flex-shrink-0" />
           <input
             type="text"
             placeholder={`Search within ${currentPolicy.title}...`}
@@ -202,26 +203,26 @@ export default function PolicyModal({ isOpen, onClose, initialTab = 'terms' }) {
             className="w-full text-xs text-gray-800 placeholder-gray-400 outline-none bg-transparent"
           />
           {searchTerm && (
-            <button onClick={() => setSearchTerm('')} className="text-xs text-gray-400 hover:text-gray-600">
+            <button onClick={() => setSearchTerm('')} className="text-xs text-gray-400 hover:text-gray-600 font-bold px-1">
               Clear
             </button>
           )}
         </div>
 
         {/* Scrollable Policy Content */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1 text-gray-700 text-sm leading-relaxed">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-6 flex-1 text-gray-700 text-xs sm:text-sm leading-relaxed">
           {filteredSections.length === 0 ? (
-            <div className="text-center py-10 text-gray-400 text-xs">
+            <div className="text-center py-8 text-gray-400 text-xs">
               No matching sections found for "{searchTerm}"
             </div>
           ) : (
             filteredSections.map((sec, idx) => (
-              <div key={idx} className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80">
-                <h3 className="font-bold text-church-royal-blue text-base mb-2 flex items-center gap-2">
-                  <FiCheckCircle className="text-emerald-600 text-sm flex-shrink-0" />
+              <div key={idx} className="bg-slate-50/80 p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-slate-200/80">
+                <h3 className="font-bold text-church-royal-blue text-sm sm:text-base mb-1.5 sm:mb-2 flex items-center gap-2">
+                  <FiCheckCircle className="text-emerald-600 text-xs sm:text-sm flex-shrink-0" />
                   {sec.heading}
                 </h3>
-                <p className="text-xs text-gray-600 whitespace-pre-line leading-relaxed">
+                <p className="text-[11px] sm:text-xs text-gray-600 whitespace-pre-line leading-relaxed">
                   {sec.content}
                 </p>
               </div>
@@ -230,13 +231,13 @@ export default function PolicyModal({ isOpen, onClose, initialTab = 'terms' }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-3">
-          <p className="text-[11px] text-gray-500">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 flex-shrink-0">
+          <p className="text-[10px] sm:text-[11px] text-gray-500 text-center sm:text-left">
             Questions? Contact <span className="font-bold text-gray-700">sjdbchurch@gmail.com</span>
           </p>
           <button
             onClick={onClose}
-            className="btn-gold px-6 py-2.5 text-xs font-bold shadow-md rounded-xl"
+            className="btn-gold w-full sm:w-auto px-6 py-2.5 text-xs font-bold shadow-md rounded-xl justify-center"
           >
             I Understand & Close
           </button>

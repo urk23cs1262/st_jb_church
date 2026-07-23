@@ -248,7 +248,7 @@ export default function Navbar() {
                         <span className="text-white text-xs font-bold">{user?.name?.[0]?.toUpperCase()}</span>
                       )}
                     </div>
-                    <span className="hidden sm:block text-sm font-medium max-w-[80px] truncate">{user?.name}</span>
+                    <span className="hidden sm:block text-sm font-medium max-w-[140px] md:max-w-[200px] truncate">{user?.name}</span>
                     {(isAdmin ? adminUnreadCount : unreadCount) > 0 && (
                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full ring-2 ring-church-royal-blue animate-pulse" />
                     )}

@@ -193,7 +193,7 @@ export default function Home() {
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="mb-[2rem] grid grid-cols-5 gap-4 w-fit mx-auto"
+            className="mb-8 flex flex-wrap justify-center gap-2.5 sm:gap-4 max-w-full px-2 mx-auto"
           >
             {QUICK_LINKS.map((ql, i) => (
               <Link
