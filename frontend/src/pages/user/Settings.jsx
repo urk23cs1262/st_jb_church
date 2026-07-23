@@ -48,7 +48,7 @@ const SETTINGS_SECTIONS = [
   { id: 'security', label: 'Security & Connected Accounts', icon: <FiShield /> },
   // { id: 'app_location', label: 'App & Location Preferences', icon: <FiGrid /> },
   { id: 'church_emergency', label: 'Church & Emergency Contact', icon: <FiCrosshair /> },
-  { id: 'ai_preferences', label: 'AI-Based Settings', icon: <FiCpu /> },
+  // { id: 'ai_preferences', label: 'AI-Based Settings', icon: <FiCpu /> },
   // { id: 'admin_comm', label: 'Admin-Configurable Preferences', icon: <FiRadio /> },
   { id: 'feedback_about', label: 'Feedback & About', icon: <FiInfo /> },
 ];

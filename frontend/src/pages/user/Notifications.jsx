@@ -237,6 +237,8 @@ export default function UserNotifications() {
     });
   }, [notifications, activeCategory, search, showUnreadOnly]);
 
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
   const handleMarkRead = async (id) => {
     await markRead(id);
   };
@@ -246,7 +248,12 @@ export default function UserNotifications() {
     toast.success('Notification deleted');
   };
 
-  const handleDeleteAll = async () => {
+  const handleDeleteAll = () => {
+    setShowClearConfirm(true);
+  };
+
+  const confirmDeleteAll = async () => {
+    setShowClearConfirm(false);
     await deleteAll();
     toast.success('All notifications cleared');
   };
@@ -280,7 +287,7 @@ export default function UserNotifications() {
                 </Link>
               </>
             ) : (
-              <Link to="/dashboard" className="text-gold-400 text-sm font-bold hover:underline flex items-center gap-1">
+              <Link to="/dashboard" className="text-gold-400 text-sm hover:underline flex items-center gap-1">
                 <FiArrowLeft /> Back to Dashboard
               </Link>
             )}
@@ -414,6 +421,49 @@ export default function UserNotifications() {
           </div>
         )}
       </div>
+
+      {/* Clear All Confirmation Modal */}
+      <AnimatePresence>
+        {showClearConfirm && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowClearConfirm(false)}>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 15 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl border border-red-100 text-center space-y-4 relative"
+            >
+              <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto border border-red-200 shadow-inner text-2xl">
+                <FiTrash2 />
+              </div>
+
+              <div>
+                <h3 className="font-display font-bold text-gray-900 text-xl">Clear All Notifications?</h3>
+                <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                  Are you sure you want to permanently delete all {notifications.length} notifications? This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowClearConfirm(false)}
+                  className="w-1/2 py-2.5 rounded-xl border border-gray-300 text-gray-700 text-xs font-bold hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmDeleteAll}
+                  className="w-1/2 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold shadow-md transition-all flex items-center justify-center gap-1.5"
+                >
+                  <FiTrash2 /> Clear All
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

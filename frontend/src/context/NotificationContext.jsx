@@ -179,11 +179,11 @@ export const NotificationProvider = ({ children }) => {
   const deleteAll = async () => {
     try {
       await api.delete('/notifications');
-      setNotifications([]);
-      setAdminNotifications([]);
-      setUnreadCount(0);
-      setAdminUnreadCount(0);
     } catch { /* silent */ }
+    setNotifications([]);
+    setAdminNotifications([]);
+    setUnreadCount(0);
+    setAdminUnreadCount(0);
   };
 
   return (
