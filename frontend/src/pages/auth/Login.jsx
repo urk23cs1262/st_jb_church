@@ -152,8 +152,7 @@ export default function Login() {
               <div>
                 <label className="church-label">{t('auth.phone')} / {t('auth.email')}</label>
                 <div className="relative">
-                  <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input {...register('login', { required: 'Required' })} className="church-input pl-10" placeholder="Enter your Phone or Email" />
+                  <input {...register('login', { required: 'Required' })} className="church-input px-4" placeholder="Enter your Phone or Email" />
                 </div>
                 {errors.login && <p className="text-red-500 text-xs mt-1">{errors.login.message}</p>}
               </div>
