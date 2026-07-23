@@ -401,13 +401,13 @@ export default function Home() {
                 <img src={priestSrc} alt="Logo" className="w-full h-full object-cover object-[center_5%] rounded-full" />
               </div>
             </div>
-            <div>
+            <div className="text-center md:text-left flex flex-col items-center md:items-start">
               <GiDove className="text-church-gold text-3xl mb-3" />
-              <p className="text-gray-600  text-lg italic leading-relaxed mb-4">
+              <p className="text-gray-600 text-base md:text-lg italic leading-relaxed mb-4 text-justify md:text-left">
                 "Welcome to St. John de Britto's Church, Kalayarkoil. We are a vibrant community united in faith, love, and service to God and our neighbors. May this digital space be a source of spiritual nourishment and connection for every member of our parish family."
               </p>
-              <div>
-                <p className="font-semibold text-church-royal-blue ">Rev. Fr. Parish Priest</p>
+              <div className="text-center md:text-left">
+                <p className="font-semibold text-church-royal-blue">Rev. Fr. Parish Priest</p>
                 <p className="text-gray-500 text-sm">Parish Priest, St. John de Britto's Church</p>
               </div>
             </div>
@@ -430,9 +430,9 @@ export default function Home() {
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <h2 className="text-white font-display text-3xl md:text-4xl font-bold mb-4">Come & Be Part of Our Community</h2>
             <p className="text-gray-300 mb-8 text-lg">Join us for Holy Mass, prayer, and fellowship. All are welcome.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/contact" className="btn-gold py-4 px-8 text-base shadow-gold-lg">{t('nav.contact')}</Link>
-              <Link to="/events" className="px-8 py-4 border-2 border-white/40 text-white rounded-xl hover:bg-white/10 transition-all font-semibold text-base">{t('home.upcomingEvents')}</Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link to="/contact" className="btn-gold w-full sm:w-auto py-4 px-8 text-base shadow-gold-lg justify-center text-center">{t('nav.contact')}</Link>
+              <Link to="/events" className="w-full sm:w-auto px-8 py-4 border-2 border-white/40 text-white rounded-xl hover:bg-white/10 transition-all font-semibold text-base text-center">{t('home.upcomingEvents')}</Link>
             </div>
           </motion.div>
         </div>

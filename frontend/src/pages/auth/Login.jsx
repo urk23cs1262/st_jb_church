@@ -23,7 +23,7 @@ export default function Login() {
   const [isOtpLoading, setIsOtpLoading] = useState(false);
 
   // Policy modal state
-  const [agreePolicy, setAgreePolicy] = useState(true);
+  const [agreePolicy, setAgreePolicy] = useState(false);
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
   const [policyTab, setPolicyTab] = useState('terms');
 
@@ -169,11 +169,8 @@ export default function Login() {
               <div className="flex justify-end">
                 <button type="button" onClick={() => setStage('forgot')} className="text-church-gold text-sm hover:underline">{t('auth.forgotPassword')}</button>
               </div>
-              <button type="submit" disabled={isSubmitting} className="btn-gold w-full justify-center py-3.5 text-base">
-                {isSubmitting ? '⏳ Logging in...' : t('auth.login')}
-              </button>
 
-              <div className="pt-2 text-[11px] text-gray-500 text-center space-y-1">
+              <div className="pt-2 text-[11px] text-center space-y-1">
                 <label className="inline-flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -183,21 +180,32 @@ export default function Login() {
                   />
                   <span>
                     I agree to the latest{' '}
-                    <button type="button" onClick={() => openPolicyModal('terms')} className="text-church-gold font-bold hover:underline">
+                    <button type="button" onClick={() => openPolicyModal('terms')} className="text-black font-bold hover:underline">
                       Terms
                     </button>
                     ,{' '}
-                    <button type="button" onClick={() => openPolicyModal('privacy')} className="text-church-gold font-bold hover:underline">
+                    <button type="button" onClick={() => openPolicyModal('privacy')} className="text-black font-bold hover:underline">
                       Privacy Policy
                     </button>{' '}
                     and{' '}
-                    <button type="button" onClick={() => openPolicyModal('security')} className="text-church-gold font-bold hover:underline">
+                    <button type="button" onClick={() => openPolicyModal('security')} className="text-black font-bold hover:underline">
                       Security Guidelines
                     </button>
                     .
                   </span>
                 </label>
               </div>
+
+
+              <button
+                type="submit"
+                disabled={isSubmitting || !agreePolicy}
+                className="btn-gold w-full justify-center py-3.5 text-base disabled:opacity-50 disabled:cursor-not-allowed shadow-md transition-all"
+              >
+                {isSubmitting ? '⏳ Logging in...' : t('auth.login')}
+              </button>
+
+              
 
               <p className="text-center text-gray-500 text-sm pt-1">
                 {t('auth.registerPrompt')}{' '}

@@ -53,21 +53,21 @@ export default function Footer() {
                 <p className="text-gold-400 text-sm font-tamil">புனித அருளானந்தர்</p>
               </div>
             </div>
-            <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
+            <p className="text-gray-300 text-xs sm:text-sm leading-relaxed text-justify">
               A Roman Catholic parish serving the faithful community of Kalayarkoil with love, faith, and devotion. Protected with enterprise-grade security, encrypted credentials, and transparent privacy policies.
             </p>
-            <div className="flex items-center gap-3 pt-1">
+            <div className="flex items-center gap-3.5 pt-2">
               <a href="https://facebook.com" target="_blank" rel="noreferrer"
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-church-gold hover:scale-110 transition-all duration-300">
-                <FiFacebook className="text-xs" />
+                className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-church-gold hover:text-white hover:scale-110 transition-all duration-300 shadow-md">
+                <FiFacebook className="text-xl" />
               </a>
               <a href="https://youtube.com" target="_blank" rel="noreferrer"
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-600 hover:scale-110 transition-all duration-300">
-                <FiYoutube className="text-xs" />
+                className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-red-600 hover:text-white hover:scale-110 transition-all duration-300 shadow-md">
+                <FiYoutube className="text-xl" />
               </a>
               <a href="https://instagram.com" target="_blank" rel="noreferrer"
-                className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-pink-600 hover:scale-110 transition-all duration-300">
-                <FiInstagram className="text-xs" />
+                className="w-11 h-11 rounded-full bg-white/10 flex items-center justify-center hover:bg-pink-600 hover:text-white hover:scale-110 transition-all duration-300 shadow-md">
+                <FiInstagram className="text-xl" />
               </a>
             </div>
           </div>
@@ -162,9 +162,9 @@ export default function Footer() {
 
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-white/90 pt-1">
             <button onClick={() => openPolicyModal('privacy')} className="hover:text-gold-300 transition-colors">Privacy Policy</button>
-            <span className="text-white/40">•</span>
+            <span className="text-white">•</span>
             <button onClick={() => openPolicyModal('terms')} className="hover:text-gold-300 transition-colors">Terms & Conditions</button>
-            <span className="text-white/40">•</span>
+            <span className="text-white">•</span>
             <button onClick={() => openPolicyModal('security')} className="hover:text-gold-300 transition-colors">Security Policy</button>
           </div>
         </div>

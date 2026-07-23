@@ -221,11 +221,12 @@ export default function Navbar() {
 
               <button
                 onClick={toggleGoogleTranslate}
-                className="flex items-center gap-1 text-gray-200 hover:text-gold-300 transition-colors p-2 rounded-lg hover:bg-white/10"
+                className="flex items-center gap-1.5 text-gray-200 hover:text-gold-300 transition-colors p-2 rounded-lg hover:bg-white/10"
+                title={isTamil ? "Switch to English" : "தமிழில் மாற்றுக"}
               >
-                <FiGlobe className="text-base" />
-                <span className="text-xs font-bold whitespace-nowrap">
-                  {isTamil ? 'View in English' : 'தமிழில்'}
+                <FiGlobe className="text-base text-gold-400" />
+                <span className="notranslate text-xs font-bold whitespace-nowrap">
+                  {isTamil ? "ஆங்கிலத்தில் காண்க" : "தமிழில்"}
                 </span>
               </button>
 
