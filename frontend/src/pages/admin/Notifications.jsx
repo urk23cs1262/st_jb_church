@@ -612,7 +612,7 @@ function BroadcastModal({ onClose, onSent }) {
 
 // ── Main Admin Notifications Page ────────────────────────────────────────────
 export default function AdminNotifications() {
-  const { adminNotifications, adminUnreadCount, loading, markRead, markAllAdminRead, deleteNotification, deleteAll, togglePin, refetch } = useNotifications();
+  const { adminNotifications, adminUnreadCount, loading, markRead, markAllAdminRead, deleteNotification, deleteAllAdmin, togglePin, refetch } = useNotifications();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -624,8 +624,8 @@ export default function AdminNotifications() {
 
   const confirmDeleteAll = async () => {
     setShowClearConfirm(false);
-    await deleteAll();
-    toast.success('All notifications cleared');
+    await deleteAllAdmin();
+    toast.success('All notifications cleared permanently');
   };
 
   // Auto-open deep linked security incident or notification from email link

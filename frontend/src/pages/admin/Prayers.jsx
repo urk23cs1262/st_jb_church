@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { FiCheck, FiX, FiClock, FiMessageSquare } from 'react-icons/fi';
+import { FiCheck, FiX, FiClock, FiMessageSquare, FiTrash2 } from 'react-icons/fi';
 import { GiPrayer } from 'react-icons/gi';
 import api from '../../services/api';
 import { SectionLoader } from '../../components/common/Loader';
@@ -44,6 +44,28 @@ export default function AdminPrayers() {
     }
   };
 
+  const deletePrayer = async (id) => {
+    if (!window.confirm('Are you sure you want to permanently delete this prayer request?')) return;
+    try {
+      await api.delete(`/prayers/${id}`);
+      setPrayers(prev => prev.filter(p => p._id !== id));
+      toast.success('Prayer request deleted permanently');
+    } catch { 
+      toast.error('Failed to delete prayer request'); 
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    if (!window.confirm(`Are you sure you want to permanently delete ALL ${filter.toUpperCase()} prayer requests? This cannot be undone.`)) return;
+    try {
+      const res = await api.delete(`/prayers/clear-all?status=${filter}`);
+      setPrayers([]);
+      toast.success(res.data.message || `All ${filter} prayers deleted permanently`);
+    } catch { 
+      toast.error('Failed to delete prayer requests'); 
+    }
+  };
+
   return (
     <div className="w-full">
       <div className="p-4 sm:p-6">
@@ -54,16 +76,28 @@ export default function AdminPrayers() {
             </h1>
             <p className="text-gray-500 mt-1 text-xs sm:text-sm">Review and approve prayer intentions for the public wall</p>
           </div>
-          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 overflow-x-auto no-scrollbar max-w-full">
-            {['pending', 'approved', 'rejected'].map(s => (
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-200 overflow-x-auto no-scrollbar max-w-full">
+              {['pending', 'approved', 'rejected'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => setFilter(s)}
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all ${filter === s ? 'bg-church-gold text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            {prayers.length > 0 && (
               <button
-                key={s}
-                onClick={() => setFilter(s)}
-                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider whitespace-nowrap transition-all ${filter === s ? 'bg-church-gold text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                onClick={handleDeleteAll}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
+                title={`Delete all ${filter} prayers permanently`}
               >
-                {s}
+                <FiTrash2 className="text-white text-sm" />
+                <span>Delete All</span>
               </button>
-            ))}
+            )}
           </div>
         </div>
 
@@ -106,6 +140,26 @@ export default function AdminPrayers() {
                     <div className="flex items-center gap-2 text-gray-500">
                         <span className="font-bold text-church-royal-blue">Type:</span> {prayer.type || 'General'}
                     </div>
+                    {prayer.preferredDate && (
+                        <div className="flex items-center gap-2 text-gray-500">
+                            <span className="font-bold text-church-royal-blue">Date:</span> {new Date(prayer.preferredDate).toLocaleDateString('en-IN')}
+                        </div>
+                    )}
+                    {prayer.preferredTime && (
+                        <div className="flex items-center gap-2 text-gray-500">
+                            <span className="font-bold text-church-royal-blue">Time Slot:</span> {prayer.preferredTime}
+                        </div>
+                    )}
+                    {prayer.confessionLocation && (
+                        <div className="col-span-2 flex items-center gap-2 text-gray-500">
+                            <span className="font-bold text-church-royal-blue">Venue:</span> {prayer.confessionLocation}
+                        </div>
+                    )}
+                    {prayer.contactPhone && (
+                        <div className="col-span-2 flex items-center gap-2 text-gray-500">
+                            <span className="font-bold text-church-royal-blue">Phone:</span> {prayer.contactPhone}
+                        </div>
+                    )}
                     {prayer.churchLocation && (
                         <div className="col-span-2 flex items-center gap-2 text-gray-500">
                             <span className="font-bold text-church-royal-blue">Church:</span> {prayer.churchLocation}
@@ -113,11 +167,11 @@ export default function AdminPrayers() {
                     )}
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2.5 pt-2">
                   {filter !== 'approved' && (
                     <button
                       onClick={() => updateStatus(prayer._id, 'approved')}
-                      className="flex-1 flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl text-sm font-bold transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs"
                     >
                       <FiCheck /> Approve
                     </button>
@@ -125,11 +179,18 @@ export default function AdminPrayers() {
                   {filter !== 'rejected' && (
                     <button
                       onClick={() => updateStatus(prayer._id, 'rejected')}
-                      className="flex-1 flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 py-3 rounded-xl text-sm font-bold transition-colors"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all border border-amber-200"
                     >
                       <FiX /> Reject
                     </button>
                   )}
+                  <button
+                    onClick={() => deletePrayer(prayer._id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-xs"
+                    title="Permanently Delete Request"
+                  >
+                    <FiTrash2 /> Delete
+                  </button>
                 </div>
               </motion.div>
             ))}

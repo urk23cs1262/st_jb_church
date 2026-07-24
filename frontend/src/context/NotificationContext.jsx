@@ -178,12 +178,18 @@ export const NotificationProvider = ({ children }) => {
 
   const deleteAll = async () => {
     try {
-      await api.delete('/notifications');
+      await api.delete('/notifications/delete-all');
+      setNotifications([]);
+      setUnreadCount(0);
     } catch { /* silent */ }
-    setNotifications([]);
-    setAdminNotifications([]);
-    setUnreadCount(0);
-    setAdminUnreadCount(0);
+  };
+
+  const deleteAllAdmin = async () => {
+    try {
+      await api.delete('/notifications/admin/clear-all');
+      setAdminNotifications([]);
+      setAdminUnreadCount(0);
+    } catch { /* silent */ }
   };
 
   return (
@@ -198,6 +204,7 @@ export const NotificationProvider = ({ children }) => {
       markAllAdminRead,
       deleteNotification,
       deleteAll,
+      deleteAllAdmin,
       refetch,
       triggerNativePush
     }}>

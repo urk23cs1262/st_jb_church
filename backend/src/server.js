@@ -82,6 +82,7 @@ app.use('/api/bot', require('./routes/bot'));
 require('./services/saintService');
 require('./services/birthdayService');
 require('./services/dailyBroadcastService'); // 6:00 AM spiritual content broadcast
+require('./services/reminderSchedulerService'); // Automated Event & Announcement reminders via Email, WhatsApp bot & In-App
 
 // ✅ Health check (used by cron-job.org to prevent cold starts)
 app.get('/api/health', (req, res) => res.json({

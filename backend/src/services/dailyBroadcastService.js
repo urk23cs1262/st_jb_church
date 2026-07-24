@@ -219,9 +219,9 @@ async function triggerBroadcastNow() {
 
 // ─── Cron Jobs ────────────────────────────────────────────────────────────────
 
-// 6:00 AM IST daily broadcast
-cron.schedule('0 6 * * *', () => {
-  console.log('⏰ 6:00 AM IST — Running daily spiritual content broadcast...');
+// 5:00 AM IST daily broadcast (Daily Verses, Saint of the Day, Mass Readings, Spiritual Content)
+cron.schedule('0 5 * * *', () => {
+  console.log('⏰ 5:00 AM IST — Running daily spiritual content broadcast from WhatsApp bot...');
   runDailyBroadcast();
 }, { timezone: 'Asia/Kolkata' });
 

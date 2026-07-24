@@ -122,7 +122,10 @@
     "intention": "Prayer Intention",
     "public": "Make this public",
     "private": "Keep this private",
-    "pray": "I Prayed for This"
+    "pray": "I Prayed for This",
+    "prayFor": "Pray for this",
+    "prayed": "Prayed",
+    "noPrayers": "No prayer requests yet. Be the first to share."
   },
   "donate": {
     "title": "Donate & Offerings",

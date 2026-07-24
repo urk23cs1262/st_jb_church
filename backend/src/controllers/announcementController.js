@@ -146,8 +146,27 @@ ${clientUrl}/announcements
 
 const remove = async (req, res) => {
   try {
-    await Announcement.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: 'Announcement deleted' });
+    const annId = req.params.id;
+    const ann = await Announcement.findByIdAndDelete(annId);
+
+    // Clean up linked notifications in Notification collection
+    if (ann) {
+      const titleClean = ann.title ? ann.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') : '';
+      const filter = {
+        $or: [
+          { relatedId: annId },
+          { relatedModel: 'Announcement' }
+        ]
+      };
+      if (titleClean) {
+        filter.$or.push({ title: new RegExp(titleClean, 'i') });
+      }
+      await Notification.deleteMany(filter).catch(() => {});
+    } else {
+      await Notification.deleteMany({ relatedId: annId }).catch(() => {});
+    }
+
+    res.json({ success: true, message: 'Announcement deleted successfully' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 

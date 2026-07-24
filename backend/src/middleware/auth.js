@@ -27,6 +27,20 @@ const protect = async (req, res, next) => {
   }
 };
 
+const optionalAuth = async (req, res, next) => {
+  let token;
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'sjdb_secret_key_2024');
+      req.user = await User.findById(decoded.id).select('-passwordHash -otp -otpExpires');
+    } catch (err) {}
+  }
+  next();
+};
+
 const adminOnly = (req, res, next) => {
   if (req.user && req.user.role === 'admin') return next();
   return res.status(403).json({ success: false, message: 'Admin access required' });
@@ -38,4 +52,4 @@ const generateToken = (id, role, tokenVersion = 0) => {
   });
 };
 
-module.exports = { protect, adminOnly, generateToken };
+module.exports = { protect, optionalAuth, adminOnly, generateToken };

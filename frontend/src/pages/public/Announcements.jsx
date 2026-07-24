@@ -21,9 +21,31 @@ export default function Announcements() {
   const [type, setType] = useState('all');
 
   useEffect(() => {
-    setLoading(true);
-    const params = type !== 'all' ? `?type=${type}` : '';
-    api.get(`/announcements${params}`).then(r => setAnnouncements(r.data.announcements || [])).catch(() => {}).finally(() => setLoading(false));
+    let isMounted = true;
+    const fetchAnnouncements = (showSpinner = false) => {
+      if (showSpinner) setLoading(true);
+      const params = type !== 'all' ? `?type=${type}` : '';
+      api.get(`/announcements${params}`)
+        .then(r => {
+          if (isMounted) setAnnouncements(r.data.announcements || []);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted && showSpinner) setLoading(false);
+        });
+    };
+
+    fetchAnnouncements(true);
+
+    const handleFocus = () => fetchAnnouncements(false);
+    window.addEventListener('focus', handleFocus);
+    const interval = setInterval(() => fetchAnnouncements(false), 5000);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, [type]);
 
   return (

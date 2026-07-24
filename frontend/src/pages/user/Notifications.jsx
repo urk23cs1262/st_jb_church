@@ -172,7 +172,15 @@ function NotifCard({ notif, onMarkRead, onDelete, onTogglePin, onAction }) {
             <span className="text-[10px] text-gray-400">{timeAgo(notif.createdAt)}</span>
           </div>
 
-          {isApproved ? (
+          {cat === 'prayer' || notif.relatedModel === 'PrayerRequest' ? (
+            <Link
+              to={notif.actionUrl || '/prayer-requests'}
+              onClick={() => !notif.isRead && onMarkRead(notif._id)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-church-royal-blue text-white hover:bg-church-royal-blue/90 text-xs font-bold transition-all shadow-sm flex-shrink-0 ml-auto"
+            >
+              🙏 View Prayer Wall →
+            </Link>
+          ) : isApproved ? (
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-xl bg-green-100 text-green-700 text-xs font-black border border-green-300 ml-auto flex-shrink-0 shadow-xs">
               ✅ Approved
             </span>
@@ -255,7 +263,7 @@ export default function UserNotifications() {
   const confirmDeleteAll = async () => {
     setShowClearConfirm(false);
     await deleteAll();
-    toast.success('All notifications cleared');
+    toast.success('All notifications cleared permanently');
   };
 
   const handleMarkAllRead = async () => {

@@ -7,6 +7,7 @@ const {
   togglePin,
   deleteOne,
   deleteAll,
+  deleteAllAdmin,
   getAdminNotifications,
   getAdminUnreadCount,
   markAllAdminRead,
@@ -27,6 +28,7 @@ router.delete('/:id', protect, deleteOne);
 router.get('/admin', protect, adminOnly, getAdminNotifications);
 router.get('/admin/unread-count', protect, adminOnly, getAdminUnreadCount);
 router.put('/admin/read-all', protect, adminOnly, markAllAdminRead);
+router.delete('/admin/clear-all', protect, adminOnly, deleteAllAdmin);
 router.post('/broadcast', protect, adminOnly, broadcast);
 
 module.exports = router;

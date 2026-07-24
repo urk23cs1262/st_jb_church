@@ -86,7 +86,17 @@ const togglePin = async (req, res) => {
 // DELETE /api/notifications/:id
 const deleteOne = async (req, res) => {
   try {
-    await Notification.findByIdAndDelete(req.params.id);
+    const notif = await Notification.findByIdAndDelete(req.params.id);
+    if (notif && (notif.relatedId || notif.title)) {
+      if (notif.relatedId && notif.relatedModel === 'Announcement') {
+        await Announcement.findByIdAndDelete(notif.relatedId).catch(() => {});
+      } else if (notif.category === 'announcements' || notif.type === 'announcement') {
+        const cleanTitle = notif.title ? notif.title.replace(/^📢\s*/, '').trim() : '';
+        if (cleanTitle) {
+          await Announcement.deleteMany({ title: new RegExp(cleanTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }).catch(() => {});
+        }
+      }
+    }
     res.json({ success: true, message: 'Notification deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -97,11 +107,25 @@ const deleteOne = async (req, res) => {
 const deleteAll = async (req, res) => {
   try {
     await Notification.deleteMany({
-      userId: req.user._id,
-      isBroadcast: false,
-      isPinned: false
+      $or: [
+        { userId: req.user._id },
+        { isBroadcast: true },
+        { recipient: { $in: ['user', 'both'] } }
+      ]
     });
-    res.json({ success: true, message: 'All non-pinned notifications deleted' });
+    res.json({ success: true, message: 'All user notifications permanently deleted' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// DELETE /api/notifications/admin/clear-all
+const deleteAllAdmin = async (req, res) => {
+  try {
+    await Notification.deleteMany({
+      recipient: { $in: ['admin', 'both'] }
+    });
+    res.json({ success: true, message: 'All admin notifications permanently deleted' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -252,6 +276,7 @@ module.exports = {
   togglePin,
   deleteOne,
   deleteAll,
+  deleteAllAdmin,
   getAdminNotifications,
   getAdminUnreadCount,
   markAllAdminRead,

@@ -7,20 +7,26 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { SectionLoader } from '../../components/common/Loader';
 import PageHero from '../../components/common/PageHero';
 
 export default function PrayerRequests() {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const [prayers, setPrayers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { register, handleSubmit, reset, watch, formState: { isSubmitting } } = useForm({
+  const { register, handleSubmit, reset, watch, setValue, formState: { isSubmitting } } = useForm({
     defaultValues: {
       isPublic: true,
-      prayerLocation: 'personal'
+      prayerLocation: 'personal',
+      type: 'General Prayer Request'
     }
   });
+
   const prayerLocation = watch('prayerLocation');
+  const selectedType = watch('type');
+  const isConfession = prayerLocation === 'confession' || selectedType === 'Confession Request';
 
   const SUB_STATIONS = [
     "Kalayarkoil (Main Parish)",
@@ -42,9 +48,24 @@ export default function PrayerRequests() {
 
   const onSubmit = async (data) => {
     try {
-      await api.post('/prayers', { ...data, language: i18n.language });
-      toast.success('Prayer request submitted! It will appear after review.');
-      reset({ isPublic: true });
+      const payload = {
+        ...data,
+        name: data.name || user?.name,
+        email: data.email || user?.email,
+        phone: data.contactPhone || data.phone || user?.phone,
+        language: i18n.language
+      };
+      if (data.prayerLocation === 'confession' || data.type === 'Confession Request') {
+        payload.isPublic = false;
+        payload.type = 'Confession Request';
+      }
+      await api.post('/prayers', payload);
+      toast.success(
+        payload.isPublic === false
+          ? '⛪ Confession request submitted confidentially to Parish Priest!'
+          : '🙏 Prayer request submitted! It will appear after review.'
+      );
+      reset({ isPublic: true, prayerLocation: 'personal', type: 'General Prayer Request' });
     } catch { toast.error('Failed to submit. Please try again.'); }
   };
 
@@ -82,45 +103,124 @@ export default function PrayerRequests() {
                     <input {...register('name')} className="church-input" placeholder="Full Name" />
                   </div>
 
-                  <div className="bg-gray-50/50 p-4 rounded-2xl space-y-3 mb-4">
+                  {/* Radio Buttons Section */}
+                  <div className="space-y-2 mb-6">
                     <label className="church-label">Where should the prayer be offered?</label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input {...register('prayerLocation')} type="radio" value="personal" className="text-church-gold" />
-                        <span className="text-sm font-medium">Home Prayer</span>
+                    <div className="flex flex-row items-center gap-4 sm:gap-6 flex-wrap pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                        <input
+                          {...register('prayerLocation')}
+                          type="radio"
+                          value="personal"
+                          className="w-4 h-4 text-church-gold focus:ring-church-gold"
+                          onChange={(e) => {
+                            register('prayerLocation').onChange(e);
+                            setValue('type', 'General Prayer Request');
+                          }}
+                        />
+                        <span className="text-sm font-medium text-gray-700">Home Prayer</span>
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input {...register('prayerLocation')} type="radio" value="church" className="text-church-gold" />
-                        <span className="text-sm font-medium">In Church (Mass Intention)</span>
+
+                      <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                        <input
+                          {...register('prayerLocation')}
+                          type="radio"
+                          value="church"
+                          className="w-4 h-4 text-church-gold focus:ring-church-gold"
+                          onChange={(e) => {
+                            register('prayerLocation').onChange(e);
+                            setValue('type', 'Thanksgiving Mass');
+                          }}
+                        />
+                        <span className="text-sm font-medium text-gray-700">In Church (Mass Intention)</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                        <input
+                          {...register('prayerLocation')}
+                          type="radio"
+                          value="confession"
+                          className="w-4 h-4 text-church-gold focus:ring-church-gold"
+                          onChange={(e) => {
+                            register('prayerLocation').onChange(e);
+                            setValue('type', 'Confession Request');
+                          }}
+                        />
+                        <FiLock className="text-amber-700" size={13} />
+                        <span className="text-sm font-medium text-gray-700">Confession Request</span>
                       </label>
                     </div>
                   </div>
 
-                  <div>
-                    <label className="church-label">Request Type</label>
-                    <select {...register('type')} className="church-input bg-white text-gray-800">
-                      {prayerLocation === 'personal' ? (
-                        <>
-                          <option value="General Prayer Request">General Prayer Request</option>
-                          <option value="Confession Request">Confession Request</option>
-                          <option value="Home Blessing Prayer">Home Blessing Prayer</option>
-                          <option value="Housewarming">Special Occasion: Housewarming</option>
-                          <option value="Wedding Anniversary">Special Occasion: Wedding Anniversary</option>
-                          <option value="Birthday Anniversary">Special Occasion: Birthday Anniversary</option>
-                          <option value="Others">Others</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value="Thanksgiving Mass">Thanksgiving Mass</option>
-                          <option value="Mass for Departed Soul">Mass for Departed Soul (RIP)</option>
-                          <option value="Special Intention Mass">Special Intention Mass</option>  
-                          <option value="Healing Mass">Healing Mass</option>
-                          <option value="Success in Exams/Work">Success in Exams/Business/Work</option>
-                          <option value="Other Mass Intention">Others</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
+                  {prayerLocation !== 'confession' && (
+                    <div>
+                      <label className="church-label">Request Type</label>
+                      <select {...register('type')} className="church-input bg-white text-gray-800">
+                        {prayerLocation === 'personal' ? (
+                          <>
+                            <option value="General Prayer Request">General Prayer Request</option>
+                            <option value="Home Blessing Prayer">Home Blessing Prayer</option>
+                            <option value="Housewarming">Special Occasion: Housewarming</option>
+                            <option value="Wedding Anniversary">Special Occasion: Wedding Anniversary</option>
+                            <option value="Birthday Anniversary">Special Occasion: Birthday Anniversary</option>
+                            <option value="Others">Others</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="Thanksgiving Mass">Thanksgiving Mass</option>
+                            <option value="Mass for Departed Soul">Mass for Departed Soul (RIP)</option>
+                            <option value="Special Intention Mass">Special Intention Mass</option>  
+                            <option value="Healing Mass">Healing Mass</option>
+                            <option value="Success in Exams/Work">Success in Exams/Business/Work</option>
+                            <option value="Other Mass Intention">Others</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Confession Specific Fields */}
+                  {isConfession && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-4 bg-amber-50/80 border border-amber-300 p-5 rounded-2xl shadow-sm"
+                    >
+                      <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
+                        <FiLock className="text-amber-700" /> Confidential Sacrament of Reconciliation (Confession)
+                      </div>
+
+                      <div>
+                        <label className="church-label">Preferred Date for Confession</label>
+                        <input type="date" {...register('preferredDate')} className="church-input bg-white" />
+                      </div>
+
+                      <div>
+                        <label className="church-label">Preferred Time Slot</label>
+                        <select {...register('preferredTime')} className="church-input bg-white text-gray-800">
+                          <option value="Before Morning Mass (6:00 AM)">Before Morning Mass (6:00 AM)</option>
+                          <option value="After Morning Mass (7:00 AM)">After Morning Mass (7:00 AM)</option>
+                          <option value="Evening Slot (5:00 PM - 6:00 PM)">Evening Slot (5:00 PM - 6:00 PM)</option>
+                          <option value="Before Evening Mass (6:00 PM)">Before Evening Mass (6:00 PM)</option>
+                          <option value="Any Time Suitable for Parish Priest">Any Time Suitable for Parish Priest</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="church-label">Confession Location / Venue</label>
+                        <select {...register('confessionLocation')} className="church-input bg-white text-gray-800">
+                          <option value="Church Confessional Box">Church Confessional Box</option>
+                          <option value="Parish Priest Office">Parish Priest Office</option>
+                          <option value="Home Visit (Elderly / Sick / Bedridden)">Home Visit (Elderly / Sick / Bedridden)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="church-label">Contact Phone / WhatsApp for Priest Confirmation</label>
+                        <input type="tel" {...register('contactPhone')} className="church-input bg-white" placeholder="Enter phone number for priest to confirm appointment" />
+                      </div>
+                    </motion.div>
+                  )}
 
                   {prayerLocation === 'church' && (
                     <motion.div
@@ -142,20 +242,29 @@ export default function PrayerRequests() {
                   )}
 
                   <div>
-                    <label className="church-label">{t('prayer.intention')} *</label>
-                    <textarea {...register('intention', { required: true })} rows={5} className="church-input resize-none" placeholder="Share your prayer intention here..." />
+                    <label className="church-label">
+                      {isConfession ? 'Confession Note / Intention (Optional & Private)' : `${t('prayer.intention')} *`}
+                    </label>
+                    <textarea
+                      {...register('intention', { required: !isConfession })}
+                      rows={3}
+                      className="church-input resize-none"
+                      placeholder={isConfession ? 'Share any confidential note for the Parish Priest (optional)...' : 'Share your prayer intention here...'}
+                    />
                   </div>
 
-                  <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 transition-colors">
-                    <input {...register('isPublic')} type="checkbox" className="w-5 h-5 rounded text-church-gold" />
-                    <div className="flex items-center gap-2">
-                      {watch('isPublic') ? <FiUnlock className="text-church-gold" /> : <FiLock className="text-gray-400" />}
-                      <div>
-                        <p className="text-sm font-semibold text-gray-700">{watch('isPublic') ? t('prayer.public') : t('prayer.private')}</p>
-                        <p className="text-xs text-gray-400">Public prayers appear on the prayer wall</p>
+                  {!isConfession && (
+                    <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                      <input {...register('isPublic')} type="checkbox" className="w-5 h-5 rounded text-church-gold" />
+                      <div className="flex items-center gap-2">
+                        {watch('isPublic') ? <FiUnlock className="text-church-gold" /> : <FiLock className="text-gray-400" />}
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700">{watch('isPublic') ? t('prayer.public') : t('prayer.private')}</p>
+                          <p className="text-xs text-gray-400">Public prayers appear on the prayer wall</p>
+                        </div>
                       </div>
-                    </div>
-                  </label>
+                    </label>
+                  )}
 
                   <button type="submit" disabled={isSubmitting} className="btn-gold w-full justify-center py-4 text-base">
                     <GiPrayer /> {isSubmitting ? 'Submitting...' : t('prayer.submit')}
@@ -163,41 +272,51 @@ export default function PrayerRequests() {
                 </form>
               </motion.div>
 
-              {/* Prayer Wall */}
-              <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
+              {/* Public wall */}
+              <div>
                 <h2 className="section-title mb-6">{t('prayer.wall')}</h2>
                 {loading ? <SectionLoader /> : prayers.length === 0 ? (
-                  <div className="text-center py-10 text-gray-400">
-                    <GiPrayer className="text-5xl mx-auto mb-3 opacity-30" />
-                    <p>No prayer requests yet. Be the first to share.</p>
+                  <div className="text-center py-20 text-gray-400 church-card">
+                    <GiPrayer className="text-6xl mx-auto mb-4 opacity-30" />
+                    <p>{t('No prayer requests yet. Be the first to share.')}</p>
                   </div>
                 ) : (
-                  <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                    {prayers.map((p, i) => (
-                      <motion.div key={p._id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="church-card">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="w-9 h-9 rounded-full bg-church-gradient flex items-center justify-center flex-shrink-0">
-                            <GiPrayer className="text-white text-sm" />
+                  <div className="space-y-4 max-h-[700px] overflow-y-auto pr-1">
+                    {prayers.map((prayer, i) => (
+                      <motion.div
+                        key={prayer._id}
+                        initial={{ opacity: 0, y: 15 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.05 }}
+                        className="church-card p-6 border-l-4 border-church-gold hover:shadow-gold transition-all"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-church-gradient flex items-center justify-center text-white">
+                              <GiPrayer />
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-800">{prayer.name}</p>
+                              <p className="text-xs text-gray-400">{new Date(prayer.createdAt).toLocaleDateString()}</p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-800 text-sm">
-                              {p.name || 'Anonymous'}
-                              {p.type && p.type !== 'General Prayer Request' && <span className="ml-2 text-xs bg-gold-100 text-church-gold px-2 py-0.5 rounded-full">{p.type}</span>}
-                            </p>
-                            <p className="text-gray-600 text-sm mt-1 leading-relaxed">{p.intention}</p>
-                            <p className="text-xs text-gray-400 mt-2">{new Date(p.createdAt).toLocaleDateString()}</p>
-                          </div>
+                          <span className="badge badge-gold">{prayer.type || 'General'}</span>
                         </div>
-                        <div className="mt-3 flex justify-end">
-                          <button onClick={() => prayFor(p._id)} className="flex items-center gap-1.5 text-xs text-church-maroon hover:text-church-maroon-light font-semibold transition-colors">
-                            <FiHeart className="fill-current" /> {p.prayerCount || 0} Praying
+                        <p className="text-gray-600 text-sm leading-relaxed mb-4 italic">"{prayer.intention}"</p>
+                        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                          <span className="text-xs text-gray-500 font-medium">
+                            🙏 {prayer.prayerCount || 0} {prayer.prayerCount === 1 ? 'person prayed' : 'people prayed'}
+                          </span>
+                          <button onClick={() => prayFor(prayer._id)} className="btn-outline-gold text-xs py-1.5 px-3 flex items-center gap-1.5 font-bold shadow-xs">
+                            <FiHeart className="text-red-500 fill-red-500" /> {t('prayer.prayFor', 'Pray for this')}
                           </button>
                         </div>
                       </motion.div>
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </div>
             </div>
           </div>
         </section>

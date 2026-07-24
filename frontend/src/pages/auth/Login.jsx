@@ -32,23 +32,14 @@ export default function Login() {
     setPolicyModalOpen(true);
   };
 
-  const getDefaultLandingRoute = (u) => {
-    if (u?.role === 'admin') return '/admin';
-    const pref = u?.settings?.appPreferences?.defaultHomePage;
-    if (pref === 'User Dashboard' || pref === 'Dashboard') return '/dashboard';
-    if (pref === 'Mass Timings' || pref === 'Mass') return '/mass-timings';
-    return '/';
-  };
-
   const [suspendedMsg, setSuspendedMsg] = useState('');
   const [lockoutMsg, setLockoutMsg] = useState('');
 
   const getRedirectDestination = (userData) => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const urlRedirect = searchParams.get('redirect');
-    const sessionRedirect = sessionStorage.getItem('redirectAfterLogin');
-    sessionStorage.removeItem('redirectAfterLogin');
-    return urlRedirect || sessionRedirect || getDefaultLandingRoute(userData);
+    if (userData?.role === 'admin') {
+      return '/admin';
+    }
+    return '/';
   };
 
   const onLogin = async (data) => {
