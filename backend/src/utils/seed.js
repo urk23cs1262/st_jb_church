@@ -48,12 +48,7 @@ const seed = async () => {
 
   // Create sample announcements
   await Announcement.deleteMany({});
-  await Announcement.insertMany([
-    { title: 'Feast Day Celebration 2025', content: 'Join us for the grand feast of our patron saint St. John de Britto on February 4th. Special masses at 6AM, 8AM, and 10AM followed by a grand procession.', type: 'feast', priority: 'high', isPublished: true },
-    { title: 'Parish Office Hours Update', content: 'The parish office will be open on all weekdays from 9 AM to 5 PM. For urgent matters, contact us at the church number.', type: 'general', priority: 'medium', isPublished: true },
-    { title: 'Youth Formation Program', content: 'Catechism classes for children will begin next month. Register your children at the parish office or through this website.', type: 'meeting', priority: 'medium', isPublished: true },
-  ]);
-  console.log('✅ Announcements seeded');
+  console.log('✅ Announcements cleared');
 
   console.log('\n🎉 Database seeded successfully!\n');
   process.exit(0);
