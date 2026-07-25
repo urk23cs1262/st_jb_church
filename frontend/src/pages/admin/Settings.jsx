@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { FiSettings, FiUpload, FiYoutube, FiMusic, FiImage, FiCheck, FiLoader, FiExternalLink } from 'react-icons/fi';
 import { GiCrucifix } from 'react-icons/gi';
@@ -60,7 +60,6 @@ const SETTING_CARDS = [
 
 function extractYouTubeId(input) {
   if (!input) return '';
-  // Match youtu.be/ID, ?v=ID, /embed/ID, or bare 11-char ID
   const patterns = [
     /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
     /^([a-zA-Z0-9_-]{11})$/,
@@ -69,26 +68,38 @@ function extractYouTubeId(input) {
     const m = input.match(re);
     if (m) return m[1];
   }
-  // Fallback: strip everything after ? or &
   return input.split(/[?&]/)[0].trim();
 }
 
-function SettingCard({ setting, currentValue }) {
+function SettingCard({ setting, currentValue, onValueUpdate }) {
   const [textValue, setTextValue] = useState('');
+  const [debouncedValue, setDebouncedValue] = useState('');
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const fileRef = useRef(null);
 
-  const extractedId = setting.key === 'videoAdId' ? extractYouTubeId(textValue) : textValue;
-
   useEffect(() => {
-    if (setting.type === 'text' && currentValue) {
-      setTextValue(currentValue);
+    if (setting.type === 'text' && currentValue !== undefined) {
+      setTextValue(currentValue || '');
+      setDebouncedValue(currentValue || '');
     }
   }, [currentValue, setting.type]);
 
-  const previewUrl = (() => {
+  // Debounce input to prevent typing lag caused by iframe re-rendering
+  useEffect(() => {
+    if (setting.type !== 'text') return;
+    const timer = setTimeout(() => {
+      setDebouncedValue(textValue);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [textValue, setting.type]);
+
+  const extractedId = useMemo(() => {
+    return setting.key === 'videoAdId' ? extractYouTubeId(debouncedValue) : debouncedValue;
+  }, [debouncedValue, setting.key]);
+
+  const previewUrl = useMemo(() => {
     if (file) return URL.createObjectURL(file);
     if (currentValue && setting.type === 'file') {
       return currentValue.startsWith('http')
@@ -96,7 +107,7 @@ function SettingCard({ setting, currentValue }) {
         : `${UPLOADS_URL.replace('/uploads', '')}${currentValue}`;
     }
     return null;
-  })();
+  }, [file, currentValue, setting.type]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -104,9 +115,12 @@ function SettingCard({ setting, currentValue }) {
       if (setting.type === 'text') {
         if (!textValue.trim()) return toast.error('Please enter a value');
         const valueToSave = setting.key === 'videoAdId' ? extractYouTubeId(textValue) : textValue.trim();
-        if (!valueToSave) return toast.error('Could not extract a valid YouTube ID. Please check the URL.');
+        if (!valueToSave) return toast.error('Could not extract a valid YouTube ID.');
+        
         await api.post('/settings/text', { key: setting.key, value: valueToSave, label: setting.label });
-        setTextValue(valueToSave); // update display to show clean extracted ID
+        setTextValue(valueToSave);
+        setDebouncedValue(valueToSave);
+        if (onValueUpdate) onValueUpdate(setting.key, valueToSave);
         toast.success(`${setting.label} updated!`);
       } else {
         if (!file) return toast.error('Please select a file first');
@@ -114,13 +128,14 @@ function SettingCard({ setting, currentValue }) {
         fd.append('file', file);
         fd.append('key', setting.key);
         fd.append('label', setting.label);
-        await api.post('/settings/file', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+        const res = await api.post('/settings/file', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
         toast.success(`${setting.label} uploaded!`);
+        if (onValueUpdate && res.data.filePath) onValueUpdate(setting.key, res.data.filePath);
         setFile(null);
         if (fileRef.current) fileRef.current.value = '';
       }
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Save failed');
     } finally {
@@ -129,142 +144,142 @@ function SettingCard({ setting, currentValue }) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
-    >
-      <div className={`${setting.color} p-4 flex items-center gap-3 text-white`}>
-        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-          {setting.icon}
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
+      <div>
+        <div className={`${setting.color} p-4 flex items-center gap-3 text-white`}>
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+            {setting.icon}
+          </div>
+          <div>
+            <p className="font-bold text-base leading-tight">{setting.label}</p>
+            <p className="text-white/70 text-xs">{setting.type === 'text' ? 'Text Setting' : 'File Upload'}</p>
+          </div>
         </div>
-        <div>
-          <p className="font-bold text-base leading-tight">{setting.label}</p>
-          <p className="text-white/70 text-xs">{setting.type === 'text' ? 'Text Setting' : 'File Upload'}</p>
+
+        <div className="p-5 space-y-4">
+          <p className="text-gray-500 text-xs leading-relaxed">{setting.description}</p>
+
+          {setting.type === 'text' ? (
+            <>
+              <input
+                type="text"
+                value={textValue}
+                onChange={e => setTextValue(e.target.value)}
+                placeholder={setting.placeholder}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-church-gold transition-colors font-medium text-gray-800"
+              />
+              {setting.hint && (
+                <p className="text-[11px] text-gray-400 flex items-center gap-1">
+                  <FiExternalLink className="flex-shrink-0" /> {setting.hint}
+                </p>
+              )}
+              {debouncedValue && setting.key === 'videoAdId' && extractedId && (
+                <>
+                  <div className="aspect-video rounded-xl overflow-hidden border border-gray-100 bg-black/5">
+                    <iframe
+                      key={extractedId}
+                      src={`https://www.youtube.com/embed/${extractedId}?mute=1`}
+                      className="w-full h-full"
+                      title="Preview"
+                      loading="lazy"
+                      frameBorder="0"
+                      allow="accelerometer; autoplay"
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              <label
+                htmlFor={`file-${setting.key}`}
+                className="flex items-center justify-center gap-3 border-2 border-dashed border-gray-200 rounded-xl py-5 cursor-pointer hover:border-church-gold hover:bg-gold-50/50 transition-all text-gray-500"
+              >
+                <FiUpload className="text-lg text-church-gold" />
+                <span className="text-xs font-semibold text-gray-700">{file ? file.name : setting.fileLabel}</span>
+                <input
+                  ref={fileRef}
+                  id={`file-${setting.key}`}
+                  type="file"
+                  accept={setting.accept}
+                  className="hidden"
+                  onChange={e => setFile(e.target.files[0] || null)}
+                />
+              </label>
+
+              {/* Preview */}
+              {previewUrl && setting.accept?.startsWith('image') && (
+                <div className="rounded-xl overflow-hidden border border-gray-100 h-32 bg-gray-50">
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" loading="lazy" />
+                </div>
+              )}
+              {previewUrl && setting.accept?.startsWith('audio') && (
+                <audio controls src={previewUrl} className="w-full" />
+              )}
+            </>
+          )}
         </div>
       </div>
 
-      <div className="p-5 space-y-4">
-        <p className="text-gray-500 text-sm">{setting.description}</p>
-
-        {setting.type === 'text' ? (
-          <>
-            <input
-              type="text"
-              value={textValue}
-              onChange={e => setTextValue(e.target.value)}
-              placeholder={setting.placeholder}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-church-gold transition-colors"
-            />
-            {setting.hint && (
-              <p className="text-xs text-gray-400 flex items-center gap-1">
-                <FiExternalLink className="flex-shrink-0" /> {setting.hint}
-              </p>
-            )}
-            {textValue && setting.key === 'videoAdId' && extractedId && (
-              <>
-                {extractedId !== textValue && (
-                  <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-                    <FiCheck className="flex-shrink-0" /> Extracted ID: <span className="font-mono bg-green-50 px-1 rounded">{extractedId}</span>
-                  </p>
-                )}
-                <div className="aspect-video rounded-xl overflow-hidden border border-gray-100">
-                  <iframe
-                    key={extractedId}
-                    src={`https://www.youtube.com/embed/${extractedId}?mute=1`}
-                    className="w-full h-full"
-                    title="Preview"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay"
-                  />
-                </div>
-              </>
-            )}
-          </>
-        ) : (
-          <>
-            <label
-              htmlFor={`file-${setting.key}`}
-              className="flex items-center justify-center gap-3 border-2 border-dashed border-gray-200 rounded-xl py-6 cursor-pointer hover:border-church-gold hover:bg-gold-50/50 transition-all text-gray-500"
-            >
-              <FiUpload className="text-xl" />
-              <span className="text-sm font-medium">{file ? file.name : setting.fileLabel}</span>
-              <input
-                ref={fileRef}
-                id={`file-${setting.key}`}
-                type="file"
-                accept={setting.accept}
-                className="hidden"
-                onChange={e => setFile(e.target.files[0] || null)}
-              />
-            </label>
-
-            {/* Preview */}
-            {previewUrl && setting.accept?.startsWith('image') && (
-              <div className="rounded-xl overflow-hidden border border-gray-100 h-36">
-                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-              </div>
-            )}
-            {previewUrl && setting.accept?.startsWith('audio') && (
-              <audio controls src={previewUrl} className="w-full" />
-            )}
-          </>
-        )}
-
+      <div className="p-5 pt-0">
         <button
           onClick={handleSave}
           disabled={saving}
-          className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-white text-sm transition-all ${saved ? 'bg-green-500' : `${setting.color} hover:brightness-110`} disabled:opacity-60`}
+          className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-white text-sm transition-all ${
+            saved ? 'bg-green-600' : `${setting.color} hover:brightness-110`
+          } disabled:opacity-60 shadow-xs`}
         >
           {saving ? <FiLoader className="animate-spin" /> : saved ? <FiCheck /> : <FiUpload />}
           {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 export default function AdminSettings() {
   const [currentValues, setCurrentValues] = useState({});
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Immediate non-blocking fetch
     api.get('/settings')
       .then(r => setCurrentValues(r.data.settings || {}))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
+  const handleValueUpdate = (key, newValue) => {
+    setCurrentValues(prev => ({ ...prev, [key]: newValue }));
+  };
+
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="mb-8">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
+      <div className="mb-6">
         <div className="flex items-center gap-3 mb-1">
-          <div className="w-10 h-10 bg-church-gold rounded-xl flex items-center justify-center">
-            <FiSettings className="text-white text-xl" />
+          <div className="w-10 h-10 bg-church-gold text-white rounded-xl flex items-center justify-center shadow-gold">
+            <FiSettings className="text-xl" />
           </div>
-          <h1 className="font-display text-2xl font-bold text-church-royal-blue">Site Settings</h1>
+          <div>
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Site Settings</h1>
+            <p className="text-gray-500 text-xs">Manage website media, videos, and branding files.</p>
+          </div>
         </div>
-        <p className="text-gray-500 text-sm ml-13">Manage website media, videos, and branding files.</p>
       </div>
 
-      <div className="mt-5 mb-5 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-sm text-amber-700">
-        <strong>Note:</strong> After updating an image or audio file, users may need to refresh the website to see the new content.
+      <div className="mb-6 p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-800 leading-relaxed shadow-xs">
+        <strong className="text-amber-950 font-bold">Note:</strong> After updating an image or audio file, users may need to refresh the website to see the new content.
         The Tamil Rosary audio and home page images will update instantly for new visitors.
       </div>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <FiLoader className="animate-spin text-church-gold text-3xl" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {SETTING_CARDS.map(s => (
-            <SettingCard key={s.key} setting={s} currentValue={currentValues[s.key]} />
-          ))}
-        </div>
-      )}
-
-      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {SETTING_CARDS.map(s => (
+          <SettingCard
+            key={s.key}
+            setting={s}
+            currentValue={currentValues[s.key]}
+            onValueUpdate={handleValueUpdate}
+          />
+        ))}
+      </div>
     </div>
   );
 }
