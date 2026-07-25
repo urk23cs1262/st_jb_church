@@ -351,7 +351,7 @@ export default function UserDashboard() {
             <div className="glass-card p-6 border border-gray-100">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="font-display text-lg font-bold text-church-royal-blue flex items-center gap-2"><FiFileText className="text-church-gold" /> Documents</h2>
-                <Link to="/dashboard/documents" className="text-church-gold text-[10px] font-bold hover:underline uppercase tracking-tighter">New Request</Link>
+                <Link to="/dashboard/documents" className="text-church-gold text-[12px] font-bold hover:underline uppercase tracking-tighter">+ New Request</Link>
               </div>
               <div className="space-y-3">
                 {documents.slice(0, 3).map((d, i) => (
