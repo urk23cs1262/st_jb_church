@@ -78,4 +78,16 @@ const uploadFileSetting = async (req, res) => {
   }
 };
 
-module.exports = { getSettings, getSetting, updateTextSetting, uploadFileSetting };
+// DELETE / REMOVE a setting (admin only)
+const deleteSetting = async (req, res) => {
+  try {
+    const { key } = req.params;
+    await SiteSettings.findOneAndDelete({ key });
+    cachedMap = null; // Invalidate cache
+    res.json({ success: true, message: 'Setting removed' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getSettings, getSetting, updateTextSetting, uploadFileSetting, deleteSetting };

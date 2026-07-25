@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { FiSettings, FiUpload, FiYoutube, FiMusic, FiImage, FiCheck, FiLoader, FiExternalLink } from 'react-icons/fi';
+import { FiSettings, FiUpload, FiYoutube, FiMusic, FiImage, FiCheck, FiLoader, FiExternalLink, FiTrash2 } from 'react-icons/fi';
 import { GiCrucifix } from 'react-icons/gi';
 import toast from 'react-hot-toast';
 import api, { UPLOADS_URL } from '../../services/api';
@@ -76,6 +76,7 @@ function SettingCard({ setting, currentValue, onValueUpdate }) {
   const [debouncedValue, setDebouncedValue] = useState('');
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [saved, setSaved] = useState(false);
   const fileRef = useRef(null);
 
@@ -143,17 +144,44 @@ function SettingCard({ setting, currentValue, onValueUpdate }) {
     }
   };
 
+  const handleRemove = async () => {
+    if (!window.confirm(`Are you sure you want to remove ${setting.label}? It will revert to default.`)) return;
+    setRemoving(true);
+    try {
+      await api.delete(`/settings/${setting.key}`);
+      setTextValue('');
+      setDebouncedValue('');
+      setFile(null);
+      if (fileRef.current) fileRef.current.value = '';
+      if (onValueUpdate) onValueUpdate(setting.key, null);
+      toast.success(`${setting.label} removed! Reverted to default.`);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to remove setting');
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const hasConfiguredValue = Boolean(currentValue || file || (setting.type === 'text' && textValue.trim()));
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col justify-between">
       <div>
-        <div className={`${setting.color} p-4 flex items-center gap-3 text-white`}>
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-            {setting.icon}
+        <div className={`${setting.color} p-4 flex items-center justify-between text-white`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              {setting.icon}
+            </div>
+            <div>
+              <p className="font-bold text-base leading-tight">{setting.label}</p>
+              <p className="text-white/70 text-xs">{setting.type === 'text' ? 'Text Setting' : 'File Upload'}</p>
+            </div>
           </div>
-          <div>
-            <p className="font-bold text-base leading-tight">{setting.label}</p>
-            <p className="text-white/70 text-xs">{setting.type === 'text' ? 'Text Setting' : 'File Upload'}</p>
-          </div>
+          {hasConfiguredValue && (
+            <span className="text-[10px] bg-white/20 text-white font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+              Customized
+            </span>
+          )}
         </div>
 
         <div className="p-5 space-y-4">
@@ -221,17 +249,29 @@ function SettingCard({ setting, currentValue, onValueUpdate }) {
         </div>
       </div>
 
-      <div className="p-5 pt-0">
+      <div className="p-5 pt-0 flex gap-2">
         <button
           onClick={handleSave}
-          disabled={saving}
-          className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-white text-sm transition-all ${
+          disabled={saving || removing}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-white text-sm transition-all ${
             saved ? 'bg-green-600' : `${setting.color} hover:brightness-110`
           } disabled:opacity-60 shadow-xs`}
         >
           {saving ? <FiLoader className="animate-spin" /> : saved ? <FiCheck /> : <FiUpload />}
           {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
         </button>
+
+        {hasConfiguredValue && (
+          <button
+            onClick={handleRemove}
+            disabled={saving || removing}
+            title={`Remove custom ${setting.label}`}
+            className="px-3.5 py-2.5 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 text-xs flex items-center justify-center gap-1.5 transition-all shadow-xs disabled:opacity-50"
+          >
+            {removing ? <FiLoader className="animate-spin" /> : <FiTrash2 className="text-base" />}
+            <span>Remove</span>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -241,7 +281,6 @@ export default function AdminSettings() {
   const [currentValues, setCurrentValues] = useState({});
 
   useEffect(() => {
-    // Immediate non-blocking fetch
     api.get('/settings')
       .then(r => setCurrentValues(r.data.settings || {}))
       .catch(() => {});
@@ -267,7 +306,7 @@ export default function AdminSettings() {
 
       <div className="mb-6 p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-800 leading-relaxed shadow-xs">
         <strong className="text-amber-950 font-bold">Note:</strong> After updating an image or audio file, users may need to refresh the website to see the new content.
-        The Tamil Rosary audio and home page images will update instantly for new visitors.
+        Removing a custom upload will instantly revert that setting back to default.
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

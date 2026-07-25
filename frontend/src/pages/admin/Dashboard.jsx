@@ -24,7 +24,7 @@ const NAV_ITEMS = [
   { icon: <FiMessageSquare />, label: 'Tickets', path: '/admin/tickets', color: 'bg-rose-600' },
   { icon: <GiPrayer />, label: 'Prayers', path: '/admin/prayers', color: 'bg-church-gold' },
   { icon: <SiWhatsapp />, label: 'WhatsApp Bot', path: '/admin/whatsapp', color: 'bg-[#25D366]' },
-  { icon: <FiSettings />, label: 'Settings', path: '/admin/settings', color: 'bg-gray-600' },
+  { icon: <FiSettings />, label: 'Site Settings', path: '/admin/settings', color: 'bg-gray-600' },
 ];
 
 export default function AdminDashboard() {

@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { getSettings, getSetting, updateTextSetting, uploadFileSetting } = require('../controllers/settingsController');
+const { getSettings, getSetting, updateTextSetting, uploadFileSetting, deleteSetting } = require('../controllers/settingsController');
 const { protect, adminOnly } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
@@ -13,5 +13,6 @@ router.post('/file', protect, adminOnly, (req, res, next) => {
   req.uploadFolder = 'settings';
   next();
 }, upload.single('file'), uploadFileSetting);
+router.delete('/:key', protect, adminOnly, deleteSetting);
 
 module.exports = router;
