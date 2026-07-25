@@ -232,7 +232,7 @@ export default function PolicyModal({ isOpen, onClose, initialTab = 'terms' }) {
             onClick={onClose}
             className="btn-gold w-full sm:w-auto px-6 py-2.5 text-xs font-bold shadow-md rounded-xl justify-center"
           >
-            I Understood
+            Yes, i Understood
           </button>
         </div>
       </motion.div>

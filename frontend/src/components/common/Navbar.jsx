@@ -9,7 +9,7 @@ import { UPLOADS_URL, getMediaUrl } from '../../services/api';
 
 import {
   FiMenu, FiX, FiUser, FiLogOut,
-  FiSettings, FiBell, FiGlobe, FiVolume2, FiVolumeX, FiMusic, FiHeadphones, FiChevronDown
+  FiSettings, FiBell, FiGlobe, FiVolume2, FiVolumeX, FiMusic, FiHeadphones, FiChevronDown, FiLayout
 } from 'react-icons/fi';
 import { GiChurch, GiCrucifix } from 'react-icons/gi';
 import churchLogo from '../../assets/image copy.png';
@@ -273,7 +273,7 @@ export default function Navbar() {
                           </Link>
                         )}
                         <Link to="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gold-50 transition-colors">
-                          <FiUser className="text-church-gold" /> {t('nav.dashboard')}
+                          <FiLayout className="text-church-gold" /> {t('nav.dashboard')}
                         </Link>
                         <Link to={isAdmin ? "/admin/notifications" : "/dashboard/notifications"} onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gold-50 transition-colors">
                           <span className="relative flex items-center justify-center">

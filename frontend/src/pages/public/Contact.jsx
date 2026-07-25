@@ -5,7 +5,8 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { FiMapPin, FiPhone, FiMail, FiClock, FiSend } from 'react-icons/fi';
+import { Link } from 'react-router-dom';
+import { FiMapPin, FiPhone, FiMail, FiClock, FiSend, FiHelpCircle, FiArrowRight } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { GiChurch } from 'react-icons/gi';
 import PageHero from '../../components/common/PageHero';
@@ -62,6 +63,25 @@ export default function Contact() {
                 ))}
               </div>
 
+              {/* FAQ Quick Link Banner */}
+              <Link
+                to="/faq"
+                className="flex items-center justify-between bg-amber-50/90 border border-amber-300/80 p-4 sm:p-5 rounded-2xl hover:bg-amber-100/90 transition-all shadow-xs mb-5 group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-church-gold text-white flex items-center justify-center text-xl shadow-gold flex-shrink-0">
+                    <FiHelpCircle />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-amber-950 text-sm">Have a Quick Question?</h4>
+                    <p className="text-xs text-amber-800">Check our Frequently Asked Questions (FAQ) for instant answers.</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold text-church-gold group-hover:translate-x-1 transition-transform flex items-center gap-1 flex-shrink-0">
+                  View FAQs <FiArrowRight />
+                </span>
+              </Link>
+
               {/* WhatsApp */}
               <a href="https://wa.me/7639520006?text=Hello%20St.%20John%20de%20Britto's%20Church" target="_blank" rel="noreferrer"
                 className="flex items-center gap-3 bg-green-500 text-white px-6 py-4 rounded-2xl hover:bg-green-600 transition-all shadow-lg mb-6 font-semibold">
@@ -83,7 +103,12 @@ export default function Contact() {
 
             {/* Contact form */}
             <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-              <h2 className="section-title mb-8">Send Us a Message</h2>
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="section-title mb-0">Send Us a Message</h2>
+                {/* <Link to="/faq" className="text-xs font-bold text-church-gold hover:underline flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200/80 shadow-xs">
+                  <FiHelpCircle className="text-sm" /> View FAQs
+                </Link> */}
+              </div>
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 glass-card p-8">
                 <div className="grid grid-cols-2 gap-4">
                   <div>

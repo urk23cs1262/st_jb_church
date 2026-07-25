@@ -70,6 +70,7 @@ app.use('/api/permission-requests', require('./routes/permissionRequests'));
 app.use('/api/security', require('./routes/security'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/upload', require('./routes/upload'));
 
 
 app.use('/api/mass-reading', require('./routes/massReading'));

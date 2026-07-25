@@ -7,7 +7,7 @@ import CountUpLib from 'react-countup';
 const CountUp = CountUpLib.default || CountUpLib;
 import { GiChurch, GiCrucifix, GiCandleLight, GiDove, GiPrayer, GiSpellBook } from 'react-icons/gi';
 import { FaDonate } from "react-icons/fa";
-import { FiCalendar, FiClock, FiMapPin, FiArrowRight, FiVolume2 } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiMapPin, FiArrowRight, FiVolume2, FiLayout } from 'react-icons/fi';
 import { MdNotifications } from 'react-icons/md';
 import { FaCalendarAlt } from "react-icons/fa";
 import { GiPrayerBeads, GiHolyGrail, GiAngelWings } from "react-icons/gi";
@@ -172,17 +172,17 @@ export default function Home() {
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
+            className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 max-w-xs sm:max-w-none mx-auto w-full"
           >
-            <Link to="/mass-timings" className="btn-gold text-base py-4 px-8 shadow-gold-lg animate-pulse-glow">
+            <Link to="/mass-timings" className="btn-gold text-base py-4 px-8 shadow-gold-lg animate-pulse-glow w-full sm:w-auto text-center justify-center flex items-center gap-2">
               <FiClock /> {t('home.viewMass')}
             </Link>
             {isAuthenticated ? (
-              <Link to={isAdmin ? "/admin" : "/dashboard"} className="px-8 py-4 border-2 border-white/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300 inline-flex items-center gap-2 text-base">
-                <FiClock /> Go to Dashboard
+              <Link to={isAdmin ? "/admin" : "/dashboard"} className="w-full sm:w-auto px-8 py-4 border-2 border-white/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300 inline-flex items-center justify-center gap-2 text-base text-center">
+                <FiLayout /> Go to Dashboard
               </Link>
             ) : (
-              <Link to="/register" className="px-8 py-4 border-2 border-white/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300 inline-flex items-center gap-2 text-base">
+              <Link to="/register" className="w-full sm:w-auto px-8 py-4 border-2 border-white/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300 inline-flex items-center justify-center gap-2 text-base text-center">
                 <GiDove /> {t('home.joinUs')}
               </Link>
             )}

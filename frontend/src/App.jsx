@@ -20,7 +20,7 @@ const LiveStream = lazy(() => import('./pages/public/LiveStream'));
 const Contact = lazy(() => import('./pages/public/Contact'));
 const Donate = lazy(() => import('./pages/public/Donate'));
 const BibleVerse = lazy(() => import('./pages/public/BibleVerse'));
-const PrayerRequests = lazy(() => import('./pages/public/PrayerRequests'));
+const PrayerRequests = lazy(() => import('./pages/user/PrayerRequests'));
 const Announcements = lazy(() => import('./pages/public/Announcements'));
 const Rosary = lazy(() => import('./pages/public/Rosary'));
 const CatholicCalendar = lazy(() => import('./pages/public/CatholicCalendar'));

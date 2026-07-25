@@ -107,8 +107,8 @@ const updateStatus = async (req, res) => {
       createNotification({
         userId: ticket.userId._id || ticket.userId,
         recipient: 'user',
-        title: 'Your Inquiry Has Been Resolved ✅',
-        message: `Your inquiry regarding "${ticket.subject}" has been marked as resolved. Thank you for contacting St. John de Britto's Church.`,
+        title: 'Your Inquiry Has Been Resolved and closed ✅',
+        message: `Your inquiry regarding "${ticket.subject}" has been marked as resolved and closed. Thank you for contacting St. John de Britto's Church.`,
         type: 'ticket',
         category: 'tickets',
         priority: 'medium',
@@ -123,4 +123,12 @@ const updateStatus = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-module.exports = { getMyTickets, getAll, create, reply, updateStatus };
+const deleteTicket = async (req, res) => {
+  try {
+    const ticket = await Ticket.findByIdAndDelete(req.params.id);
+    if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
+    res.json({ success: true, message: 'Ticket deleted permanently' });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+};
+
+module.exports = { getMyTickets, getAll, create, reply, updateStatus, deleteTicket };

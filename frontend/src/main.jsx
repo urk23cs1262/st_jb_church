@@ -51,16 +51,16 @@ class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center">
-          <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-200 max-w-md space-y-4">
+        <div className="fixed inset-0 z-[99999] min-h-screen w-full flex items-center justify-center bg-slate-50/90 backdrop-blur-sm p-4 text-center overflow-y-auto">
+          <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-gray-200 w-full max-w-sm sm:max-w-md space-y-4 my-auto mx-auto flex flex-col items-center justify-center text-center">
             <h2 className="text-xl font-bold text-church-royal-blue">Page View Restored</h2>
-            <p className="text-xs text-gray-600">The translation view updated. Tap below to reload the page view cleanly.</p>
+            <p className="text-xs text-gray-600 leading-relaxed">The translation view updated. Tap below to reload the page view cleanly.</p>
             <button
               onClick={() => {
                 this.setState({ hasError: false });
                 window.location.reload();
               }}
-              className="btn-gold px-6 py-3 text-xs font-bold w-full rounded-xl"
+              className="btn-gold px-6 py-3.5 text-xs sm:text-sm font-bold w-full rounded-xl shadow-gold justify-center"
             >
               Reload Page View
             </button>

@@ -89,8 +89,6 @@ export default function PrayerRequests() {
       </div>
 
       <div className="min-h-screen bg-church-cream ">
-        {/* <PageHero title={<>{t('prayer.title')}</>} subtitle={<>Community Prayer</>} /> */}
-
         <section className="py-16">
           <div className="max-w-5xl mx-auto px-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -100,7 +98,7 @@ export default function PrayerRequests() {
                 <form onSubmit={handleSubmit(onSubmit)} className="church-card p-8 space-y-6">
                   <div>
                     <label className="church-label">Your Name</label>
-                    <input {...register('name')} className="church-input" placeholder="Full Name" />
+                    <input {...register('name')} className="church-input" placeholder="Full Name" defaultValue={user?.name || ''} />
                   </div>
 
                   {/* Radio Buttons Section */}
@@ -129,7 +127,7 @@ export default function PrayerRequests() {
                           className="w-4 h-4 text-church-gold focus:ring-church-gold"
                           onChange={(e) => {
                             register('prayerLocation').onChange(e);
-                            setValue('type', 'Thanksgiving Mass');
+                            setValue('type', 'Thanksgiving');
                           }}
                         />
                         <span className="text-sm font-medium text-gray-700">In Church (Mass Intention)</span>
@@ -167,12 +165,18 @@ export default function PrayerRequests() {
                           </>
                         ) : (
                           <>
-                            <option value="Thanksgiving Mass">Thanksgiving Mass</option>
-                            <option value="Mass for Departed Soul">Mass for Departed Soul (RIP)</option>
-                            <option value="Special Intention Mass">Special Intention Mass</option>  
-                            <option value="Healing Mass">Healing Mass</option>
-                            <option value="Success in Exams/Work">Success in Exams/Business/Work</option>
-                            <option value="Other Mass Intention">Others</option>
+                            <option value="Thanksgiving">Thanksgiving</option>
+                            <option value="Birthday Blessing">Birthday Blessing</option>
+                            <option value="Wedding Anniversary">Wedding Anniversary</option>
+                            <option value="Good Health">Good Health</option>
+                            <option value="Healing">Healing</option>
+                            <option value="Safe Journey">Safe Journey</option>
+                            <option value="Exam Success">Exam Success</option>
+                            <option value="New House Blessing">New House Blessing</option>
+                            <option value="Special Intention">Special Intention</option>
+                            <option value="For the Souls of the Departed">For the Souls of the Departed</option>
+                            <option value="RIP Anniversary Mass">RIP Anniversary Mass</option>
+                            <option value="Others">Others</option>
                           </>
                         )}
                       </select>
@@ -217,7 +221,7 @@ export default function PrayerRequests() {
 
                       <div>
                         <label className="church-label">Contact Phone / WhatsApp for Priest Confirmation</label>
-                        <input type="tel" {...register('contactPhone')} className="church-input bg-white" placeholder="Enter phone number for priest to confirm appointment" />
+                        <input type="tel" {...register('contactPhone')} className="church-input bg-white" placeholder="Enter phone number for priest to confirm appointment" defaultValue={user?.phone || ''} />
                       </div>
                     </motion.div>
                   )}

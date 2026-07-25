@@ -45,7 +45,7 @@ export default function Tickets() {
     <div className="min-h-screen pt-24 bg-church-cream ">
       <div className="bg-gray-600 py-10">
         <div className="max-w-5xl mx-auto px-4">
-          <Link to="/dashboard" className="text-gold-400 text-sm hover:underline flex items-center gap-1 mb-3"><FiArrowLeft /> Back</Link>
+          <Link to="/dashboard" className="text-gold-400 text-sm hover:underline flex items-center gap-1 mb-3"><FiArrowLeft /> Back to dashboard</Link>
           <div className="flex items-center justify-between">
             <h1 className="font-display text-3xl font-bold text-white">My Tickets & Enquiries</h1>
             <button onClick={() => setShowForm(!showForm)} className="btn-gold text-sm py-2">{showForm ? 'Cancel' : '+ New Ticket'}</button>

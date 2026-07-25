@@ -14,6 +14,7 @@ const quickLinks = [
   { label: 'nav.mass', path: '/mass-timings' },
   { label: 'nav.events', path: '/events' },
   { label: 'nav.gallery', path: '/gallery' },
+  { label: 'nav.nearby', path: '/nearby-parishes' },
   { label: 'nav.faq', path: '/faq' },
 ];
 
