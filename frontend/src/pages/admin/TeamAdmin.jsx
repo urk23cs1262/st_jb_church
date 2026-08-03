@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiPlus, FiEdit2, FiTrash2, FiEye, FiEyeOff, FiArrowUp, FiArrowDown,
-  FiSearch, FiX, FiCheck, FiUser, FiMail, FiPhone, FiTag, FiImage, FiSliders
+  FiSearch, FiX, FiCheck, FiUser, FiMail, FiPhone, FiTag, FiImage, FiSliders, FiRefreshCw
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import api, { getMediaUrl } from '../../services/api';
@@ -167,6 +167,40 @@ export default function TeamAdmin() {
     }
   };
 
+  const deleteAllMembers = async () => {
+    if (!window.confirm(`⚠️ ARE YOU SURE? This will permanently delete ALL ${members.length} team members!`)) return;
+    try {
+      const res = await api.delete('/team/all/members');
+      setMembers([]);
+      toast.success(res.data.message || 'All team members deleted');
+    } catch {
+      toast.error('Failed to delete all members');
+    }
+  };
+
+  const deleteCategoryMembers = async (dept) => {
+    const deptMembersCount = members.filter(m => m.department === dept).length;
+    if (!window.confirm(`Are you sure you want to delete all ${deptMembersCount} member(s) in "${dept}"?`)) return;
+    try {
+      const res = await api.delete(`/team/category/${encodeURIComponent(dept)}`);
+      setMembers(prev => prev.filter(m => m.department !== dept));
+      toast.success(res.data.message || `Deleted members in ${dept}`);
+    } catch {
+      toast.error('Failed to delete category members');
+    }
+  };
+
+  const resetDefaultTeam = async () => {
+    if (!window.confirm('Reset team back to original default members?')) return;
+    try {
+      const res = await api.post('/team/reset');
+      setMembers(res.data.members || []);
+      toast.success('Default team members restored!');
+    } catch {
+      toast.error('Failed to reset default team');
+    }
+  };
+
   const moveMember = async (index, direction) => {
     const newMembers = [...members];
     const targetIndex = index + direction;
@@ -206,30 +240,66 @@ export default function TeamAdmin() {
           <p className="text-gray-500 text-xs sm:text-sm mt-0.5">Configure parish leadership, administrative staff, and ministry heads</p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="btn-gold px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-gold self-start lg:self-auto"
-        >
-          <FiPlus className="text-base" /> Add Team Member
-        </button>
+        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+          {members.length > 0 ? (
+            <button
+              onClick={deleteAllMembers}
+              className="px-3.5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md transition-all active:scale-95 whitespace-nowrap"
+              title="Delete all team members"
+            >
+              <FiTrash2 className="text-base" /> Delete All Members
+            </button>
+          ) : (
+            <button
+              onClick={resetDefaultTeam}
+              className="px-3.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 shadow-md transition-all active:scale-95 whitespace-nowrap"
+              title="Restore initial default 17 team members"
+            >
+              <FiRefreshCw className="text-base" /> Reset Default Team
+            </button>
+          )}
+
+          <button
+            onClick={openAddModal}
+            className="btn-gold px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-gold"
+          >
+            <FiPlus className="text-base" /> Add Team Member
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs & Search */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-4 scrollbar-none">
-          {['All', ...DEPARTMENTS].map(dept => (
+        <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 scrollbar-none">
+          {['All', ...DEPARTMENTS].map(dept => {
+            const count = dept === 'All' ? members.length : members.filter(m => m.department === dept).length;
+            return (
+              <button
+                key={dept}
+                onClick={() => setSelectedDept(dept)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
+                  selectedDept === dept
+                    ? 'bg-church-gold text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <span>{dept}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${selectedDept === dept ? 'bg-white/30 text-white' : 'bg-gray-200 text-gray-700'}`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+
+          {selectedDept !== 'All' && members.some(m => m.department === selectedDept) && (
             <button
-              key={dept}
-              onClick={() => setSelectedDept(dept)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                selectedDept === dept
-                  ? 'bg-church-gold text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              onClick={() => deleteCategoryMembers(selectedDept)}
+              className="ml-1 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs whitespace-nowrap"
+              title={`Delete all members in ${selectedDept}`}
             >
-              {dept}
+              <FiTrash2 className="text-xs" /> Delete All in "{selectedDept}"
             </button>
-          ))}
+          )}
         </div>
 
         <div className="relative w-full md:w-64">

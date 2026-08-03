@@ -211,14 +211,7 @@ const INITIAL_TEAM = [
 // GET /api/team — public (active members only)
 const getPublicTeamMembers = async (req, res) => {
   try {
-    let members = await TeamMember.find({ isActive: true }).sort({ order: 1, createdAt: 1 });
-    
-    // Seed initial data if database is empty
-    if (members.length === 0) {
-      await TeamMember.insertMany(INITIAL_TEAM);
-      members = await TeamMember.find({ isActive: true }).sort({ order: 1, createdAt: 1 });
-    }
-
+    const members = await TeamMember.find({ isActive: true }).sort({ order: 1, createdAt: 1 });
     res.json({ success: true, count: members.length, members });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -228,11 +221,7 @@ const getPublicTeamMembers = async (req, res) => {
 // GET /api/team/admin — admin (all members including hidden)
 const getAllTeamMembers = async (req, res) => {
   try {
-    let members = await TeamMember.find({}).sort({ order: 1, createdAt: 1 });
-    if (members.length === 0) {
-      await TeamMember.insertMany(INITIAL_TEAM);
-      members = await TeamMember.find({}).sort({ order: 1, createdAt: 1 });
-    }
+    const members = await TeamMember.find({}).sort({ order: 1, createdAt: 1 });
     res.json({ success: true, count: members.length, members });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -334,13 +323,14 @@ const updateTeamMember = async (req, res) => {
   }
 };
 
-// DELETE /api/team/:id — admin
+// DELETE /api/team/:id — admin (permanent database deletion)
 const deleteTeamMember = async (req, res) => {
   try {
-    await TeamMember.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: 'Team member deleted' });
+    const deleted = await TeamMember.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ success: false, message: 'Team member not found' });
+    res.json({ success: true, message: 'Team member permanently deleted from database' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: 'Failed to delete member: ' + err.message });
   }
 };
 
@@ -378,6 +368,40 @@ const reorderTeamMembers = async (req, res) => {
   }
 };
 
+// DELETE /api/team/all/members — admin (delete all members)
+const deleteAllTeamMembers = async (req, res) => {
+  try {
+    const result = await TeamMember.deleteMany({});
+    res.json({ success: true, message: `Deleted all ${result.deletedCount} team members`, deletedCount: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// DELETE /api/team/category/:category — admin (delete members in category)
+const deleteTeamMembersByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+    if (!category) return res.status(400).json({ success: false, message: 'Category is required' });
+
+    const result = await TeamMember.deleteMany({ department: new RegExp(`^${category.trim()}$`, 'i') });
+    res.json({ success: true, message: `Deleted ${result.deletedCount} members from "${category}"`, deletedCount: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// POST /api/team/reset — admin (reset back to default team members)
+const resetDefaultTeam = async (req, res) => {
+  try {
+    await TeamMember.deleteMany({});
+    const members = await TeamMember.insertMany(INITIAL_TEAM);
+    res.json({ success: true, message: `Reset team back to default ${members.length} members`, members });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getPublicTeamMembers,
   getAllTeamMembers,
@@ -385,5 +409,8 @@ module.exports = {
   updateTeamMember,
   deleteTeamMember,
   toggleTeamMemberActive,
-  reorderTeamMembers
+  reorderTeamMembers,
+  deleteAllTeamMembers,
+  deleteTeamMembersByCategory,
+  resetDefaultTeam
 };
