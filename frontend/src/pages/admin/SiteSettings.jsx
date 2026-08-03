@@ -4,6 +4,7 @@ import { FiSettings, FiUpload, FiYoutube, FiMusic, FiImage, FiCheck, FiLoader, F
 import { GiCrucifix } from 'react-icons/gi';
 import toast from 'react-hot-toast';
 import api, { UPLOADS_URL } from '../../services/api';
+import DailyVersesManager from '../../components/admin/DailyVersesManager';
 
 const SETTING_CARDS = [
   {
@@ -28,13 +29,13 @@ const SETTING_CARDS = [
   },
   {
     key: 'heroImage',
-    label: 'Home Page Hero Image',
+    label: 'Home Page Background Image',
     description: 'Upload the main header/hero background image shown on the Home page.',
     icon: <FiImage className="text-2xl" />,
     color: 'bg-blue-600',
     type: 'file',
     accept: 'image/*',
-    fileLabel: 'Upload Hero Image'
+    fileLabel: 'Upload Background Image'
   },
   {
     key: 'stJohnImage',
@@ -277,7 +278,7 @@ function SettingCard({ setting, currentValue, onValueUpdate }) {
   );
 }
 
-export default function AdminSettings() {
+export default function SiteSettings() {
   const [currentValues, setCurrentValues] = useState({});
 
   useEffect(() => {
@@ -291,20 +292,20 @@ export default function AdminSettings() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto">
-      <div className="mb-6">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-8">
+      <div>
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 bg-church-gold text-white rounded-xl flex items-center justify-center shadow-gold">
             <FiSettings className="text-xl" />
           </div>
           <div>
             <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Site Settings</h1>
-            <p className="text-gray-500 text-xs">Manage website media, videos, and branding files.</p>
+            <p className="text-gray-500 text-xs">Manage website media, videos, branding files, and Daily Scripture Verses CMS.</p>
           </div>
         </div>
       </div>
 
-      <div className="mb-6 p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-800 leading-relaxed shadow-xs">
+      <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-800 leading-relaxed shadow-xs">
         <strong className="text-amber-950 font-bold">Note:</strong> After updating an image or audio file, users may need to refresh the website to see the new content.
         Removing a custom upload will instantly revert that setting back to default.
       </div>
@@ -319,6 +320,9 @@ export default function AdminSettings() {
           />
         ))}
       </div>
+
+      {/* Daily Bible Verses CMS Manager */}
+      <DailyVersesManager />
     </div>
   );
 }

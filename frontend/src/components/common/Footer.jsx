@@ -151,23 +151,24 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-white/15 bg-black/30 py-6">
-        <div className="max-w-7xl mx-auto px-4 text-center flex flex-col items-center justify-center gap-2">
+
+      <p className="text-gold-300 font-bold flex items-center justify-center gap-1.5">
+            <span className="italic text-sm">"Made with God's Glory"</span>
+            {/* <span className="text-white"></span> */}
+      </p>
+
+        <div className="max-w-7xl mx-auto mt-2 px-4 text-center flex flex-col items-center justify-center gap-2">
           <p className="text-white font-medium text-xs sm:text-sm tracking-wide">
             {t('footer.copyright', { year: new Date().getFullYear() })}
           </p>
-          
-          <p className="text-gold-300 font-bold text-xs flex items-center justify-center gap-1.5">
-            <span className="italic">"Made with God's Glory"</span>
-            {/* <span className="text-white"></span> */}
-          </p>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-white/90 pt-1">
+          {/* <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-white/90 pt-1">
             <button onClick={() => openPolicyModal('privacy')} className="hover:text-gold-300 transition-colors">Privacy Policy</button>
             <span className="text-white">•</span>
             <button onClick={() => openPolicyModal('terms')} className="hover:text-gold-300 transition-colors">Terms & Conditions</button>
             <span className="text-white">•</span>
             <button onClick={() => openPolicyModal('security')} className="hover:text-gold-300 transition-colors">Security Policy</button>
-          </div>
+          </div> */}
         </div>
       </div>
 

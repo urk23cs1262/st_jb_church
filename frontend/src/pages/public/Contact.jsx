@@ -82,11 +82,26 @@ export default function Contact() {
                 </span>
               </Link>
 
-              {/* WhatsApp */}
-              <a href="https://wa.me/7639520006?text=Hello%20St.%20John%20de%20Britto's%20Church" target="_blank" rel="noreferrer"
-                className="flex items-center gap-3 bg-green-500 text-white px-6 py-4 rounded-2xl hover:bg-green-600 transition-all shadow-lg mb-6 font-semibold">
-                <FaWhatsapp className="text-2xl" /> Chat with us on WhatsApp
-              </a>
+              {/* WhatsApp & SJDB Connect Action Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                <a 
+                  href="https://wa.me/917639520006?text=Hello%20St.%20John%20de%20Britto's%20Church" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2.5 bg-[#25D366] hover:bg-green-600 text-white px-4 py-3.5 rounded-2xl transition-all shadow-lg font-bold text-xs sm:text-sm"
+                >
+                  <FaWhatsapp className="text-xl" /> Chat with us on WhatsApp
+                </a>
+
+                <a 
+                  href="https://wa.me/917639520006?text=HI%0A%0A%F0%9F%99%8F%20SJDB%20Connect%0AConnecting%20Faith%20%26%20Community" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="flex items-center justify-center gap-2.5 bg-church-royal-blue hover:bg-blue-900 text-white border-2 border-church-gold px-4 py-3.5 rounded-2xl transition-all shadow-lg font-bold text-xs sm:text-sm"
+                >
+                  <GiChurch className="text-xl text-church-gold" /> Chat with SJDB Connect
+                </a>
+              </div>
 
               {/* Google Maps */}
               <div className="rounded-2xl overflow-hidden shadow-card border border-gray-100 ">

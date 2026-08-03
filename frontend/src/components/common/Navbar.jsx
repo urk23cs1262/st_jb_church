@@ -9,8 +9,9 @@ import { UPLOADS_URL, getMediaUrl } from '../../services/api';
 
 import {
   FiMenu, FiX, FiUser, FiLogOut,
-  FiSettings, FiBell, FiGlobe, FiVolume2, FiVolumeX, FiMusic, FiHeadphones, FiChevronDown, FiLayout
+  FiSettings, FiUserCheck, FiBell, FiGlobe, FiVolume2, FiVolumeX, FiMusic, FiHeadphones, FiChevronDown, FiLayout
 } from 'react-icons/fi';
+import { FaUserCog } from 'react-icons/fa';
 import { GiChurch, GiCrucifix } from 'react-icons/gi';
 import churchLogo from '../../assets/image copy.png';
 import DailySaintTicker from './DailySaintTicker';
@@ -26,6 +27,7 @@ const MORE_LINKS = [
   { key: 'gallery', path: '/gallery', label: 'Gallery' },
   { key: 'live', path: '/live', label: 'Live Stream' },
   { key: 'nearby_parishes', path: '/nearby-parishes', label: 'Nearby Shrines' },
+  { key: 'team', path: '/team', label: 'Our Team' },
 ];
 
 
@@ -269,7 +271,7 @@ export default function Navbar() {
                         </div>
                         {isAdmin && (
                           <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gold-50 transition-colors">
-                            <FiSettings className="text-church-gold" /> {t('nav.admin')}
+                            <FaUserCog className="text-church-gold" /> {t('nav.admin')}
                           </Link>
                         )}
                         <Link to="/dashboard" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-gold-50 transition-colors">

@@ -8,6 +8,7 @@ import './i18n';
 import PageLoader from './components/common/Loader';
 import Layout from './components/common/Layout';
 import ScrollToTop from './components/common/ScrollToTop';
+import WhatsAppWidget from './components/common/WhatsAppWidget';
 
 // Lazy-loaded pages
 const Home = lazy(() => import('./pages/public/Home'));
@@ -27,6 +28,8 @@ const CatholicCalendar = lazy(() => import('./pages/public/CatholicCalendar'));
 const FAQ = lazy(() => import('./pages/public/FAQ'));
 const ParishCouncil = lazy(() => import('./pages/public/ParishCouncil'));
 const NearbyParishes = lazy(() => import('./pages/public/NearbyParishes'));
+const Team = lazy(() => import('./pages/public/Team'));
+const MemberReport = lazy(() => import('./pages/public/MemberReport'));
 
 
 import AdminLayout from './components/admin/AdminLayout';
@@ -58,9 +61,10 @@ const AdminDocuments = lazy(() => import('./pages/admin/Documents'));
 const AdminDonations = lazy(() => import('./pages/admin/Donations'));
 const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
 const AdminPrayers = lazy(() => import('./pages/admin/Prayers'));
-const AdminSettings = lazy(() => import('./pages/admin/Settings'));
+const AdminSettings = lazy(() => import('./pages/admin/SiteSettings'));
 const AdminWhatsApp = lazy(() => import('./pages/admin/WhatsApp'));
 const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
+const AdminTeam = lazy(() => import('./pages/admin/TeamAdmin'));
 
 // Route guards
 const ProtectedRoute = ({ children }) => {
@@ -92,6 +96,7 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <WhatsAppWidget />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public routes with layout */}
@@ -113,6 +118,8 @@ function AppRoutes() {
             <Route path="/faq" element={<FAQ />} />
             <Route path="/parish-council" element={<ParishCouncil />} />
             <Route path="/nearby-parishes" element={<NearbyParishes />} />
+            <Route path="/team" element={<Team />} />
+            <Route path="/member-report/:token" element={<MemberReport />} />
 
             {/* User dashboard routes */}
             <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
@@ -146,6 +153,7 @@ function AppRoutes() {
             <Route path="settings" element={<AdminSettings />} />
             <Route path="whatsapp" element={<AdminWhatsApp />} />
             <Route path="notifications" element={<AdminNotifications />} />
+            <Route path="team" element={<AdminTeam />} />
           </Route>
 
           {/* 404 */}

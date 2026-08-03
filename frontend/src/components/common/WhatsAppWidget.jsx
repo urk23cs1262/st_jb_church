@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import { FaWhatsapp } from 'react-icons/fa';
 
 // Church WhatsApp number
@@ -6,7 +7,14 @@ const WHATSAPP_NUMBER = '917639520006';
 const WHATSAPP_MESSAGE = encodeURIComponent('HI\n\n🙏 SJDB Connect\nConnecting Faith & Community');
 
 export default function WhatsAppWidget({ videoAdOpen = false }) {
-  const zIndex = videoAdOpen ? 'z-[55]' : 'z-[35]';
+  const location = useLocation();
+
+  // Show WhatsApp widget ONLY on the home page ('/')
+  if (location.pathname !== '/') {
+    return null;
+  }
+
+  const zIndex = videoAdOpen ? 'z-[55]' : 'z-50';
 
   return (
     <AnimatePresence>

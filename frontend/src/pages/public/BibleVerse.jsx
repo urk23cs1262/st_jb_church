@@ -60,9 +60,26 @@ export default function BibleVerse() {
   const isTamil = i18n.language === 'ta';
   const dateInputRef = useRef(null);
 
-  // Featured static verse
+  // Featured verse state
   const [current, setCurrent] = useState(new Date().getDay() % BIBLE_VERSES.length);
-  const verse = BIBLE_VERSES[current];
+  const [dailyVerseData, setDailyVerseData] = useState(null);
+
+  useEffect(() => {
+    api.get('/daily-verse')
+      .then(res => {
+        if (res.data.success) {
+          setDailyVerseData(res.data);
+        }
+      })
+      .catch(e => console.error('Failed to load daily verse:', e));
+  }, []);
+
+  const verse = dailyVerseData ? {
+    ref: dailyVerseData.reference,
+    en: dailyVerseData.english,
+    ta: dailyVerseData.tamil || BIBLE_VERSES[current].ta,
+    category: dailyVerseData.category
+  } : BIBLE_VERSES[current];
 
   // Catholic Gallery live readings
   const today = localDateKey();
@@ -188,7 +205,12 @@ export default function BibleVerse() {
             <div ref={verseCardRef} className="glass-card p-10 text-center relative overflow-hidden bg-white">
               <GiSpellBook className="text-church-gold/10 text-[200px] absolute -right-10 -top-10 pointer-events-none" />
               <div className="relative z-10">
-                <p className="section-subtitle mb-4">Daily Bible Verse</p>
+                <p className="section-subtitle mb-2">Daily Bible Verse</p>
+                {verse.category && (
+                  <span className="inline-block bg-amber-100 text-amber-900 border border-amber-300/80 font-bold text-xs px-3.5 py-1 rounded-full mb-4 shadow-xs">
+                  {verse.category}
+                  </span>
+                )}
                 <blockquote className="text-2xl md:text-3xl text-gray-800 font-serif italic leading-relaxed mb-6">
                   "{isTamil ? verse.ta : verse.en}"
                 </blockquote>
@@ -198,9 +220,9 @@ export default function BibleVerse() {
             </div>
 
             <div className="flex gap-3 justify-center mt-4 flex-wrap relative z-20">
-              <button onClick={() => setCurrent(Math.floor(Math.random() * BIBLE_VERSES.length))} className="btn-outline-gold text-sm flex items-center gap-2">
+              {/* <button onClick={() => setCurrent(Math.floor(Math.random() * BIBLE_VERSES.length))} className="btn-outline-gold text-sm flex items-center gap-2">
                 🎲 Random Verse
-              </button>
+              </button> */}
 
               {/* Share Button (Direct to WhatsApp) */}
               <button onClick={shareVerse} className="btn-gold text-sm flex items-center gap-2">
@@ -210,10 +232,10 @@ export default function BibleVerse() {
               {/* Download Image Button */}
               <button 
                 onClick={downloadVerseImage} 
-                className="w-10 h-10 rounded-full border border-church-gold text-church-gold flex items-center justify-center hover:bg-church-gold hover:text-white transition-colors shadow-sm bg-white" 
+                className="btn-gold text-sm flex items-center gap-2" 
                 title="Download as Image"
               >
-                <FiDownload />
+                <FiDownload /> Download
               </button>
             </div>
           </motion.div>

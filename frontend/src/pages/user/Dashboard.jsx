@@ -174,9 +174,15 @@ export default function UserDashboard() {
                 <h1 className="text-white font-display text-xl sm:text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight break-words my-0.5 md:my-1 leading-tight">
                   {user?.name}
                 </h1>
-                <p className="text-gray-200 text-xs sm:text-sm md:text-lg font-medium break-words opacity-90">
-                  {user?.phone} {user?.parishMemberId ? `• ID: ${user.parishMemberId}` : ''}
-                </p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  {user?.parishMemberId && (
+                    <span className="bg-amber-400/20 text-amber-300 border border-amber-400/40 text-xs sm:text-sm font-mono font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                      {user.parishMemberId}
+                    </span>
+                  )}
+                  {user?.parishMemberId && user?.phone && <span className="text-gray-300 font-bold text-xs sm:text-sm">•</span>}
+                  <span className="text-gray-200 text-xs sm:text-sm font-medium opacity-90">{user?.phone}</span>
+                </div>
               </div>
             </div>
             {/* Vertical layout on Mobile (< 640px), Horizontal on Tablet/Desktop (≥ 640px) */}

@@ -214,4 +214,82 @@ const sendCustomMessage = async (req, res) => {
 
 
 
-module.exports = { getStatus, getQR, resetSession, getSubscribers, getStats, triggerBroadcast, sendCustomMessage };
+// POST /api/bot/test-message — Admin Playground to test bot interaction flow
+const testBotMessage = async (req, res) => {
+  try {
+    const { getConnectionStatus } = require('../bot/whatsapp');
+    const { connected } = getConnectionStatus();
+    if (!connected) {
+      return res.status(400).json({ success: false, message: 'WhatsApp Bot is disconnected. Please link your device via QR code under the Overview tab first.' });
+    }
+
+    const { message, sessionState = {} } = req.body;
+    let { step = 'welcome', preferences = [], language = 'en' } = sessionState;
+    const rawText = (message || '').trim();
+    const text = rawText.toUpperCase();
+
+    let botReply = '';
+    let nextStep = step;
+    let newPreferences = [...preferences];
+    let newLanguage = language;
+
+    const isHiTrigger = /\b(HI|HELLO|START|RESET|MENU)\b/i.test(text) || text.includes('SJDB CONNECT');
+
+    if (isHiTrigger) {
+      nextStep = 'preferences';
+      botReply = `🙏 *Welcome to SJDB Connect*\n_Connecting Faith & Community_\n\nDear friend, thank you for reaching out to *St. John de Britto's Church, Kalayarkoil*!\n\n🔗 *Visit Our Parish Portal:*\nhttps://st-jb-church.vercel.app\n\nPlease select what you would like to receive daily:\n\n1️⃣ Daily Bible Verse\n2️⃣ Saint of the Day\n3️⃣ Daily Mass Readings\n4️⃣ Church Events\n5️⃣ Announcements\n6️⃣ Birthday Wishes\n\n📝 Reply with numbers separated by commas.\n_Example: 1,2,3_\n\n✝️ God bless you!`;
+    } else if (step === 'welcome') {
+      botReply = `🙏 Welcome to *St. John de Britto's Church, Kalayarkoil*!\n\nPlease reply *HI* to view our parish bot options and subscribe to daily spiritual messages.`;
+    } else if (step === 'preferences') {
+      const prefMap = { '1': 'verse', '2': 'saint', '3': 'mass', '4': 'events', '5': 'announcements', '6': 'birthday' };
+      const parts = rawText.split(',').map(s => s.trim());
+      const selected = parts.map(p => prefMap[p]).filter(Boolean);
+
+      if (selected.length > 0) {
+        newPreferences = selected;
+        nextStep = 'language';
+        botReply = `🌐 *Choose your preferred language:*\n\n1️⃣ English\n2️⃣ Tamil (தமிழ்)\n3️⃣ Both (இரண்டும்)\n\nReply with 1, 2, or 3.`;
+      } else {
+        botReply = `❌ Invalid choice. Please reply with numbers separated by commas (e.g. *1,2,3*) or reply *HI* to restart.`;
+      }
+    } else if (step === 'language') {
+      const langMap = { '1': 'en', '2': 'ta', '3': 'both' };
+      const selectedLang = langMap[rawText];
+
+      if (selectedLang) {
+        newLanguage = selectedLang;
+        nextStep = 'done';
+
+        const labelsMap = { verse: 'Bible Verse', saint: 'Saint of the Day', mass: 'Mass Readings', events: 'Events', announcements: 'Announcements', birthday: 'Birthday Wishes' };
+        const prefText = newPreferences.map(p => `✅ ${labelsMap[p] || p}`).join('\n');
+        const langText = { en: 'English', ta: 'Tamil', both: 'English & Tamil' }[selectedLang];
+
+        botReply = `🎉 *You're all set!*\n\nYou will receive:\n${prefText}\n\n🌐 Language: *${langText}*\n\nDaily messages are sent at *6:00 AM IST* every morning.\n\n🔗 *Visit Our Parish Portal:*\nhttps://st-jb-church.vercel.app\n\n✝️ May God bless you!\n— *SJDB Connect*\n_St. John de Britto's Church_\n\n📱 Reply *STOP* to unsubscribe or *HI* to change preferences.`;
+      } else {
+        botReply = `❌ Invalid choice. Please reply with *1* for English, *2* for Tamil, or *3* for Both.`;
+      }
+    } else if (step === 'done') {
+      if (text === 'STOP' || text === 'UNSUBSCRIBE') {
+        nextStep = 'welcome';
+        newPreferences = [];
+        botReply = `🔕 You have been unsubscribed from SJDB Connect.\n\nReply *HI* anytime to re-subscribe. God bless! 🙏`;
+      } else {
+        botReply = `💡 You are currently subscribed to SJDB Connect daily updates! Reply *HI* to change your preferences or *STOP* to unsubscribe.`;
+      }
+    }
+
+    res.json({
+      success: true,
+      botReply,
+      sessionState: {
+        step: nextStep,
+        preferences: newPreferences,
+        language: newLanguage
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+module.exports = { getStatus, getQR, resetSession, getSubscribers, getStats, triggerBroadcast, sendCustomMessage, testBotMessage };

@@ -1,11 +1,12 @@
 const mongoose = require('mongoose');
 
 const dailyVerseSchema = new mongoose.Schema({
-  date: { type: String, required: true, unique: true }, // YYYY-MM-DD
-  verseRef: { type: String },          // e.g. "John 3:16"
-  verseTextEn: { type: String },       // English verse
-  verseTextTa: { type: String },       // Tamil verse (if available)
-  updatedAt: { type: Date, default: Date.now }
+  id: { type: Number, required: true, unique: true, index: true },
+  ref: { type: String, required: true, trim: true },
+  category: { type: String, default: 'General', trim: true },
+  verseTextEn: { type: String, default: '', trim: true },
+  verseTextTa: { type: String, default: '', trim: true },
+  date: { type: String }
 }, { timestamps: true });
 
 module.exports = mongoose.model('DailyVerse', dailyVerseSchema);

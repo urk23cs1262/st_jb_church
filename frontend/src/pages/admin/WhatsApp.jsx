@@ -29,22 +29,74 @@ export default function AdminWhatsApp() {
 
   const [resetting, setResetting] = useState(false);
 
+  // Test Bot Playground state
+  const [chatHistory, setChatHistory] = useState([
+    {
+      id: 1,
+      sender: 'bot',
+      text: '🙏 *Welcome to SJDB Connect Test Bot Playground!*\n\nThis simulator performs the exact same interactive logic as the WhatsApp bot.\n\nType **HI** or click a quick command below to begin.',
+      timestamp: new Date()
+    }
+  ]);
+  const [testInput, setTestInput] = useState('');
+  const [testSessionState, setTestSessionState] = useState({ step: 'welcome', preferences: [], language: 'en' });
+  const [isTestingBot, setIsTestingBot] = useState(false);
+
+  const handleSendTestMessage = async (textToSend) => {
+    const messageText = textToSend || testInput;
+    if (!messageText || !messageText.trim()) return;
+
+    const userMsgObj = { id: Date.now(), sender: 'user', text: messageText, timestamp: new Date() };
+    setChatHistory(prev => [...prev, userMsgObj]);
+    if (!textToSend) setTestInput('');
+    setIsTestingBot(true);
+
+    try {
+      const res = await api.post('/bot/test-message', {
+        message: messageText,
+        sessionState: testSessionState
+      });
+
+      if (res.data.success) {
+        setTestSessionState(res.data.sessionState);
+        const botMsgObj = { id: Date.now() + 1, sender: 'bot', text: res.data.botReply, timestamp: new Date() };
+        setChatHistory(prev => [...prev, botMsgObj]);
+      }
+    } catch (err) {
+      toast.error('Test Bot error: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsTestingBot(false);
+    }
+  };
+
+  const handleResetTestBot = () => {
+    setTestSessionState({ step: 'welcome', preferences: [], language: 'en' });
+    setChatHistory([
+      {
+        id: Date.now(),
+        sender: 'bot',
+        text: '🙏 *SJDB Connect Test Bot Reset*\n\nType **HI** to start the conversation flow.',
+        timestamp: new Date()
+      }
+    ]);
+    toast.success('Test Bot session reset!');
+  };
+
   useEffect(() => {
     fetchData();
 
-    // Poll status & QR code every 2 seconds if not connected
+    // Poll status every 6 seconds only if not connected
     const interval = setInterval(async () => {
       try {
-        const [statusRes, qrRes] = await Promise.all([
-          api.get('/bot/status').catch(() => ({ data: { connected: false } })),
-          api.get('/bot/qr').catch(() => ({ data: { qr: null } }))
-        ]);
+        const statusRes = await api.get('/bot/status');
         setWaStatus(statusRes.data);
-        setQrCode(qrRes.data?.qr || null);
+        if (statusRes.data.qr) {
+          setQrCode(statusRes.data.qr);
+        }
       } catch {
         // Silent catch during polling
       }
-    }, 2000);
+    }, 6000);
 
     return () => clearInterval(interval);
   }, []);
@@ -180,17 +232,156 @@ export default function AdminWhatsApp() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-4">
-        {['dashboard', 'subscribers', 'send'].map(tab => (
+      <div className="flex flex-wrap gap-2 mb-4">
+        {['dashboard', 'subscribers', 'send', 'test-bot'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${activeTab === tab ? 'bg-church-royal-blue text-white shadow' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`}
           >
-            {tab === 'dashboard' ? '📊 Overview' : tab === 'subscribers' ? '👥 Subscribers' : '📨 Send Message'}
+            {tab === 'dashboard' ? '📊 Overview' : tab === 'subscribers' ? '👥 Subscribers' : tab === 'send' ? '📨 Send Message' : '🤖 Test Bot'}
           </button>
         ))}
       </div>
+
+      {/* Test Bot Playground */}
+      {activeTab === 'test-bot' && (
+        <div className="glass-card p-6 max-w-3xl">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 border-b border-gray-100 pb-3">
+            <div>
+              <h2 className="font-bold text-church-royal-blue text-lg flex items-center gap-2">
+                🤖 WhatsApp Bot Playground
+              </h2>
+              <p className="text-xs text-gray-500">
+                Interactive simulator — Test commands, state flow, and message responses live
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href="https://wa.me/917639520006?text=HI"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-lg bg-[#25D366] hover:bg-green-600 text-white text-xs font-bold flex items-center gap-1.5 shadow transition-colors"
+                title="Test directly on WhatsApp number (+91 7639520006)"
+              >
+                <SiWhatsapp className="text-sm" /> Live WhatsApp bot Test
+              </a>
+              <button
+                onClick={handleResetTestBot}
+                disabled={!waStatus.connected}
+                className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition-colors disabled:opacity-50"
+              >
+                🔄 Reset Flow
+              </button>
+            </div>
+          </div>
+
+          {!waStatus.connected && (
+            <div className="mb-4 bg-amber-50 border border-amber-300 rounded-xl p-4 text-xs text-amber-900 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">⚠️</span>
+                <div>
+                  <strong>WhatsApp Bot is Disconnected:</strong> The Test Bot requires an active WhatsApp connection. Please go to the <strong>Overview</strong> tab and scan the QR code to link your device first.
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg whitespace-nowrap shadow transition-colors"
+              >
+                Scan QR Code
+              </button>
+            </div>
+          )}
+
+          {/* Quick Action Shortcuts */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              onClick={() => handleSendTestMessage('HI')}
+              disabled={!waStatus.connected}
+              className="px-3 py-1 bg-green-50 hover:bg-green-100 text-green-700 rounded-full text-xs font-semibold border border-green-200 transition-colors disabled:opacity-40"
+            >
+              👋 Send "HI"
+            </button>
+            <button
+              onClick={() => handleSendTestMessage('1,2,3')}
+              disabled={!waStatus.connected}
+              className="px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-full text-xs font-semibold border border-blue-200 transition-colors disabled:opacity-40"
+            >
+              1️⃣ Select "1,2,3"
+            </button>
+            <button
+              onClick={() => handleSendTestMessage('1')}
+              disabled={!waStatus.connected}
+              className="px-3 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-full text-xs font-semibold border border-purple-200 transition-colors disabled:opacity-40"
+            >
+              🌐 Select "1" (English)
+            </button>
+            <button
+              onClick={() => handleSendTestMessage('STOP')}
+              disabled={!waStatus.connected}
+              className="px-3 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-full text-xs font-semibold border border-red-200 transition-colors disabled:opacity-40"
+            >
+              🔕 Send "STOP"
+            </button>
+          </div>
+
+          {/* Chat Messages Container */}
+          <div className="bg-slate-900 rounded-2xl p-4 h-[340px] overflow-y-auto mb-4 space-y-3 shadow-inner border border-slate-800">
+            {chatHistory.map((msg) => (
+              <div
+                key={msg.id}
+                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[82%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
+                    msg.sender === 'user'
+                      ? 'bg-[#005c4b] text-white rounded-br-none shadow-md font-medium'
+                      : 'bg-[#202c33] text-slate-100 rounded-bl-none shadow-md border border-slate-700/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-4 mb-1 text-[10px] opacity-70">
+                    <span className="font-bold uppercase tracking-wider">{msg.sender === 'user' ? 'You (Admin)' : '🤖 SJDB Bot'}</span>
+                    <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  </div>
+                  <p className="whitespace-pre-wrap font-sans">{msg.text}</p>
+                </div>
+              </div>
+            ))}
+            {isTestingBot && (
+              <div className="flex justify-start">
+                <div className="bg-[#202c33] text-slate-400 rounded-2xl px-4 py-2 text-xs animate-pulse">
+                  Bot is typing response...
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Input Bar */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSendTestMessage();
+            }}
+            className="flex gap-2"
+          >
+            <input
+              type="text"
+              value={testInput}
+              onChange={(e) => setTestInput(e.target.value)}
+              disabled={!waStatus.connected}
+              placeholder={waStatus.connected ? "Type a message (e.g. HI, 1,2,3 or STOP)..." : "Bot is disconnected — scan QR code first"}
+              className="church-input flex-1 py-2.5 disabled:bg-gray-100 disabled:text-gray-400"
+            />
+            <button
+              type="submit"
+              disabled={!waStatus.connected || isTestingBot || !testInput.trim()}
+              className="btn-gold px-5 py-2.5 flex items-center gap-1.5 text-xs font-bold disabled:opacity-50"
+            >
+              <FiSend /> Send
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Subscribers Table */}
       {activeTab === 'subscribers' && (

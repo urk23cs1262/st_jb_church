@@ -237,6 +237,7 @@ export default function UserSettings() {
         gender: user.gender || '',
         subStation: user.subStation || '',
         familyName: user.familyName || '',
+        address: user.address || '',
         familyRole: FAMILY_ROLES.includes(user.familyRole) ? (user.familyRole || '') : (user.familyRole ? 'Other' : ''),
         familyRoleOther: FAMILY_ROLES.includes(user.familyRole) ? '' : (user.familyRole || ''),
         familyMembers: user.familyMembers?.map(m => {
@@ -576,7 +577,14 @@ export default function UserSettings() {
                       </label>
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-800 text-lg">{user?.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-gray-800 text-lg">{user?.name}</h3>
+                        {user?.parishMemberId && (
+                          <span className="bg-amber-100 text-amber-900 border border-amber-300 text-xs font-mono font-bold px-2 py-0.5 rounded-full shadow-sm">
+                            {user.parishMemberId}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-gray-500 text-xs mb-1.5">{user?.phone} • {user?.email || 'No email attached'}</p>
                       {(photo || (user?.profilePhoto && !isPhotoRemoved)) && (
                         <button
@@ -602,12 +610,16 @@ export default function UserSettings() {
                       <input {...register('name', { required: true })} className="church-input" />
                     </div>
                     <div>
+                      <label className="church-label">Parish Member ID (Auto-Assigned)</label>
+                      <input value={user?.parishMemberId || ''} disabled className="church-input bg-gold-50/50 font-mono font-bold text-church-royal-blue cursor-not-allowed border-church-gold/40" placeholder="Auto-assigned" />
+                    </div>
+                    <div>
                       <label className="church-label">Email Address</label>
                       <input {...register('email')} type="email" className="church-input" />
                     </div>
                     <div>
-                      <label className="church-label">Mobile Number</label>
-                      <input {...register('phone')} disabled className="church-input bg-gray-100 cursor-not-allowed" />
+                      <label className="church-label">Mobile Number *</label>
+                      <input {...register('phone', { required: true })} className="church-input" placeholder="Enter mobile number" />
                     </div>
                     <div>
                       <label className="church-label">Date of Birth</label>
@@ -628,6 +640,14 @@ export default function UserSettings() {
                         <option value="">Select Sub-station</option>
                         {SUB_STATIONS.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
+                    </div>
+                    <div>
+                      <label className="church-label">Family Name</label>
+                      <input {...register('familyName')} className="church-input" placeholder="Enter your family name" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="church-label">Residential Address</label>
+                      <textarea {...register('address')} rows={2} className="church-input py-2.5 resize-none" placeholder="Enter your full residential address" />
                     </div>
                   </div>
 

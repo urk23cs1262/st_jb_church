@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { FiUsers, FiCalendar, FiFileText, FiMessageSquare, FiDollarSign, FiSettings, FiImage, FiMic, FiBell } from 'react-icons/fi';
+import { FiUsers, FiBriefcase, FiCalendar, FiFileText, FiMessageSquare, FiDollarSign, FiSettings, FiImage, FiMic, FiBell } from 'react-icons/fi';
 import { SiWhatsapp } from 'react-icons/si';
 import { GiChurch, GiCrucifix, GiPrayer } from 'react-icons/gi';
 import api from '../../services/api';
@@ -14,6 +14,7 @@ const COLORS = ['#d4a017', '#1e3a8a', '#800020', '#059669', '#7c3aed'];
 
 const NAV_ITEMS = [
   { icon: <FiUsers />, label: 'Users', path: '/admin/users', color: 'bg-blue-500' },
+  { icon: <FiBriefcase />, label: 'Manage Team', path: '/admin/team', color: 'bg-emerald-600'},
   { icon: <GiChurch />, label: 'Priests', path: '/admin/priests', color: 'bg-amber-600' },
   { icon: <FiCalendar />, label: 'Events', path: '/admin/events', color: 'bg-green-600' },
   { icon: <FiImage />, label: 'Gallery', path: '/admin/gallery', color: 'bg-purple-600' },

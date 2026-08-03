@@ -74,6 +74,7 @@ export default function Home() {
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   const [verseIdx, setVerseIdx] = useState(0);
+  const [dailyVerse, setDailyVerse] = useState(null);
   const [events, setEvents] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const isTamil = i18n.language === 'ta';
@@ -89,17 +90,31 @@ export default function Home() {
   const priestSrc = resolveUrl(dynamicImages.priestImage) || priestImage;
 
   useEffect(() => {
-    // Rotate daily verse
+    // Rotate fallback verse index
     const day = new Date().getDay();
     setVerseIdx(day % BIBLE_VERSES.length);
+
+    // Fetch live active daily verse from uploaded dataset
+    api.get('/daily-verse')
+      .then(r => {
+        if (r.data && r.data.success) {
+          setDailyVerse(r.data);
+        }
+      })
+      .catch(() => {});
+
     // Fetch data
     api.get('/events?upcoming=true&limit=3').then(r => setEvents(r.data.events || [])).catch(() => { });
     api.get('/announcements?limit=4').then(r => setAnnouncements(r.data.announcements || [])).catch(() => { });
     // Fetch dynamic images from settings
-    api.get('/settings').then(r => setDynamicImages(r.data.settings || {})).catch(() => {});
+    api.get('/settings').then(r => setDynamicImages(r.data.settings || {})).catch(() => { });
   }, []);
 
-  const verse = BIBLE_VERSES[verseIdx];
+  const verse = dailyVerse ? {
+    ref: dailyVerse.reference,
+    en: dailyVerse.english,
+    ta: dailyVerse.tamil || BIBLE_VERSES[verseIdx].ta
+  } : BIBLE_VERSES[verseIdx];
 
   return (
     <div className="min-h-screen bg-church-cream ">
@@ -199,7 +214,7 @@ export default function Home() {
               <Link
                 key={i}
                 to={ql.path}
-                className={`flex flex-col items-center gap-2 p-3 rounded-2xl bg-gradient-to-br ${ql.color} bg-opacity-30 backdrop-blur-sm border border-white/20 hover:scale-110 transition-all duration-300 group`}
+                className={`flex flex-col items-center gap-2 p-6 rounded-2xl bg-gradient-to-br ${ql.color} bg-opacity-30 backdrop-blur-sm border border-white/20 hover:scale-110 transition-all duration-300 group`}
               >
                 <span className="text-white text-2xl group-hover:scale-110 transition-transform">{ql.icon}</span>
                 <span className="text-white text-xs font-medium text-center leading-tight">{ql.label}</span>
@@ -234,6 +249,11 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <p className="section-subtitle text-gold-400 mb-2">{t('home.dailyVerse')}</p>
+            {verse.category && (
+              <span className="inline-block bg-amber-400/20 text-gold-300 border border-gold-400/40 text-xs font-bold px-3.5 py-1 rounded-full uppercase tracking-wider mb-4 shadow-xs">
+                🏷️ {verse.category}
+              </span>
+            )}
             <blockquote className="text-xl sm:text-2xl md:text-3xl text-white font-serif italic leading-relaxed mb-4">
               "{isTamil ? verse.ta : verse.en}"
             </blockquote>
@@ -330,9 +350,9 @@ export default function Home() {
       {/* ─── FEAST COUNTDOWN ─── */}
       <section className="py-20 bg-church-gradient relative overflow-hidden">
         <div
-            className="absolute inset-0 bg-cover bg-[center_85%] bg-no-repeat opacity-100"
-            style={{ backgroundImage: `url(${heroBgImage})` }}
-          />
+          className="absolute inset-0 bg-cover bg-[center_85%] bg-no-repeat opacity-100"
+          style={{ backgroundImage: `url(${heroBgImage})` }}
+        />
         <div className="absolute inset-0 bg-church-gradient opacity-80 mix-blend-multiply" />
         {/* </div> */}
         <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
@@ -418,15 +438,15 @@ export default function Home() {
       {/* ─── CONTACT CTA ─── */}
       <section className="py-16 relative">
         <div
-            className="absolute inset-0 bg-cover bg-[center_100%] bg-no-repeat opacity-100"
-            style={{ backgroundImage: `url(${heroBgImage})` }}
-          />
+          className="absolute inset-0 bg-cover bg-[center_100%] bg-no-repeat opacity-100"
+          style={{ backgroundImage: `url(${heroBgImage})` }}
+        />
         <div className="absolute inset-0 bg-church-gradient opacity-80 mix-blend-multiply" />
         {/* Fade into footer */}
         <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-b from-transparent to-church-dark pointer-events-none" />
-        
+
         <div className="max-w-4xl mx-auto px-4 text-center relative z-10 py-10">
-          
+
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
             <h2 className="text-white font-display text-3xl md:text-4xl font-bold mb-4">Come & Be Part of Our Community</h2>
             <p className="text-gray-300 mb-8 text-lg">Join us for Holy Mass, prayer, and fellowship. All are welcome.</p>

@@ -31,13 +31,14 @@ export default function Register() {
       familyMembers: []
     }
   });
-  
+
   const { fields, append, remove, replace } = useFieldArray({
     control,
     name: "familyMembers"
   });
 
   const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [currentStep, setCurrentStep] = useState(1); // 1, 2, 3 (OTP)
   const [userId, setUserId] = useState(null);
   const [devOtp, setDevOtp] = useState(null);
@@ -81,7 +82,7 @@ export default function Register() {
   const handleNextStep = async () => {
     let fieldsToValidate = [];
     if (currentStep === 1) {
-      fieldsToValidate = ['name', 'dob', 'familyName', 'subStation', 'phone', 'password'];
+      fieldsToValidate = ['name', 'dob', 'gender', 'familyName', 'subStation', 'phone', 'address', 'password', 'confirmPassword'];
     } else if (currentStep === 2) {
       fieldsToValidate = ['familyRole'];
     }
@@ -179,7 +180,7 @@ export default function Register() {
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${churchLogo})` }}
     >
@@ -205,7 +206,7 @@ export default function Register() {
           <form onSubmit={handleSubmit(currentStep === 2 ? onRegister : handleNextStep)}>
             <AnimatePresence mode="wait">
               {currentStep === 1 && (
-                <motion.div 
+                <motion.div
                   key="step1"
                   initial={{ x: 20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
@@ -218,14 +219,37 @@ export default function Register() {
                       <input {...register('name', { required: 'Name is required' })} className="church-input" placeholder="Enter your name" />
                       {errors.name && <p className="text-red-500 text-[10px] mt-1">{errors.name.message}</p>}
                     </div>
+
+                    
+
+
                     <div>
                       <label className="church-label">Date of Birth *</label>
                       <input type="date" {...register('dob', { required: 'DOB is required' })} className="church-input" />
                       {errors.dob && <p className="text-red-500 text-[10px] mt-1">{errors.dob.message}</p>}
                     </div>
+
                     <div>
-                      <label className="church-label">Family Name *</label>
-                      <input {...register('familyName', { required: 'Family name is required' })} className="church-input" placeholder="Enter your family name" />
+                      <label className="church-label">Phone Number *</label>
+                      <input {...register('phone', { required: 'Phone is required' })} className="church-input" placeholder="Enter your phone number" />
+                      {errors.phone && <p className="text-red-500 text-[10px] mt-1">{errors.phone.message}</p>}
+                    </div>
+
+                    <div>
+                      <label className="church-label">Email Address</label>
+                      <input {...register('email')} type="email" className="church-input" placeholder="Enter your email address" />
+                    </div>
+
+
+                    <div>
+                      <label className="church-label">Gender *</label>
+                      <select {...register('gender', { required: 'Gender is required' })} className="church-input">
+                        <option value="">Select Gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                      </select>
+                      {errors.gender && <p className="text-red-500 text-[10px] mt-1">{errors.gender.message}</p>}
                     </div>
                     <div>
                       <label className="church-label">Sub-Station *</label>
@@ -233,25 +257,47 @@ export default function Register() {
                         <option value="">Select Sub-station</option>
                         {SUB_STATIONS.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
+                      {errors.subStation && <p className="text-red-500 text-[10px] mt-1">{errors.subStation.message}</p>}
                     </div>
                     <div>
-                      <label className="church-label">Phone Number *</label>
-                      <input {...register('phone', { required: 'Phone is required' })} className="church-input" placeholder="Enter your phone number" />
-                      {errors.phone && <p className="text-red-500 text-[10px] mt-1">{errors.phone.message}</p>}
+                      <label className="church-label">Family Name *</label>
+                      <input {...register('familyName', { required: 'Family name is required' })} className="church-input" placeholder="Enter your family name" />
+                      {errors.familyName && <p className="text-red-500 text-[10px] mt-1">{errors.familyName.message}</p>}
+                    </div>
+                    
+
+                    <div>
+                      <label className="church-label">Address *</label>
+                      <textarea {...register('address', { required: 'Address is required' })} className="church-input py-2.5 resize-none h-[42px]" placeholder="Enter your full address" />
+                      {errors.address && <p className="text-red-500 text-[10px] mt-1">{errors.address.message}</p>}
                     </div>
                     <div>
-                      <label className="church-label">Email Address</label>
-                      <input {...register('email')} type="email" className="church-input" placeholder="Enter your email address" />
-                    </div>
-                    <div className="md:col-span-2">
                       <label className="church-label">Password *</label>
                       <div className="relative">
-                        <input {...register('password', { required: 'Password is required', minLength: 6 })} type={showPass ? 'text' : 'password'} className="church-input pr-10" placeholder="Enter your password (8 Characters)" />
+                        <input {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Minimum 6 characters' } })} type={showPass ? 'text' : 'password'} className="church-input pr-10" placeholder="Enter your password (6+ Characters)" />
                         <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                           {showPass ? <FiEyeOff /> : <FiEye />}
                         </button>
                       </div>
                       {errors.password && <p className="text-red-500 text-[10px] mt-1">{errors.password.message}</p>}
+                    </div>
+                    <div>
+                      <label className="church-label">Confirm Password *</label>
+                      <div className="relative">
+                        <input
+                          {...register('confirmPassword', {
+                            required: 'Please confirm password',
+                            validate: val => val === watch('password') || 'Passwords do not match'
+                          })}
+                          type={showConfirmPass ? 'text' : 'password'}
+                          className="church-input pr-10"
+                          placeholder="Re-enter your password"
+                        />
+                        <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                          {showConfirmPass ? <FiEyeOff /> : <FiEye />}
+                        </button>
+                      </div>
+                      {errors.confirmPassword && <p className="text-red-500 text-[10px] mt-1">{errors.confirmPassword.message}</p>}
                     </div>
                   </div>
                   <button type="button" onClick={handleNextStep} className="btn-gold w-full justify-center py-3.5 mt-6 group">
@@ -261,7 +307,7 @@ export default function Register() {
               )}
 
               {currentStep === 2 && (
-                <motion.div 
+                <motion.div
                   key="step2"
                   initial={{ x: 20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
@@ -318,17 +364,15 @@ export default function Register() {
                                   key={key}
                                   type="button"
                                   onClick={() => handleSelectFamilyMember(fam, m, mIdx)}
-                                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${
-                                    isSelected
+                                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${isSelected
                                       ? 'bg-amber-600 text-white shadow-amber-600/30 ring-2 ring-amber-600 ring-offset-1 scale-[1.02]'
                                       : 'bg-white hover:bg-amber-50 text-gray-800 border border-amber-200/80 hover:border-amber-400'
-                                  }`}
+                                    }`}
                                 >
                                   {isSelected ? <FiCheckCircle className="text-white text-sm" /> : <FiUserCheck className="text-amber-600 text-sm" />}
                                   <span>{m.name}</span>
-                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                                    isSelected ? 'bg-amber-700 text-amber-100' : 'bg-amber-100 text-amber-900'
-                                  }`}>
+                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${isSelected ? 'bg-amber-700 text-amber-100' : 'bg-amber-100 text-amber-900'
+                                    }`}>
                                     {m.role}
                                   </span>
                                 </button>
@@ -360,8 +404,8 @@ export default function Register() {
                         <h3 className="text-church-royal-blue font-bold text-lg">Other Family Members</h3>
                         <p className="text-gray-500 text-xs">Add details for other people in your household</p>
                       </div>
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={() => append({ name: '', role: '' })}
                         className="flex items-center gap-2 text-xs font-bold bg-church-gold text-white px-4 py-2 rounded-xl shadow-gold hover:shadow-gold-lg transition-all active:scale-95"
                       >
@@ -487,7 +531,7 @@ export default function Register() {
               )}
 
               {currentStep === 3 && (
-                <motion.div 
+                <motion.div
                   key="step3"
                   initial={{ x: 20, opacity: 0 }}
                   animate={{ x: 0, opacity: 1 }}
@@ -505,7 +549,7 @@ export default function Register() {
                           <div className="flex flex-col items-center gap-2 w-full px-4 py-1">
                             <p className="text-amber-800 text-xs font-semibold">Sending...</p>
                             <div className="w-full bg-amber-200 h-1.5 rounded-full overflow-hidden">
-                              <motion.div 
+                              <motion.div
                                 className="bg-amber-500 h-full"
                                 initial={{ width: "0%" }}
                                 animate={{ width: "100%" }}
@@ -533,10 +577,10 @@ export default function Register() {
 
                     <div>
                       <label className="church-label text-center block mb-2 font-bold text-church-gold">Enter 6-Digit OTP</label>
-                      <input 
-                        {...register('otp', { required: true, minLength: 6, maxLength: 6 })} 
-                        className="church-input text-center text-3xl tracking-[12px] font-bold h-16" 
-                        placeholder="000000" 
+                      <input
+                        {...register('otp', { required: true, minLength: 6, maxLength: 6 })}
+                        className="church-input text-center text-3xl tracking-[12px] font-bold h-16"
+                        placeholder="000000"
                         maxLength={6}
                         autoFocus
                       />
@@ -544,8 +588,8 @@ export default function Register() {
                     <button onClick={handleSubmit(onVerifyOtp)} type="button" disabled={isSubmitting} className="btn-gold w-full justify-center py-4 text-lg font-bold">
                       {isSubmitting ? '⏳ Verifying...' : 'Verify & Login'}
                     </button>
-                    <button type="button" onClick={async () => { 
-                      const res = await api.post('/auth/resend-otp', { userId }); 
+                    <button type="button" onClick={async () => {
+                      const res = await api.post('/auth/resend-otp', { userId });
                       toast.success('OTP resent!');
                       if (res.data.devOtp) {
                         setDevOtp(res.data.devOtp);

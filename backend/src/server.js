@@ -38,9 +38,14 @@ app.use(cors({
   credentials: true,
 }));
 
-// Rate limiting
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200, message: { success: false, message: 'Too many requests' } });
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { success: false, message: 'Too many auth attempts' } });
+// Rate limiting (generous limits to prevent admin polling throttling)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  skip: (req) => req.path.startsWith('/bot/status') || req.path.startsWith('/bot/qr') || req.path === '/health',
+  message: { success: false, message: 'Too many requests, please try again in a few minutes.' }
+});
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30, message: { success: false, message: 'Too many auth attempts' } });
 app.use('/api/', limiter);
 app.use('/api/auth/', authLimiter);
 
@@ -55,6 +60,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/team', require('./routes/team'));
 app.use('/api/priests', require('./routes/priests'));
 app.use('/api/events', require('./routes/events'));
 app.use('/api/bookings', require('./routes/bookings'));
@@ -77,6 +83,7 @@ app.use('/api/mass-reading', require('./routes/massReading'));
 app.use('/api/daily-reading', require('./routes/dailyReading'));
 app.use('/api/daily-saint', require('./routes/saint'));
 app.use('/api/settings', require('./routes/settings'));
+app.get('/api/daily-verse', require('./controllers/dailyVerseController').getTodayVerse);
 app.use('/api/bot', require('./routes/bot'));
 
 // Background Services

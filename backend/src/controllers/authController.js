@@ -6,6 +6,8 @@ const { sendOTP, verifyOTP } = require('../services/otpService');
 const { createNotification } = require('../services/notificationService');
 const { sendLoginAlertEmail, sendPasswordUpdatedEmail } = require('../services/loginSecurityService');
 
+const { generateNextMemberId } = require('../services/memberIdService');
+
 // @POST /api/auth/register
 const register = async (req, res) => {
   try {
@@ -16,7 +18,11 @@ const register = async (req, res) => {
 
     // Sanitize empty strings for unique fields so they don't trigger E11000 duplicate key errors
     if (email === "") email = undefined;
-    if (parishMemberId === "") parishMemberId = undefined;
+    
+    // Auto-generate sequential Member ID (SJDB_M01, SJDB_M02...) if not provided
+    if (!parishMemberId || parishMemberId.trim() === "") {
+      parishMemberId = await generateNextMemberId();
+    }
 
     const existing = await User.findOne({ $or: [{ phone }, ...(email ? [{ email }] : [])] });
     if (existing) return res.status(409).json({ success: false, message: 'Phone or email already registered' });
