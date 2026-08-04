@@ -105,8 +105,8 @@ export default function MemberReport() {
   };
 
   const handleManualDownload = () => {
-    if (memberData) {
-      triggerPdfDownload(memberData._id, memberData.name);
+    if (memberData && !downloadingPdf) {
+      autoDownloadPdf(memberData._id, memberData.name);
     }
   };
 
