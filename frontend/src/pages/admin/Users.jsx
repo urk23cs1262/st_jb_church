@@ -27,11 +27,20 @@ export default function AdminUsers() {
   const [scannedUserResult, setScannedUserResult] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
 
-  // Member ID Format State
+  // Member & Family ID Format State
   const [showFormatModal, setShowFormatModal] = useState(false);
-  const [formatData, setFormatData] = useState({ prefix: 'SJDB_M', padLength: 2, sample: 'SJDB_M01' });
+  const [formatData, setFormatData] = useState({ 
+    prefix: 'SJDB_M', 
+    padLength: 2, 
+    sample: 'SJDB_M01',
+    familyPrefix: 'SJDB_FAM-',
+    familyPadLength: 2,
+    familySample: 'SJDB_FAM-01'
+  });
   const [newPrefix, setNewPrefix] = useState('SJDB_M');
   const [newPadLength, setNewPadLength] = useState(2);
+  const [newFamilyPrefix, setNewFamilyPrefix] = useState('SJDB_FAM-');
+  const [newFamilyPadLength, setNewFamilyPadLength] = useState(2);
   const [isUpdatingFormat, setIsUpdatingFormat] = useState(false);
 
   const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm();
@@ -69,6 +78,8 @@ export default function AdminUsers() {
         setFormatData(res.data);
         setNewPrefix(res.data.prefix || 'SJDB_M');
         setNewPadLength(res.data.padLength || 2);
+        setNewFamilyPrefix(res.data.familyPrefix || 'SJDB_FAM-');
+        setNewFamilyPadLength(res.data.familyPadLength || 2);
       }
     } catch (e) {
       console.error('Failed to fetch format info:', e);
@@ -85,15 +96,20 @@ export default function AdminUsers() {
     if (!newPrefix || !newPrefix.trim()) {
       return toast.error('Please enter a valid Member ID prefix');
     }
+    if (!newFamilyPrefix || !newFamilyPrefix.trim()) {
+      return toast.error('Please enter a valid Family ID prefix');
+    }
     setIsUpdatingFormat(true);
-    const toastId = toast.loading('Regenerating Member IDs for all users...');
+    const toastId = toast.loading('Regenerating Member & Family IDs for all users...');
     try {
       const res = await api.post('/users/update-member-id-format', {
         prefix: newPrefix.trim(),
-        padLength: Number(newPadLength)
+        padLength: Number(newPadLength),
+        familyPrefix: newFamilyPrefix.trim(),
+        familyPadLength: Number(newFamilyPadLength)
       });
       if (res.data.success) {
-        toast.success(res.data.message || 'Member IDs regenerated successfully!', { id: toastId });
+        toast.success(res.data.message || 'Member & Family IDs regenerated successfully!', { id: toastId });
         setShowFormatModal(false);
         fetchUsers();
       }
@@ -142,18 +158,60 @@ export default function AdminUsers() {
     setValue('address', user.address || '');
     setValue('subStation', user.subStation || '');
     setValue('familyName', user.familyName || '');
+    setValue('familyId', user.familyId || '');
+    setValue('parishZone', user.parishZone || '');
+    setValue('anbiyam', user.anbiyam || user.sccGroup || '');
+    setValue('weddingDate', user.weddingDate ? new Date(user.weddingDate).toISOString().slice(0, 10) : '');
+    setValue('bloodGroup', user.bloodGroup || '');
+    setValue('memberStatus', user.memberStatus || 'Active');
     setValue('parishMemberId', user.parishMemberId || '');
     setValue('role', user.role || 'user');
+
+    // Sacraments
+    setValue('baptismDate', user.sacraments?.baptismDate ? new Date(user.sacraments.baptismDate).toISOString().slice(0, 10) : '');
+    setValue('baptismParish', user.sacraments?.baptismParish || '');
+    setValue('baptismCertNo', user.sacraments?.baptismCertNo || '');
+    setValue('firstCommunionDate', user.sacraments?.firstCommunionDate ? new Date(user.sacraments.firstCommunionDate).toISOString().slice(0, 10) : '');
+    setValue('confirmationDate', user.sacraments?.confirmationDate ? new Date(user.sacraments.confirmationDate).toISOString().slice(0, 10) : '');
+    setValue('marriageDate', user.sacraments?.marriageDate ? new Date(user.sacraments.marriageDate).toISOString().slice(0, 10) : '');
+    setValue('spouseName', user.sacraments?.spouseName || '');
   };
 
   const onUpdateUser = async (data) => {
     try {
-      await api.put(`/users/${editingUser._id}`, data);
-      setUsers(prev => prev.map(u => u._id === editingUser._id ? { ...u, ...data } : u));
-      toast.success('User details updated');
+      const payload = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        gender: data.gender,
+        dob: data.dob,
+        address: data.address,
+        subStation: data.subStation,
+        familyName: data.familyName,
+        familyId: data.familyId,
+        parishZone: data.parishZone,
+        anbiyam: data.anbiyam || data.sccGroup,
+        weddingDate: data.weddingDate,
+        bloodGroup: data.bloodGroup,
+        memberStatus: data.memberStatus,
+        parishMemberId: data.parishMemberId,
+        role: data.role,
+        sacraments: {
+          baptismDate: data.baptismDate,
+          baptismParish: data.baptismParish,
+          baptismCertNo: data.baptismCertNo,
+          firstCommunionDate: data.firstCommunionDate,
+          confirmationDate: data.confirmationDate,
+          marriageDate: data.marriageDate,
+          spouseName: data.spouseName
+        }
+      };
+      await api.put(`/users/${editingUser._id}`, payload);
+      toast.success('User details & sacraments updated successfully');
       setEditingUser(null);
-    } catch {
-      toast.error('Failed to update user');
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update user');
     }
   };
 
@@ -203,6 +261,37 @@ export default function AdminUsers() {
     }
   };
 
+  const downloadExcelReport = () => {
+    if (!users || users.length === 0) return toast.error('No members available to export');
+    const headers = ['Parish Member ID', 'Family ID', 'Name', 'Phone', 'Email', 'Gender', 'DOB', 'Wedding Date', 'Parish Zone', 'Anbiyam Name', 'SubStation', 'Blood Group', 'Status', 'Role'];
+    const rows = users.map(u => [
+      `"${u.parishMemberId || ''}"`,
+      `"${u.familyId || ''}"`,
+      `"${u.name || ''}"`,
+      `"${u.phone || ''}"`,
+      `"${u.email || ''}"`,
+      `"${u.gender || ''}"`,
+      `"${u.dob ? new Date(u.dob).toLocaleDateString() : ''}"`,
+      `"${u.weddingDate ? new Date(u.weddingDate).toLocaleDateString() : ''}"`,
+      `"${u.parishZone || ''}"`,
+      `"${u.anbiyam || u.sccGroup || ''}"`,
+      `"${u.subStation || ''}"`,
+      `"${u.bloodGroup || ''}"`,
+      `"${u.memberStatus || (u.isActive ? 'Active' : 'Inactive')}"`,
+      `"${u.role || 'user'}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Parish_Members_Roster_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    toast.success('Excel/CSV Member Roster exported successfully!');
+  };
+
   return (
     <div className="w-full">
       <div className="p-4 sm:p-6">
@@ -224,15 +313,23 @@ export default function AdminUsers() {
 
             <button
               onClick={downloadAllUsersPdf}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 whitespace-nowrap cursor-pointer"
               title="Export All Users PDF Report"
             >
               <FiFileText className="text-sm" /> Export All PDF
             </button>
 
             <button
+              onClick={downloadExcelReport}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 whitespace-nowrap cursor-pointer"
+              title="Export All Members Roster to Excel / CSV"
+            >
+              <FiFileText className="text-sm" /> Export Excel
+            </button>
+
+            <button
               onClick={openFormatModal}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 whitespace-nowrap"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95 whitespace-nowrap cursor-pointer"
               title="Modify Member ID Prefix & Number Format"
             >
               <FiTag className="text-sm" /> Modify Member ID Format
@@ -269,12 +366,13 @@ export default function AdminUsers() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-200 text-xs uppercase text-gray-400">
-                      <th className="text-left py-3 px-4">Member</th>
+                      <th className="text-left py-3 px-4">Member Info</th>
                       <th className="text-left py-3 px-4">Member ID</th>
-                      <th className="text-left py-3 px-4">Phone</th>
-                      <th className="text-left py-3 px-4">Role</th>
+                      <th className="text-left py-3 px-4">Family ID & Zone</th>
+                      <th className="text-left py-3 px-4">Contact</th>
+                      <th className="text-left py-3 px-4">Blood Group</th>
                       <th className="text-left py-3 px-4">Status</th>
-                      <th className="text-left py-3 px-4">Joined</th>
+                      <th className="text-left py-3 px-4">Role</th>
                       <th className="text-left py-3 px-4">Actions</th>
                     </tr>
                   </thead>
@@ -290,6 +388,7 @@ export default function AdminUsers() {
                             <div>
                               <p className="font-semibold text-gray-800 text-sm">{u.name}</p>
                               <p className="text-gray-400 text-xs">{u.email || u.subStation || '—'}</p>
+                              {(u.anbiyam || u.sccGroup) && <p className="text-[10px] text-amber-700 font-medium">Anbiyam: {u.anbiyam || u.sccGroup}</p>}
                             </div>
                           </div>
                         </td>
@@ -298,27 +397,50 @@ export default function AdminUsers() {
                             {u.parishMemberId || '—'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-sm text-gray-600">{u.phone}</td>
+                        <td className="py-3 px-4 text-xs space-y-1">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-purple-100/90 text-purple-950 border border-purple-300 shadow-2xs">
+                            {u.familyId || '—'}
+                          </span>
+                          {u.parishZone && <span className="text-gray-400 text-[10px] block">{u.parishZone}</span>}
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-700 font-medium">
+                          {u.phone || '—'}
+                        </td>
+                        <td className="py-3 px-4 text-xs">
+                          {u.bloodGroup ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-bold text-red-700 bg-red-50 border border-red-200 rounded-md">
+                              {u.bloodGroup}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                            u.memberStatus === 'Deceased' ? 'bg-gray-200 text-gray-800 border border-gray-400' :
+                            u.memberStatus === 'Transferred' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                            u.memberStatus === 'Inactive' || !u.isActive ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                            'bg-green-100 text-green-800 border border-green-300'
+                          }`}>
+                            {u.memberStatus || (u.isActive ? 'Active' : 'Inactive')}
+                          </span>
+                        </td>
                         <td className="py-3 px-4"><span className={`badge ${u.role === 'admin' ? 'badge-red' : 'badge-blue'} capitalize`}>{u.role}</span></td>
                         <td className="py-3 px-4">
-                          <span className={`badge ${u.isActive ? 'badge-green' : 'badge-gray'}`}>{u.isActive ? 'Active' : 'Inactive'}</span>
-                        </td>
-                        <td className="py-3 px-4 text-xs text-gray-400">{new Date(u.createdAt).toLocaleDateString()}</td>
-                        <td className="py-3 px-4">
                           <div className="flex items-center gap-1">
-                            <button onClick={() => downloadUserPdf(u._id, u.name)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors" title="Download PDF Report">
+                            <button onClick={() => downloadUserPdf(u._id, u.name)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors cursor-pointer" title="Download PDF Report">
                               <FiFileText />
                             </button>
-                            <button onClick={() => setSettingsMember(u)} className="p-1.5 rounded-lg hover:bg-gold-100 text-church-gold transition-colors" title="View / Request Member Settings">
+                            <button onClick={() => setSettingsMember(u)} className="p-1.5 rounded-lg hover:bg-gold-100 text-church-gold transition-colors cursor-pointer" title="View / Request Member Settings">
                               <FiSliders />
                             </button>
-                            <button onClick={() => toggleActive(u)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title={u.isActive ? 'Deactivate' : 'Activate'}>
+                            <button onClick={() => toggleActive(u)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer" title={u.isActive ? 'Deactivate' : 'Activate'}>
                               {u.isActive ? <FiUserX className="text-red-500" /> : <FiUserCheck className="text-green-500" />}
                             </button>
-                            <button onClick={() => openEditModal(u)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" title="Edit User">
+                            <button onClick={() => openEditModal(u)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer" title="Edit User">
                               <FiEdit className="text-gray-400 hover:text-church-royal-blue" />
                             </button>
-                            <button onClick={() => deleteUser(u._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors" title="Delete">
+                            <button onClick={() => deleteUser(u._id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors cursor-pointer" title="Delete">
                               <FiTrash2 />
                             </button>
                           </div>
@@ -458,7 +580,12 @@ export default function AdminUsers() {
 
                   <div>
                     <label className="church-label">Parish Member ID (Editable)</label>
-                    <input {...register('parishMemberId')} className="church-input font-mono font-bold text-church-royal-blue bg-amber-50/50 border-amber-300" placeholder="e.g. SJDB_M01" />
+                    <input {...register('parishMemberId')} className="church-input font-mono font-bold text-church-royal-blue bg-amber-50/50 border-amber-300 focus:border-amber-500" placeholder="e.g. SJDB_M01" />
+                  </div>
+
+                  <div>
+                    <label className="church-label">Family ID (Editable)</label>
+                    <input {...register('familyId')} className="church-input font-mono font-bold text-purple-900 bg-purple-50/50 border-purple-300 focus:border-purple-500" placeholder="e.g. SJDB_FAM-01" />
                   </div>
 
                   <div>
@@ -466,12 +593,52 @@ export default function AdminUsers() {
                     <input {...register('familyName')} className="church-input" placeholder="Family Name" />
                   </div>
 
+                  {/* <div>
+                    <label className="church-label">Parish Zone / Ward</label>
+                    <input {...register('parishZone')} className="church-input" placeholder="e.g. Zone 2 / St. Joseph Ward" />
+                  </div> */}
+
+                  <div>
+                    <label className="church-label">Anbiyam Name</label>
+                    <input {...register('anbiyam')} className="church-input" placeholder="Enter your Anbiyam Name" />
+                  </div>
+
                   <div>
                     <label className="church-label">Sub-Station</label>
                     <input {...register('subStation')} className="church-input" placeholder="Sub-station (e.g. Kalayarkoil)" />
                   </div>
 
-                  <div className="md:col-span-2">
+                  <div>
+                    <label className="church-label">Blood Group</label>
+                    <select {...register('bloodGroup')} className="church-select">
+                      <option value="">Select Blood Group</option>
+                      <option value="A+">A+</option>
+                      <option value="A-">A-</option>
+                      <option value="B+">B+</option>
+                      <option value="B-">B-</option>
+                      <option value="O+">O+</option>
+                      <option value="O-">O-</option>
+                      <option value="AB+">AB+</option>
+                      <option value="AB-">AB-</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="church-label">Member Status</label>
+                    <select {...register('memberStatus')} className="church-select font-bold">
+                      <option value="Active">🟢 Active</option>
+                      <option value="Inactive">🟡 Inactive</option>
+                      <option value="Deceased">⚫ Deceased</option>
+                      <option value="Transferred">🔵 Transferred</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="church-label">Wedding Date (Anniversary)</label>
+                    <input type="date" {...register('weddingDate')} className="church-input" />
+                  </div>
+
+                  <div>
                     <label className="church-label">User Role *</label>
                     <select {...register('role', { required: true })} className="church-select">
                       <option value="user">User (Parish Member)</option>
@@ -481,7 +648,46 @@ export default function AdminUsers() {
 
                   <div className="md:col-span-2">
                     <label className="church-label">Residential Address</label>
-                    <textarea {...register('address')} rows={2} className="church-input py-2.5 resize-none" placeholder="Enter full address" />
+                    <textarea {...register('address')} rows={2} className="church-input py-2 text-xs resize-none" placeholder="Enter full address" />
+                  </div>
+                </div>
+
+                {/* Sacramental Milestones Section */}
+                <div className="pt-3 border-t border-gray-100 space-y-3">
+                  <p className="font-bold text-gray-800 text-xs flex items-center gap-1.5 font-display">
+                    ✝️ Sacramental Milestones & Certificates
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-amber-50/50 p-3 rounded-2xl border border-amber-200/60">
+                    <div>
+                      <label className="church-label text-[10px]">Baptism Date</label>
+                      <input type="date" {...register('baptismDate')} className="church-input text-xs" />
+                    </div>
+                    <div>
+                      <label className="church-label text-[10px]">Baptism Parish</label>
+                      <input {...register('baptismParish')} className="church-input text-xs" placeholder="Church Name" />
+                    </div>
+                    <div>
+                      <label className="church-label text-[10px]">Baptism Certificate No.</label>
+                      <input {...register('baptismCertNo')} className="church-input text-xs font-mono" placeholder="Cert #" />
+                    </div>
+
+                    <div>
+                      <label className="church-label text-[10px]">First Holy Communion Date</label>
+                      <input type="date" {...register('firstCommunionDate')} className="church-input text-xs" />
+                    </div>
+                    <div>
+                      <label className="church-label text-[10px]">Confirmation Date</label>
+                      <input type="date" {...register('confirmationDate')} className="church-input text-xs" />
+                    </div>
+                    <div>
+                      <label className="church-label text-[10px]">Holy Matrimony Date</label>
+                      <input type="date" {...register('marriageDate')} className="church-input text-xs" />
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <label className="church-label text-[10px]">Spouse Name</label>
+                      <input {...register('spouseName')} className="church-input text-xs" placeholder="Spouse Full Name" />
+                    </div>
                   </div>
                 </div>
 
@@ -502,63 +708,98 @@ export default function AdminUsers() {
           </div>
         )}
 
-        {/* Modify Member ID Format Modal */}
+        {/* Modify Member & Family ID Format Modal */}
         {showFormatModal && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto" onClick={() => setShowFormatModal(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl">
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} onClick={e => e.stopPropagation()} className="bg-white rounded-2xl p-6 w-full max-w-xl shadow-2xl">
               <div className="flex items-center justify-between mb-5 border-b border-gray-100 pb-3">
                 <div>
                   <h2 className="font-display text-xl font-bold text-church-royal-blue flex items-center gap-2">
-                    <FiTag className="text-church-gold" /> Modify Member ID Format
+                    <FiTag className="text-church-gold" /> Modify Member & Family ID Format
                   </h2>
-                  <p className="text-xs text-gray-500">Configure global member ID structure for all current & future members</p>
+                  <p className="text-xs text-gray-500">Configure global Parish Member ID and Family ID structures for all members</p>
                 </div>
                 <button onClick={() => setShowFormatModal(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"><FiX size={20} /></button>
               </div>
 
               <form onSubmit={handleUpdateFormat} className="space-y-4">
+                {/* Format Comparison Overview */}
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 space-y-2">
                   <p className="font-bold flex items-center gap-1.5"><FiTag /> Format Comparison Overview:</p>
                   <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
-                    <div className="bg-white/80 p-2.5 rounded-lg border border-amber-300/60 shadow-2xs">
-                      <span className="text-gray-500 block font-sans text-[10px] font-semibold mb-0.5">Previous Format:</span>
-                      <span className="font-bold text-gray-800 break-all">{formatData.prefix || 'SJDB_M'}01, {formatData.prefix || 'SJDB_M'}02...</span>
+                    <div className="bg-white/80 p-2.5 rounded-lg border border-amber-300/60 shadow-2xs space-y-1">
+                      <span className="text-gray-500 block font-sans text-[10px] font-semibold mb-0.5">Previous Formats:</span>
+                      <p className="font-bold text-gray-800 break-all">Member: {formatData.prefix || 'SJDB_M'}01...</p>
+                      <p className="font-bold text-amber-800 break-all">Family: {formatData.familyPrefix || 'SJDB_FAM-'}01...</p>
                     </div>
-                    <div className="bg-amber-100/90 p-2.5 rounded-lg border border-amber-400 font-bold text-amber-950 shadow-2xs">
-                      <span className="text-amber-800 block font-sans text-[10px] font-semibold mb-0.5">New Format Preview:</span>
-                      <span className="break-all">{newPrefix.trim() || 'SJDB_M'}{String(1).padStart(Number(newPadLength), '0')}, {newPrefix.trim() || 'SJDB_M'}{String(2).padStart(Number(newPadLength), '0')}...</span>
+                    <div className="bg-amber-100/90 p-2.5 rounded-lg border border-amber-400 font-bold text-amber-950 shadow-2xs space-y-1">
+                      <span className="text-amber-800 block font-sans text-[10px] font-semibold mb-0.5">New Format Previews:</span>
+                      <p className="break-all text-blue-900">Member: {newPrefix.trim() || 'SJDB_M'}{String(1).padStart(Number(newPadLength), '0')}...</p>
+                      <p className="break-all text-purple-900">Family: {newFamilyPrefix.trim() || 'SJDB_FAM-'}{String(1).padStart(Number(newFamilyPadLength), '0')}...</p>
                     </div>
                   </div>
                 </div>
 
-                <div>
-                  <label className="church-label">Member ID Prefix *</label>
-                  <input 
-                    value={newPrefix} 
-                    onChange={e => setNewPrefix(e.target.value.toUpperCase())} 
-                    className="church-input font-mono font-bold tracking-wider uppercase text-church-royal-blue" 
-                    placeholder="e.g. SJDB_M, STJDB_, PARISH_"
-                  />
-                  <p className="text-[11px] text-gray-400 mt-1">Letters, numbers, and underscores (e.g. SJDB_M &rarr; SJDB_M01)</p>
+                {/* Member ID Section */}
+                <div className="bg-blue-50/50 p-3.5 rounded-xl border border-blue-100 space-y-3">
+                  <h4 className="font-bold text-xs text-church-royal-blue uppercase tracking-wider">🪪 Parish Member ID Configuration</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="church-label text-[11px]">Member ID Prefix *</label>
+                      <input 
+                        value={newPrefix} 
+                        onChange={e => setNewPrefix(e.target.value.toUpperCase())} 
+                        className="church-input font-mono font-bold tracking-wider uppercase text-church-royal-blue text-xs" 
+                        placeholder="e.g. SJDB_M, STJDB_"
+                      />
+                    </div>
+                    <div>
+                      <label className="church-label text-[11px]">Number Digits Format *</label>
+                      <select 
+                        value={newPadLength} 
+                        onChange={e => setNewPadLength(Number(e.target.value))} 
+                        className="church-select font-mono text-xs"
+                      >
+                        <option value={2}>2 Digits (01, 02... 99)</option>
+                        <option value={3}>3 Digits (001, 002... 999)</option>
+                        <option value={4}>4 Digits (0001, 0002... 9999)</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="church-label">Number Digits Format *</label>
-                  <select 
-                    value={newPadLength} 
-                    onChange={e => setNewPadLength(Number(e.target.value))} 
-                    className="church-select font-mono"
-                  >
-                    <option value={2}>2 Digits (01, 02, 03... 99)</option>
-                    <option value={3}>3 Digits (001, 002, 003... 999)</option>
-                    <option value={4}>4 Digits (0001, 0002, 0003... 9999)</option>
-                  </select>
+                {/* Family ID Section */}
+                <div className="bg-purple-50/50 p-3.5 rounded-xl border border-purple-100 space-y-3">
+                  <h4 className="font-bold text-xs text-purple-900 uppercase tracking-wider">👨‍👩‍👧 Family Member ID Configuration</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="church-label text-[11px]">Family ID Prefix *</label>
+                      <input 
+                        value={newFamilyPrefix} 
+                        onChange={e => setNewFamilyPrefix(e.target.value.toUpperCase())} 
+                        className="church-input font-mono font-bold tracking-wider uppercase text-purple-900 text-xs" 
+                        placeholder="e.g. SJDB_FAM-, FAM-"
+                      />
+                    </div>
+                    <div>
+                      <label className="church-label text-[11px]">Number Digits Format *</label>
+                      <select 
+                        value={newFamilyPadLength} 
+                        onChange={e => setNewFamilyPadLength(Number(e.target.value))} 
+                        className="church-select font-mono text-xs"
+                      >
+                        <option value={2}>2 Digits (01, 02... 99)</option>
+                        <option value={3}>3 Digits (001, 002... 999)</option>
+                        <option value={4}>4 Digits (0001, 0002... 9999)</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[11px] text-red-700 flex items-start gap-2">
                   <span className="text-base">⚠️</span>
                   <span>
-                    <strong>Note:</strong> Saving will immediately re-generate and re-assign Member IDs for all {total} existing members in sequential order of registration date, and apply this format to all new user registrations.
+                    <strong>Note:</strong> Saving will immediately re-generate and re-assign both <strong>Parish Member IDs</strong> and <strong>Family IDs</strong> for all {total} existing members in sequential order of registration date, and apply this format to all new registrations.
                   </span>
                 </div>
 

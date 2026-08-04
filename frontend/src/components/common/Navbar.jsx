@@ -15,6 +15,7 @@ import { FaUserCog } from 'react-icons/fa';
 import { GiChurch, GiCrucifix } from 'react-icons/gi';
 import churchLogo from '../../assets/image copy.png';
 import DailySaintTicker from './DailySaintTicker';
+import PreMaintenanceBanner from './PreMaintenanceBanner';
 import RosaryModal from './RosaryModal';
 
 const navLinks = [
@@ -408,7 +409,12 @@ export default function Navbar() {
           )}
         </AnimatePresence>
 
-        {!mobileOpen && !location.pathname.startsWith('/admin') && <DailySaintTicker />}
+        {!mobileOpen && !location.pathname.startsWith('/admin') && (
+          <>
+            <DailySaintTicker />
+            <PreMaintenanceBanner />
+          </>
+        )}
       </motion.nav>
 
       {/* Rosary Audio Modal */}

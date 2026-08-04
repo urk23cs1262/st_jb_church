@@ -57,8 +57,12 @@ app.use(morgan('dev'));
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Routes
+// Routes — Exempt Auth & Maintenance Control Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/maintenance', require('./routes/maintenance'));
+
+// Maintenance Interception Middleware
+app.use(require('./middleware/maintenanceMiddleware'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/team', require('./routes/team'));
 app.use('/api/priests', require('./routes/priests'));
@@ -76,6 +80,7 @@ app.use('/api/permission-requests', require('./routes/permissionRequests'));
 app.use('/api/security', require('./routes/security'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/files', require('./routes/fileRoutes'));
 app.use('/api/upload', require('./routes/upload'));
 
 
@@ -91,6 +96,7 @@ require('./services/saintService');
 require('./services/birthdayService');
 require('./services/dailyBroadcastService'); // 6:00 AM spiritual content broadcast
 require('./services/reminderSchedulerService'); // Automated Event & Announcement reminders via Email, WhatsApp bot & In-App
+require('./services/maintenanceSchedulerService'); // Automated Maintenance start/end scheduler
 
 // ✅ Health check (used by cron-job.org to prevent cold starts)
 app.get('/api/health', (req, res) => res.json({

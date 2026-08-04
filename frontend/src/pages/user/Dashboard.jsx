@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
-import { FiUser, FiCalendar, FiFileText, FiMessageSquare, FiBell, FiEdit, FiSettings, FiDownload, FiCheckCircle, FiX, FiInfo, FiShield } from 'react-icons/fi';
+import { FiUser, FiCalendar,FiBookOpen, FiFileText, FiMessageSquare, FiBell, FiEdit, FiSettings, FiDownload, FiCheckCircle, FiX, FiInfo, FiShield } from 'react-icons/fi';
 
 import { FaDonate } from "react-icons/fa";
 import { GiChurch, GiCrucifix, GiPrayer, GiHeartBottle } from 'react-icons/gi';
@@ -25,8 +25,10 @@ const DONATION_TYPES = [
 ];
 
 export default function UserDashboard() {
-  const { user } = useAuth();
-  const { notifications, unreadCount, markRead } = useNotifications();
+  const { user, isAdmin } = useAuth();
+  const { notifications, adminNotifications, unreadCount, adminUnreadCount, markRead } = useNotifications();
+  const displayUnreadCount = isAdmin ? adminUnreadCount : unreadCount;
+  const notificationsLink = isAdmin ? '/admin/notifications' : '/dashboard/notifications';
   const [searchParams] = useSearchParams();
   const [bookings, setBookings] = useState([]);
   const [documents, setDocuments] = useState([]);
@@ -143,7 +145,7 @@ export default function UserDashboard() {
   };
 
   const QUICK_ACTIONS = [
-    { icon: <FiCalendar />, label: 'Book a Mass', path: '/dashboard/booking', color: 'bg-blue-500' },
+    { icon: <FiBookOpen  />, label: 'Book a Mass', path: '/dashboard/booking', color: 'bg-blue-500' },
     { icon: <FiFileText />, label: 'Request Document', path: '/dashboard/documents', color: 'bg-green-500' },
     { icon: <FiMessageSquare />, label: 'Raise a Ticket', path: '/dashboard/tickets', color: 'bg-purple-500' },
     { icon: <GiPrayer />, label: 'Prayer Request', path: '/prayer-requests', color: 'bg-amber-500' },
@@ -188,20 +190,20 @@ export default function UserDashboard() {
             {/* Vertical layout on Mobile (< 640px), Horizontal on Tablet/Desktop (≥ 640px) */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-shrink-0">
               <Link
-                to="/dashboard/notifications"
+                to={notificationsLink}
                 className="btn-outline-gold text-xs sm:text-sm md:text-base py-1.5 px-2.5 sm:py-2.5 sm:px-5 md:py-3 md:px-6 shadow-md border border-church-gold/60 rounded-xl whitespace-nowrap relative flex items-center justify-center gap-1.5 sm:gap-2"
                 title="Notifications"
               >
                 <div className="relative flex items-center justify-center">
                   <FiBell className="text-sm sm:text-xl" />
-                  {unreadCount > 0 && (
+                  {displayUnreadCount > 0 && (
                     <span className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse ring-2 ring-gray-600" />
                   )}
                 </div>
                 <span>Notifications</span>
-                {unreadCount > 0 && (
+                {displayUnreadCount > 0 && (
                   <span className="bg-red-500 text-white text-[10px] sm:text-xs font-black px-1.5 py-0.5 rounded-full ml-0.5 shadow-sm">
-                    {unreadCount}
+                    {displayUnreadCount}
                   </span>
                 )}
               </Link>

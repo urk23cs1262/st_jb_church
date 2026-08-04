@@ -237,7 +237,23 @@ export default function UserSettings() {
         gender: user.gender || '',
         subStation: user.subStation || '',
         familyName: user.familyName || '',
+        familyId: user.familyId || '',
+        parishMemberId: user.parishMemberId || '',
+        anbiyam: user.anbiyam || user.sccGroup || '',
+        bloodGroup: user.bloodGroup || '',
+        memberStatus: user.memberStatus || 'Active',
+        weddingDate: user.weddingDate ? new Date(user.weddingDate).toISOString().split('T')[0] : '',
+        role: user.role || 'user',
         address: user.address || '',
+        sacraments: {
+          baptismDate: user.sacraments?.baptismDate ? new Date(user.sacraments.baptismDate).toISOString().split('T')[0] : '',
+          baptismParish: user.sacraments?.baptismParish || '',
+          baptismCertificateNo: user.sacraments?.baptismCertificateNo || '',
+          firstCommunionDate: user.sacraments?.firstCommunionDate ? new Date(user.sacraments.firstCommunionDate).toISOString().split('T')[0] : '',
+          confirmationDate: user.sacraments?.confirmationDate ? new Date(user.sacraments.confirmationDate).toISOString().split('T')[0] : '',
+          matrimonyDate: user.sacraments?.matrimonyDate ? new Date(user.sacraments.matrimonyDate).toISOString().split('T')[0] : '',
+          spouseName: user.sacraments?.spouseName || ''
+        },
         familyRole: FAMILY_ROLES.includes(user.familyRole) ? (user.familyRole || '') : (user.familyRole ? 'Other' : ''),
         familyRoleOther: FAMILY_ROLES.includes(user.familyRole) ? '' : (user.familyRole || ''),
         familyMembers: user.familyMembers?.map(m => {
@@ -382,7 +398,7 @@ export default function UserSettings() {
       };
 
       Object.entries(processedData).forEach(([k, v]) => {
-        if (k === 'familyMembers' || k === 'settings') {
+        if (k === 'familyMembers' || k === 'settings' || k === 'sacraments') {
           formData.append(k, JSON.stringify(v));
         } else if (v !== undefined && v !== null) {
           formData.append(k, v);
@@ -555,7 +571,7 @@ export default function UserSettings() {
                 <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="church-card p-6 md:p-8 space-y-6">
                   <div className="border-b border-gray-100 pb-4">
                     <h2 className="text-xl font-bold text-church-royal-blue flex items-center gap-2">
-                      <FiUser className="text-church-gold" />Account Settings
+                      <FiUser className="text-church-gold" />Profile
                     </h2>
                     <p className="text-gray-500 text-xs mt-1">Manage your basic personal profile details and credentials</p>
                   </div>
@@ -610,22 +626,6 @@ export default function UserSettings() {
                       <input {...register('name', { required: true })} className="church-input" />
                     </div>
                     <div>
-                      <label className="church-label">Parish Member ID (Auto-Assigned)</label>
-                      <input value={user?.parishMemberId || ''} disabled className="church-input bg-gold-50/50 font-mono font-bold text-church-royal-blue cursor-not-allowed border-church-gold/40" placeholder="Auto-assigned" />
-                    </div>
-                    <div>
-                      <label className="church-label">Email Address</label>
-                      <input {...register('email')} type="email" className="church-input" />
-                    </div>
-                    <div>
-                      <label className="church-label">Mobile Number *</label>
-                      <input {...register('phone', { required: true })} className="church-input" placeholder="Enter mobile number" />
-                    </div>
-                    <div>
-                      <label className="church-label">Date of Birth</label>
-                      <input {...register('dob')} type="date" className="church-input" />
-                    </div>
-                    <div>
                       <label className="church-label">Gender</label>
                       <select {...register('gender')} className="church-select">
                         <option value="">Select Gender</option>
@@ -635,6 +635,34 @@ export default function UserSettings() {
                       </select>
                     </div>
                     <div>
+                      <label className="church-label">Date of Birth</label>
+                      <input {...register('dob')} type="date" className="church-input" />
+                    </div>
+                    <div>
+                      <label className="church-label">Phone Number *</label>
+                      <input {...register('phone', { required: true })} className="church-input" placeholder="Enter phone number" />
+                    </div>
+                    <div>
+                      <label className="church-label">Email Address</label>
+                      <input {...register('email')} type="email" className="church-input" />
+                    </div>
+                    <div>
+                      <label className="church-label">Parish Member ID</label>
+                      <input value={user?.parishMemberId || ''} disabled className="church-input bg-amber-50/50 font-mono font-bold text-church-royal-blue cursor-not-allowed border-amber-300/60" placeholder="Auto-assigned" />
+                    </div>
+                    <div>
+                      <label className="church-label">Family ID</label>
+                      <input value={user?.familyId || ''} disabled className="church-input bg-purple-50/50 font-mono font-bold text-purple-700 cursor-not-allowed border-purple-200" placeholder="Auto-assigned" />
+                    </div>
+                    <div>
+                      <label className="church-label">Family Name</label>
+                      <input {...register('familyName')} className="church-input" placeholder="Enter your family name" />
+                    </div>
+                    <div>
+                      <label className="church-label">Anbiyam Name</label>
+                      <input {...register('anbiyam')} className="church-input" placeholder="e.g. Enter Your's Anbiyam" />
+                    </div>
+                    <div>
                       <label className="church-label">Sub-Station</label>
                       <select {...register('subStation')} className="church-select">
                         <option value="">Select Sub-station</option>
@@ -642,12 +670,82 @@ export default function UserSettings() {
                       </select>
                     </div>
                     <div>
-                      <label className="church-label">Family Name</label>
-                      <input {...register('familyName')} className="church-input" placeholder="Enter your family name" />
+                      <label className="church-label">Blood Group</label>
+                      <select {...register('bloodGroup')} className="church-select">
+                        <option value="">Select Blood Group</option>
+                        <option value="A+">A+</option>
+                        <option value="A-">A-</option>
+                        <option value="B+">B+</option>
+                        <option value="B-">B-</option>
+                        <option value="AB+">AB+</option>
+                        <option value="AB-">AB-</option>
+                        <option value="O+">O+</option>
+                        <option value="O-">O-</option>
+                      </select>
                     </div>
+                    {/* <div>
+                      <label className="church-label">Member Status</label>
+                      <select {...register('memberStatus')} className="church-select">
+                        <option value="Active">🟢 Active</option>
+                        <option value="Inactive">🟡 Inactive</option>
+                        <option value="Transferred">🔵 Transferred</option>
+                        <option value="Deceased">⚪ Deceased</option>
+                      </select>
+                    </div> */}
+                    <div>
+                      <label className="church-label">Wedding Date (Anniversary)</label>
+                      <input {...register('weddingDate')} type="date" className="church-input" />
+                    </div>
+                    {/* <div>
+                      <label className="church-label">User Role *</label>
+                      <select {...register('role')} className="church-select font-semibold" disabled={user?.role !== 'admin'}>
+                        <option value="user">User (Parish Member)</option>
+                        <option value="admin">Admin</option>
+                        <option value="content_editor">Content Editor</option>
+                        <option value="tech_team">Tech Team</option>
+                      </select>
+                    </div> */}
                     <div className="md:col-span-2">
                       <label className="church-label">Residential Address</label>
                       <textarea {...register('address')} rows={2} className="church-input py-2.5 resize-none" placeholder="Enter your full residential address" />
+                    </div>
+                  </div>
+
+                  {/* Sacramental Milestones & Certificates */}
+                  <div className="bg-amber-50/50 border border-amber-200 p-5 rounded-2xl space-y-4">
+                    <h3 className="font-bold text-church-royal-blue text-sm flex items-center gap-2">
+                      <span>✝</span> SACRAMENTAL MILESTONES & CERTIFICATES
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <label className="church-label">Baptism Date</label>
+                        <input {...register('sacraments.baptismDate')} type="date" className="church-input bg-white" />
+                      </div>
+                      <div>
+                        <label className="church-label">Baptism Parish</label>
+                        <input {...register('sacraments.baptismParish')} className="church-input bg-white" placeholder="Parish name" />
+                      </div>
+                      <div>
+                        <label className="church-label">Baptism Certificate No.</label>
+                        <input {...register('sacraments.baptismCertificateNo')} className="church-input bg-white" placeholder="Certificate #" />
+                      </div>
+                      <div>
+                        <label className="church-label">First Holy Communion Date</label>
+                        <input {...register('sacraments.firstCommunionDate')} type="date" className="church-input bg-white" />
+                      </div>
+                      <div>
+                        <label className="church-label">Confirmation Date</label>
+                        <input {...register('sacraments.confirmationDate')} type="date" className="church-input bg-white" />
+                      </div>
+                      <div>
+                        <label className="church-label">Holy Matrimony Date</label>
+                        <input {...register('sacraments.matrimonyDate')} type="date" className="church-input bg-white" />
+                      </div>
+                      <div className="md:col-span-3">
+                        <label className="church-label">Spouse Name</label>
+                        <input {...register('sacraments.spouseName')} className="church-input bg-white" placeholder="Spouse full name" />
+                      </div>
                     </div>
                   </div>
 

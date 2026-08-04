@@ -34,14 +34,15 @@ const getUserById = async (req, res) => {
 const updateProfile = async (req, res) => {
   try {
     let { 
-      name, familyName, dob, gender, address, email, phone,
-      preferredLanguage, subStation, familyRole, familyMembers, settings 
+      name, familyName, familyId, dob, gender, address, email, phone,
+      preferredLanguage, subStation, familyRole, familyMembers, settings,
+      parishMemberId, anbiyam, sccGroup, parishZone, weddingDate, bloodGroup, memberStatus, sacraments
     } = req.body;
     
     if (email === "") email = undefined;
     if (gender === "" || gender === null) gender = undefined;
 
-    // Parse familyMembers if sent as a JSON string from FormData
+    // Parse familyMembers, settings, sacraments if sent as a JSON string from FormData
     if (typeof familyMembers === 'string') {
       try {
         familyMembers = JSON.parse(familyMembers);
@@ -59,11 +60,24 @@ const updateProfile = async (req, res) => {
       }
     }
 
+    if (typeof sacraments === 'string') {
+      try {
+        sacraments = JSON.parse(sacraments);
+      } catch (e) {
+        console.error('Error parsing sacraments:', e);
+      }
+    }
+
     const updateData = { 
-      name, familyName, dob, gender, address, email, 
+      name, familyName, familyId, dob, gender, address, email, 
       preferredLanguage, subStation, familyRole, 
+      anbiyam: anbiyam !== undefined ? anbiyam : sccGroup, 
+      parishZone, weddingDate, bloodGroup, memberStatus,
       familyMembers: Array.isArray(familyMembers) ? familyMembers : [] 
     };
+
+    if (parishMemberId !== undefined && parishMemberId !== '') updateData.parishMemberId = parishMemberId;
+    if (sacraments !== undefined) updateData.sacraments = sacraments;
 
     if (phone && phone.trim()) {
       phone = phone.trim();
@@ -80,13 +94,14 @@ const updateProfile = async (req, res) => {
       updateData.profilePhoto = '';
     } else if (req.file) {
       try {
-        const fileBuffer = fs.readFileSync(req.file.path);
-        const mime = req.file.mimetype || 'image/jpeg';
-        updateData.profilePhoto = `data:${mime};base64,${fileBuffer.toString('base64')}`;
-        try { fs.unlinkSync(req.file.path); } catch (e) {}
+        const { uploadToGridFS } = require('../services/gridfsService');
+        const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+        if (buffer) {
+          const fileInfo = await uploadToGridFS(buffer, req.file.originalname || 'profile.jpg', req.file.mimetype || 'image/jpeg');
+          updateData.profilePhoto = fileInfo.url;
+        }
       } catch (e) {
-        console.error('Error converting photo to base64:', e.message);
-        updateData.profilePhoto = `/uploads/profiles/${req.file.filename}`;
+        console.error('Error uploading profile photo to GridFS:', e.message);
       }
     }
     
@@ -98,7 +113,12 @@ const updateProfile = async (req, res) => {
 // PUT /api/users/:id — admin
 const updateUser = async (req, res) => {
   try {
-    const { role, isActive, isVerified, name, email, phone, parishMemberId, gender, dob, address, subStation, familyName } = req.body;
+    const { 
+      role, isActive, isVerified, name, email, phone, parishMemberId, 
+      gender, dob, address, subStation, familyName, familyId, parishZone, 
+      anbiyam, sccGroup, weddingDate, bloodGroup, memberStatus, sacraments 
+    } = req.body;
+
     const updateData = { role, isActive, isVerified };
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email === "" ? undefined : email;
@@ -109,6 +129,14 @@ const updateUser = async (req, res) => {
     if (address !== undefined) updateData.address = address;
     if (subStation !== undefined) updateData.subStation = subStation;
     if (familyName !== undefined) updateData.familyName = familyName;
+    if (familyId !== undefined) updateData.familyId = familyId;
+    if (parishZone !== undefined) updateData.parishZone = parishZone;
+    if (anbiyam !== undefined) updateData.anbiyam = anbiyam;
+    else if (sccGroup !== undefined) updateData.anbiyam = sccGroup;
+    if (weddingDate !== undefined) updateData.weddingDate = weddingDate;
+    if (bloodGroup !== undefined) updateData.bloodGroup = bloodGroup;
+    if (memberStatus !== undefined) updateData.memberStatus = memberStatus;
+    if (sacraments !== undefined) updateData.sacraments = sacraments;
     
     const user = await User.findByIdAndUpdate(req.params.id, updateData, { new: true }).select('-passwordHash');
     res.json({ success: true, user });
@@ -155,6 +183,232 @@ const updateSettings = async (req, res) => {
   }
 };
 
+// Helper to generate and stream complete PDF report for a user containing ALL updated profile & activity data
+const generateComprehensiveUserPdfStream = async (user, res, isDownload = false) => {
+  const Booking = require('../models/Booking');
+  const Donation = require('../models/Donation');
+  const PrayerRequest = require('../models/PrayerRequest');
+  const Ticket = require('../models/Ticket');
+  const QRCode = require('qrcode');
+  const jwt = require('jsonwebtoken');
+
+  // Aggregate statistics
+  const massBookingsCount = await Booking.countDocuments({ userId: user._id });
+  const donationStats = await Donation.aggregate([
+    { $match: { userId: user._id } },
+    { $group: { _id: null, total: { $sum: '$amount' } } }
+  ]);
+  const donationsTotal = donationStats[0]?.total || 0;
+  const prayerRequestsCount = await PrayerRequest.countDocuments({ userId: user._id });
+  const ticketsCount = await Ticket.countDocuments({ userId: user._id });
+
+  // Generate secure QR code containing web report URL with token
+  const secureToken = jwt.sign(
+    { userId: user._id, type: 'member_report' },
+    process.env.JWT_SECRET || 'sjdb_secret_key_2024',
+    { expiresIn: '30d' }
+  );
+
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+  const qrReportWebUrl = `${clientUrl}/member-report/${secureToken}`;
+
+  const qrDataUrl = await QRCode.toDataURL(qrReportWebUrl);
+  const qrImageBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
+
+  const doc = new PDFDocument({ margin: 36, size: 'A4', bufferPages: true });
+
+  const safeName = (user.name || 'User').replace(/[^a-zA-Z0-9_-]/g, '_');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `${isDownload ? 'attachment' : 'inline'}; filename=User_${safeName}_Report.pdf`);
+
+  doc.pipe(res);
+
+  const pageWidth = 595.28;
+  const margin = 36;
+  const contentWidth = pageWidth - margin * 2; // 523.28
+
+  let curY = 36;
+
+  const checkPageOverflow = (heightNeeded = 25) => {
+    if (curY + heightNeeded > 735) {
+      doc.addPage();
+      doc.rect(margin, 36, contentWidth, 3).fill('#1e3a8a');
+      curY = 48;
+    }
+  };
+
+  // --- Header Section ---
+  doc.rect(margin, 36, contentWidth, 5).fill('#1e3a8a');
+
+  // Title & Subtitle
+  doc.fillColor('#1e3a8a').fontSize(22).font('Helvetica-Bold').text("St. John de Britto's Church", margin, 48, { width: contentWidth - 95, align: 'left' });
+  doc.fillColor('#b45309').fontSize(10).font('Helvetica-Bold').text("Kalayarkoil, Sivagangai District, Tamil Nadu - 630551", margin, 74, { width: contentWidth - 95, align: 'left' });
+
+  // QR Code top right inside frame
+  doc.rect(pageWidth - margin - 75, 46, 75, 75).fillAndStroke('#f8fafc', '#cbd5e1');
+  doc.image(qrImageBuffer, pageWidth - margin - 71, 50, { width: 67, height: 67 });
+
+  // Document Title & Timestamp
+  doc.fillColor('#0f172a').fontSize(12).font('Helvetica-Bold').text("OFFICIAL MEMBER PROFILE & ACTIVITY RECORD", margin, 92);
+
+  const lastModStr = user.updatedAt ? new Date(user.updatedAt).toLocaleString('en-GB') : (user.createdAt ? new Date(user.createdAt).toLocaleString('en-GB') : 'N/A');
+  doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text(`Report Generated: ${new Date().toLocaleString('en-GB')}  |  Last Profile Update: ${lastModStr}`, margin, 108);
+
+  // Divider Line
+  doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(margin, 122).lineTo(pageWidth - margin, 122).stroke();
+
+  curY = 132;
+
+  // Helper: Draw Section Title Box
+  const drawSectionHeader = (title) => {
+    checkPageOverflow(30);
+    doc.rect(margin, curY, contentWidth, 20).fill('#f1f5f9');
+    doc.rect(margin, curY, 4, 20).fill('#1e3a8a');
+    doc.fillColor('#1e3a8a').fontSize(10).font('Helvetica-Bold').text(title, margin + 12, curY + 5);
+    curY += 25;
+  };
+
+  // Helper: Draw Single Key-Value Row
+  const renderFieldLine = (label, value, isHighlight = false) => {
+    const displayVal = (value !== undefined && value !== null && String(value).trim() !== '') ? String(value) : 'N/A';
+    const labelX = margin + 12;
+    const valX = margin + 175;
+    const maxValWidth = contentWidth - 187;
+
+    const textHeight = doc.heightOfString(displayVal, { width: maxValWidth });
+    const rowHeight = Math.max(16, textHeight + 4);
+
+    checkPageOverflow(rowHeight);
+
+    doc.fillColor('#475569').fontSize(9.5).font('Helvetica-Bold').text(label, labelX, curY, { width: 155 });
+
+    if (isHighlight) {
+      doc.fillColor('#1e3a8a').fontSize(9.5).font('Helvetica-Bold').text(displayVal, valX, curY, { width: maxValWidth });
+    } else {
+      doc.fillColor('#0f172a').fontSize(9.5).font('Helvetica').text(displayVal, valX, curY, { width: maxValWidth });
+    }
+
+    curY += rowHeight;
+  };
+
+  // 1. PERSONAL INFORMATION
+  drawSectionHeader('PERSONAL & CONTACT INFORMATION');
+  renderFieldLine('Full Name:', user.name);
+  renderFieldLine('Parish Member ID:', user.parishMemberId || 'N/A', true);
+  renderFieldLine('Family ID:', user.familyId || 'N/A', true);
+  renderFieldLine('Primary Phone:', user.phone);
+  renderFieldLine('Email Address:', user.email);
+  renderFieldLine('Date of Birth:', user.dob ? new Date(user.dob).toLocaleDateString('en-GB') : 'N/A');
+  renderFieldLine('Gender:', user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : 'Not Specified');
+  renderFieldLine('Blood Group:', user.bloodGroup || 'N/A');
+  renderFieldLine('Residential Address:', user.address);
+  renderFieldLine('Registration Date:', user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : 'N/A');
+  renderFieldLine('Last Profile Modification:', lastModStr);
+  renderFieldLine('Last System Activity:', user.lastLogin ? new Date(user.lastLogin).toLocaleString('en-GB') : (user.lastSuccessfulLogin ? new Date(user.lastSuccessfulLogin).toLocaleString('en-GB') : 'Never'));
+
+  curY += 4;
+
+  // 2. PARISH & ECCLESIAL MEMBERSHIP
+  drawSectionHeader('PARISH & ECCLESIAL MEMBERSHIP');
+  renderFieldLine('Primary Parish:', "St. John de Britto's Church, Kalayarkoil");
+  // renderFieldLine('Parish Zone / Ward:', user.parishZone || 'N/A');
+  renderFieldLine('Anbiyam Name:', user.anbiyam || user.sccGroup || 'N/A');
+  renderFieldLine('Member Status:', user.memberStatus || (user.isSuspended ? 'Suspended' : (user.isActive ? 'Active' : 'Inactive')));
+  renderFieldLine('System Access Role:', (user.role || 'user').toUpperCase());
+  renderFieldLine('Account Verification:', user.isVerified ? 'Verified Account' : 'Pending Verification');
+
+  curY += 4;
+
+  // 3. FAMILY & HOUSEHOLD DETAILS
+  drawSectionHeader('FAMILY & HOUSEHOLD DETAILS');
+  renderFieldLine('Family Name:', user.familyName);
+  renderFieldLine('Family ID:', user.familyId || 'N/A', true);
+  renderFieldLine('Role in Household:', user.familyRole);
+  renderFieldLine('Wedding Anniversary:', user.weddingDate ? new Date(user.weddingDate).toLocaleDateString('en-GB') : (user.sacraments?.marriageDate ? new Date(user.sacraments.marriageDate).toLocaleDateString('en-GB') : 'N/A'));
+  renderFieldLine('Spouse Name:', user.sacraments?.spouseName || 'N/A');
+
+  if (user.familyMembers && user.familyMembers.length > 0) {
+    const famList = user.familyMembers.map(m => `${m.name} (${m.role || 'Member'})`).join(', ');
+    renderFieldLine('Registered Family Members:', famList);
+  } else {
+    renderFieldLine('Registered Family Members:', 'None registered');
+  }
+
+  curY += 4;
+
+  // 4. HOLY SACRAMENTS RECORD
+  drawSectionHeader('HOLY SACRAMENTS RECORD');
+  const bDate = user.sacraments?.baptismDate ? new Date(user.sacraments.baptismDate).toLocaleDateString('en-GB') : 'N/A';
+  const bParish = user.sacraments?.baptismParish || 'N/A';
+  const bCert = user.sacraments?.baptismCertNo || 'N/A';
+  renderFieldLine('Holy Baptism:', `Date: ${bDate} | Parish: ${bParish} | Cert No: ${bCert}`);
+
+  const fcDate = user.sacraments?.firstCommunionDate ? new Date(user.sacraments.firstCommunionDate).toLocaleDateString('en-GB') : 'N/A';
+  const fcParish = user.sacraments?.firstCommunionParish || 'N/A';
+  renderFieldLine('First Holy Communion:', `Date: ${fcDate}`);
+
+  const cDate = user.sacraments?.confirmationDate ? new Date(user.sacraments.confirmationDate).toLocaleDateString('en-GB') : 'N/A';
+  const cParish = user.sacraments?.confirmationParish || 'N/A';
+  renderFieldLine('Holy Confirmation:', `Date: ${cDate}`);
+
+  const mDate = user.sacraments?.marriageDate ? new Date(user.sacraments.marriageDate).toLocaleDateString('en-GB') : (user.weddingDate ? new Date(user.weddingDate).toLocaleDateString('en-GB') : 'N/A');
+  const mParish = user.sacraments?.marriageParish || 'N/A';
+  const spouse = user.sacraments?.spouseName || 'N/A';
+  renderFieldLine('Holy Matrimony:', `Date: ${mDate} | Spouse: ${spouse}`);
+
+  curY += 4;
+
+  // 5. ACTIVITY & STATISTICS SUMMARY
+  drawSectionHeader('ACTIVITY & STATISTICS SUMMARY');
+  checkPageOverflow(55);
+
+  const cardWidth = (contentWidth - 30) / 4;
+  const cardHeight = 46;
+  const cardY = curY;
+
+  const metrics = [
+    { label: 'Mass Bookings', val: `${massBookingsCount}`, color: '#2563eb' },
+    { label: 'Total Donations', val: `Rs. ${donationsTotal.toLocaleString('en-IN')}`, color: '#16a34a' },
+    { label: 'Prayer Requests', val: `${prayerRequestsCount}`, color: '#d97706' },
+    { label: 'Support Tickets', val: `${ticketsCount}`, color: '#9333ea' }
+  ];
+
+  metrics.forEach((m, idx) => {
+    const cardX = margin + idx * (cardWidth + 10);
+    doc.rect(cardX, cardY, cardWidth, cardHeight).fillAndStroke('#f8fafc', '#cbd5e1');
+    doc.rect(cardX, cardY, cardWidth, 3).fill(m.color);
+
+    doc.fillColor('#64748b').fontSize(8).font('Helvetica-Bold').text(m.label, cardX + 4, cardY + 8, { width: cardWidth - 8, align: 'center' });
+    doc.fillColor(m.color).fontSize(12).font('Helvetica-Bold').text(m.val, cardX + 4, cardY + 22, { width: cardWidth - 8, align: 'center' });
+  });
+
+  curY += cardHeight + 10;
+
+  // 6. EMERGENCY CONTACT (if available)
+  if (user.settings?.emergencyContact?.name) {
+    drawSectionHeader('EMERGENCY CONTACT');
+    renderFieldLine('Contact Name:', user.settings.emergencyContact.name);
+    renderFieldLine('Relationship:', user.settings.emergencyContact.relationship);
+    renderFieldLine('Emergency Phone:', user.settings.emergencyContact.phone);
+    curY += 4;
+  }
+
+  // --- Footer Page Numbers ---
+  const range = doc.bufferedPageRange();
+  for (let i = range.start; i < range.start + range.count; i++) {
+    doc.switchToPage(i);
+    doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(margin, 765).lineTo(pageWidth - margin, 765).stroke();
+    doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text(
+      `St. John de Britto's Church, Kalayarkoil — Official Member Record | Page ${i + 1} of ${range.count}`,
+      margin,
+      774,
+      { align: 'center', width: contentWidth }
+    );
+  }
+
+  doc.end();
+};
+
 // GET /api/users/:id/pdf — Option 1: Individual User Details PDF Report
 const getUserPdfReport = async (req, res) => {
   try {
@@ -166,187 +420,7 @@ const getUserPdfReport = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
-    // Aggregate statistics
-    const massBookingsCount = await Booking.countDocuments({ userId: user._id });
-    const donationStats = await Donation.aggregate([
-      { $match: { userId: user._id } },
-      { $group: { _id: null, total: { $sum: '$amount' } } }
-    ]);
-    const donationsTotal = donationStats[0]?.total || 0;
-    const prayerRequestsCount = await PrayerRequest.countDocuments({ userId: user._id });
-    const ticketsCount = await Ticket.countDocuments({ userId: user._id });
-
-    // Generate secure QR code containing web report URL with token (no raw personal data inside QR image)
-    const jwt = require('jsonwebtoken');
-    const secureToken = jwt.sign(
-      { userId: user._id, type: 'member_report' },
-      process.env.JWT_SECRET || 'sjdb_secret_key_2024',
-      { expiresIn: '30d' }
-    );
-
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-    const qrReportWebUrl = `${clientUrl}/member-report/${secureToken}`;
-
-    const qrDataUrl = await QRCode.toDataURL(qrReportWebUrl);
-    const qrImageBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
-
-    const doc = new PDFDocument({ margin: 36, size: 'A4', bufferPages: true });
-
-    const safeName = (user.name || 'User').replace(/[^a-zA-Z0-9_-]/g, '_');
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename=User_${safeName}_Report.pdf`);
-
-    doc.pipe(res);
-
-    const pageWidth = 595.28;
-    const margin = 36;
-    const contentWidth = pageWidth - margin * 2; // 523.28
-
-    // --- Header Section ---
-    doc.rect(margin, 36, contentWidth, 5).fill('#1e3a8a');
-
-    // Title & Subtitle (Left aligned with high contrast)
-    doc.fillColor('#1e3a8a').fontSize(22).font('Helvetica-Bold').text("St. John de Britto's Church", margin, 48, { width: contentWidth - 95, align: 'left' });
-    doc.fillColor('#b45309').fontSize(10).font('Helvetica-Bold').text("Kalayarkoil, Sivagangai District, Tamil Nadu - 630551", margin, 74, { width: contentWidth - 95, align: 'left' });
-
-    // QR Code on top right inside frame
-    doc.rect(pageWidth - margin - 75, 46, 75, 75).fillAndStroke('#f8fafc', '#cbd5e1');
-    doc.image(qrImageBuffer, pageWidth - margin - 71, 50, { width: 67, height: 67 });
-
-    // Document Subtitle & Timestamp
-    doc.fillColor('#0f172a').fontSize(13).font('Helvetica-Bold').text("MEMBER PROFILE & ACTIVITY REPORT", margin, 92);
-    doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text(`Generated On: ${new Date().toLocaleString('en-GB')}`, margin, 108);
-
-    // Divider Line
-    doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(margin, 124).lineTo(pageWidth - margin, 124).stroke();
-
-    let curY = 136;
-
-    // Helper: Draw Section Title Box
-    const drawSectionHeader = (title) => {
-      doc.rect(margin, curY, contentWidth, 20).fill('#f1f5f9');
-      doc.rect(margin, curY, 4, 20).fill('#1e3a8a');
-      doc.fillColor('#1e3a8a').fontSize(10).font('Helvetica-Bold').text(title, margin + 12, curY + 5);
-      curY += 26;
-    };
-
-    // Helper: Draw Single Key-Value Row (One by One for Full Visibility)
-    const renderFieldLine = (label, value, isHighlight = false) => {
-      const labelX = margin + 12;
-      const valX = margin + 175;
-      const maxValWidth = contentWidth - 187;
-
-      doc.fillColor('#475569').fontSize(9.5).font('Helvetica-Bold').text(label, labelX, curY, { width: 155 });
-
-      const displayVal = (value !== undefined && value !== null && String(value).trim() !== '') ? String(value) : 'N/A';
-      
-      if (isHighlight) {
-        doc.fillColor('#1e3a8a').fontSize(9.5).font('Helvetica-Bold').text(displayVal, valX, curY, { width: maxValWidth });
-      } else {
-        doc.fillColor('#0f172a').fontSize(9.5).font('Helvetica').text(displayVal, valX, curY, { width: maxValWidth });
-      }
-
-      const textHeight = doc.heightOfString(displayVal, { width: maxValWidth });
-      curY += Math.max(16, textHeight + 4);
-    };
-
-    // 1. PERSONAL INFORMATION
-    drawSectionHeader('PERSONAL INFORMATION');
-
-    const formattedDob = user.dob ? new Date(user.dob).toLocaleDateString('en-GB') : 'N/A';
-    const formattedRegDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : 'N/A';
-    const formattedLastLogin = user.lastLogin ? new Date(user.lastLogin).toLocaleString('en-GB') : (user.lastSuccessfulLogin ? new Date(user.lastSuccessfulLogin).toLocaleString('en-GB') : 'Never');
-
-    renderFieldLine('Full Name:', user.name);
-    renderFieldLine('Parish Member ID:', user.parishMemberId || 'N/A', true);
-    renderFieldLine('Phone Number:', user.phone);
-    renderFieldLine('Email Address:', user.email);
-    renderFieldLine('Date of Birth:', formattedDob);
-    renderFieldLine('Gender:', user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : 'Not Specified');
-    renderFieldLine('Residential Address:', user.address);
-    renderFieldLine('Registration Date:', formattedRegDate);
-    renderFieldLine('Last Login:', formattedLastLogin);
-
-    curY += 6;
-
-    // 2. ACCOUNT & SECURITY INFORMATION
-    drawSectionHeader('ACCOUNT & MEMBERSHIP INFORMATION');
-
-    const statusText = user.isSuspended ? 'Suspended (Security Review)' : (user.isActive ? 'Active' : 'Inactive');
-
-    renderFieldLine('User ID:', user._id.toString());
-    renderFieldLine('System Role:', (user.role || 'user').toUpperCase());
-    renderFieldLine('Account Status:', statusText);
-    renderFieldLine('Email Verified:', user.isVerified ? 'Yes' : 'No');
-    renderFieldLine('WhatsApp Opt-In:', user.whatsappOptIn !== false ? 'Yes' : 'No');
-
-    curY += 6;
-
-    // 3. CHURCH & FAMILY INFORMATION
-    drawSectionHeader('CHURCH & FAMILY INFORMATION');
-
-    renderFieldLine('Primary Parish:', "St. John de Britto's Church");
-    renderFieldLine('Sub-Station:', user.subStation || 'Kalayarkoil (Main Parish)');
-    renderFieldLine('Family Name:', user.familyName);
-    renderFieldLine('Role in Family:', user.familyRole);
-
-    if (user.familyMembers && user.familyMembers.length > 0) {
-      const famList = user.familyMembers.map(m => `${m.name} (${m.role})`).join(', ');
-      renderFieldLine('Family Members:', famList);
-    } else {
-      renderFieldLine('Family Members:', 'None registered');
-    }
-
-    curY += 6;
-
-    // 4. ACTIVITY & METRICS SUMMARY (4 Metrics Cards Grid)
-    drawSectionHeader('ACTIVITY & STATISTICS SUMMARY');
-
-    const cardWidth = (contentWidth - 30) / 4; // ~123px per card
-    const cardHeight = 46;
-    const cardY = curY;
-
-    const metrics = [
-      { label: 'Mass Bookings', val: `${massBookingsCount}`, color: '#2563eb' },
-      { label: 'Total Donations', val: `Rs. ${donationsTotal.toLocaleString('en-IN')}`, color: '#16a34a' },
-      { label: 'Prayer Requests', val: `${prayerRequestsCount}`, color: '#d97706' },
-      { label: 'Support Tickets', val: `${ticketsCount}`, color: '#9333ea' }
-    ];
-
-    metrics.forEach((m, idx) => {
-      const cardX = margin + idx * (cardWidth + 10);
-      doc.rect(cardX, cardY, cardWidth, cardHeight).fillAndStroke('#f8fafc', '#cbd5e1');
-      doc.rect(cardX, cardY, cardWidth, 3).fill(m.color);
-
-      doc.fillColor('#64748b').fontSize(8).font('Helvetica-Bold').text(m.label, cardX + 4, cardY + 8, { width: cardWidth - 8, align: 'center' });
-      doc.fillColor(m.color).fontSize(12).font('Helvetica-Bold').text(m.val, cardX + 4, cardY + 22, { width: cardWidth - 8, align: 'center' });
-    });
-
-    curY += cardHeight + 10;
-
-    // 5. EMERGENCY CONTACT (if present)
-    if (user.settings?.emergencyContact?.name) {
-      drawSectionHeader('EMERGENCY CONTACT');
-      renderFieldLine('Contact Name:', user.settings.emergencyContact.name);
-      renderFieldLine('Relationship:', user.settings.emergencyContact.relationship);
-      renderFieldLine('Emergency Phone:', user.settings.emergencyContact.phone);
-      curY += 4;
-    }
-
-    // --- Footer Page Numbers ---
-    const range = doc.bufferedPageRange();
-    for (let i = range.start; i < range.start + range.count; i++) {
-      doc.switchToPage(i);
-      doc.strokeColor('#cbd5e1').lineWidth(0.5).moveTo(margin, 765).lineTo(pageWidth - margin, 765).stroke();
-      doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text(
-        `St. John de Britto's Church, Kalayarkoil — Official Member Record | Page ${i + 1} of ${range.count}`,
-        margin,
-        774,
-        { align: 'center', width: contentWidth }
-      );
-    }
-
-    doc.end();
+    await generateComprehensiveUserPdfStream(user, res, false);
   } catch (err) {
     console.error('Error generating user PDF report:', err);
     res.status(500).json({ success: false, message: 'Failed to generate user PDF report: ' + err.message });
@@ -462,12 +536,21 @@ const getMemberIdFormatInfo = async (req, res) => {
 const updateMemberIdFormat = async (req, res) => {
   try {
     const { regenerateAllMemberIds } = require('../services/memberIdService');
-    const { prefix, padLength } = req.body;
+    const { prefix, padLength, familyPrefix, familyPadLength } = req.body;
     if (!prefix || !prefix.trim()) {
       return res.status(400).json({ success: false, message: 'Member ID prefix is required (e.g. SJDB_M)' });
     }
-    const result = await regenerateAllMemberIds(prefix, padLength || 2);
-    res.json({ success: true, message: `Successfully updated format to "${result.newFormat}" for all users`, ...result });
+    const result = await regenerateAllMemberIds(
+      prefix, 
+      padLength || 2, 
+      familyPrefix || 'SJDB_FAM-', 
+      familyPadLength || 2
+    );
+    res.json({ 
+      success: true, 
+      message: `Successfully updated format (Member: "${result.newFormat}", Family: "${result.newFamilyFormat}") for all users`, 
+      ...result 
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -660,88 +743,7 @@ const getMemberReportPdfByToken = async (req, res) => {
       }
     }
 
-    // Generate PDF stream directly for browser attachment download
-    const PDFDocument = require('pdfkit');
-    const QRCode = require('qrcode');
-    const Booking = require('../models/Booking');
-    const Donation = require('../models/Donation');
-    const PrayerRequest = require('../models/PrayerRequest');
-    const Ticket = require('../models/Ticket');
-
-    const secureToken = jwt.sign(
-      { userId: user._id, type: 'member_report' },
-      process.env.JWT_SECRET || 'sjdb_secret_key_2024',
-      { expiresIn: '30d' }
-    );
-    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-    const qrReportWebUrl = `${clientUrl}/member-report/${secureToken}`;
-
-    const qrDataUrl = await QRCode.toDataURL(qrReportWebUrl);
-    const qrImageBuffer = Buffer.from(qrDataUrl.split(',')[1], 'base64');
-
-    const doc = new PDFDocument({ margin: 36, size: 'A4', bufferPages: true });
-    const safeName = (user.name || 'User').replace(/[^a-zA-Z0-9_-]/g, '_');
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=User_${safeName}_Report.pdf`);
-
-    doc.pipe(res);
-
-    const pageWidth = 595.28;
-    const margin = 36;
-    const contentWidth = pageWidth - margin * 2;
-
-    doc.rect(margin, 36, contentWidth, 5).fill('#1e3a8a');
-    doc.fillColor('#1e3a8a').fontSize(22).font('Helvetica-Bold').text("St. John de Britto's Church", margin, 48, { width: contentWidth - 95, align: 'left' });
-    doc.fillColor('#b45309').fontSize(10).font('Helvetica-Bold').text("Kalayarkoil, Sivagangai District, Tamil Nadu - 630551", margin, 74, { width: contentWidth - 95, align: 'left' });
-
-    doc.rect(pageWidth - margin - 75, 46, 75, 75).fillAndStroke('#f8fafc', '#cbd5e1');
-    doc.image(qrImageBuffer, pageWidth - margin - 71, 50, { width: 67, height: 67 });
-
-    doc.fillColor('#0f172a').fontSize(13).font('Helvetica-Bold').text("MEMBER PROFILE & ACTIVITY REPORT", margin, 92);
-    doc.fillColor('#64748b').fontSize(8.5).font('Helvetica').text(`Generated On: ${new Date().toLocaleString('en-GB')}`, margin, 108);
-
-    doc.strokeColor('#cbd5e1').lineWidth(1).moveTo(margin, 124).lineTo(pageWidth - margin, 124).stroke();
-
-    let curY = 136;
-    const drawSectionHeader = (title) => {
-      doc.rect(margin, curY, contentWidth, 20).fill('#f1f5f9');
-      doc.rect(margin, curY, 4, 20).fill('#1e3a8a');
-      doc.fillColor('#1e3a8a').fontSize(10).font('Helvetica-Bold').text(title, margin + 12, curY + 5);
-      curY += 26;
-    };
-
-    const renderFieldLine = (label, value, isHighlight = false) => {
-      const labelX = margin + 12;
-      const valX = margin + 175;
-      const maxValWidth = contentWidth - 187;
-      doc.fillColor('#475569').fontSize(9.5).font('Helvetica-Bold').text(label, labelX, curY, { width: 155 });
-      const displayVal = (value !== undefined && value !== null && String(value).trim() !== '') ? String(value) : 'N/A';
-      if (isHighlight) {
-        doc.fillColor('#1e3a8a').fontSize(9.5).font('Helvetica-Bold').text(displayVal, valX, curY, { width: maxValWidth });
-      } else {
-        doc.fillColor('#0f172a').fontSize(9.5).font('Helvetica').text(displayVal, valX, curY, { width: maxValWidth });
-      }
-      const textHeight = doc.heightOfString(displayVal, { width: maxValWidth });
-      curY += Math.max(16, textHeight + 4);
-    };
-
-    drawSectionHeader('PERSONAL INFORMATION');
-    renderFieldLine('Full Name:', user.name);
-    renderFieldLine('Parish Member ID:', user.parishMemberId || 'N/A', true);
-    renderFieldLine('Phone Number:', user.phone);
-    renderFieldLine('Email Address:', user.email);
-    renderFieldLine('Date of Birth:', user.dob ? new Date(user.dob).toLocaleDateString('en-GB') : 'N/A');
-    renderFieldLine('Gender:', user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1) : 'Not Specified');
-    renderFieldLine('Residential Address:', user.address);
-    renderFieldLine('Registration Date:', user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : 'N/A');
-
-    curY += 6;
-    drawSectionHeader('ACCOUNT & MEMBERSHIP INFORMATION');
-    renderFieldLine('User ID:', user._id.toString());
-    renderFieldLine('System Role:', (user.role || 'user').toUpperCase());
-    renderFieldLine('Account Status:', user.isSuspended ? 'Suspended' : (user.isActive ? 'Active' : 'Inactive'));
-
-    doc.end();
+    await generateComprehensiveUserPdfStream(user, res, true);
   } catch (err) {
     res.status(500).json({ success: false, message: 'PDF Download error: ' + err.message });
   }

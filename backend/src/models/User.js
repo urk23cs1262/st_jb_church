@@ -10,6 +10,24 @@ const userSchema = new mongoose.Schema({
   address: { type: String },
   subStation: { type: String, trim: true },
   familyRole: { type: String, trim: true },
+  familyId: { type: String, trim: true },
+  parishZone: { type: String, trim: true },
+  anbiyam: { type: String, trim: true },
+  weddingDate: { type: Date },
+  bloodGroup: { type: String, trim: true },
+  memberStatus: { type: String, enum: ['Active', 'Inactive', 'Deceased', 'Transferred'], default: 'Active' },
+  sacraments: {
+    baptismDate: { type: Date },
+    baptismParish: { type: String, trim: true },
+    baptismCertNo: { type: String, trim: true },
+    firstCommunionDate: { type: Date },
+    firstCommunionParish: { type: String, trim: true },
+    confirmationDate: { type: Date },
+    confirmationParish: { type: String, trim: true },
+    marriageDate: { type: Date },
+    marriageParish: { type: String, trim: true },
+    spouseName: { type: String, trim: true }
+  },
   familyMembers: [{
     name: { type: String, trim: true },
     role: { type: String, trim: true }

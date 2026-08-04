@@ -6,12 +6,12 @@ const { sendOTP, verifyOTP } = require('../services/otpService');
 const { createNotification } = require('../services/notificationService');
 const { sendLoginAlertEmail, sendPasswordUpdatedEmail } = require('../services/loginSecurityService');
 
-const { generateNextMemberId } = require('../services/memberIdService');
+const { generateNextMemberId, generateNextFamilyId } = require('../services/memberIdService');
 
 // @POST /api/auth/register
 const register = async (req, res) => {
   try {
-    let { name, familyName, dob, gender, phone, email, address, parishMemberId, password, subStation, familyRole, familyMembers } = req.body;
+    let { name, familyName, familyId, dob, gender, phone, email, address, parishMemberId, password, subStation, familyRole, familyMembers } = req.body;
     if (!name || !phone || !password) {
       return res.status(400).json({ success: false, message: 'Name, phone, and password are required' });
     }
@@ -24,6 +24,21 @@ const register = async (req, res) => {
       parishMemberId = await generateNextMemberId();
     }
 
+    // Auto-assign Family ID: Check if matching familyName already exists so family members share the SAME Family ID!
+    if (!familyId || familyId.trim() === "") {
+      if (familyName && familyName.trim()) {
+        const existingFamilyUser = await User.findOne({
+          familyName: new RegExp('^' + familyName.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + '$', 'i')
+        }).select('familyId');
+        if (existingFamilyUser && existingFamilyUser.familyId) {
+          familyId = existingFamilyUser.familyId;
+        }
+      }
+      if (!familyId || familyId.trim() === "") {
+        familyId = await generateNextFamilyId();
+      }
+    }
+
     const existing = await User.findOne({ $or: [{ phone }, ...(email ? [{ email }] : [])] });
     if (existing) return res.status(409).json({ success: false, message: 'Phone or email already registered' });
 
@@ -31,6 +46,7 @@ const register = async (req, res) => {
     const user = await User.create({ 
       name, 
       familyName, 
+      familyId,
       dob, 
       gender, 
       phone, 
@@ -464,7 +480,7 @@ const lookupFamily = async (req, res) => {
     const cleanName = familyName.trim();
     const users = await User.find({
       familyName: { $regex: new RegExp('^' + cleanName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + '$', 'i') }
-    }).select('name familyName familyRole familyMembers subStation phone email');
+    }).select('name familyName familyRole familyMembers subStation phone email parishMemberId familyId');
 
     if (!users || users.length === 0) {
       return res.json({ success: true, families: [] });
@@ -473,12 +489,24 @@ const lookupFamily = async (req, res) => {
     const families = users.map(user => {
       const allMembers = [];
       if (user.name) {
-        allMembers.push({ name: user.name, role: user.familyRole || 'Head', isRegisteredUser: true });
+        allMembers.push({ 
+          name: user.name, 
+          role: user.familyRole || 'Head', 
+          isRegisteredUser: true,
+          parishMemberId: user.parishMemberId || '—',
+          familyId: user.familyId || '—'
+        });
       }
       if (user.familyMembers && Array.isArray(user.familyMembers)) {
         user.familyMembers.forEach(m => {
           if (m.name) {
-            allMembers.push({ name: m.name, role: m.role || 'Member', isRegisteredUser: false });
+            allMembers.push({ 
+              name: m.name, 
+              role: m.role || 'Member', 
+              isRegisteredUser: false,
+              parishMemberId: m.parishMemberId || '—',
+              familyId: user.familyId || '—'
+            });
           }
         });
       }
@@ -487,7 +515,9 @@ const lookupFamily = async (req, res) => {
         userId: user._id,
         familyName: user.familyName,
         subStation: user.subStation,
-        primaryUser: { name: user.name, role: user.familyRole },
+        familyId: user.familyId,
+        parishMemberId: user.parishMemberId,
+        primaryUser: { name: user.name, role: user.familyRole, parishMemberId: user.parishMemberId, familyId: user.familyId },
         familyMembers: user.familyMembers || [],
         allMembers
       };

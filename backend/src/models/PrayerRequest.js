@@ -6,7 +6,7 @@ const prayerRequestSchema = new mongoose.Schema({
   email: { type: String },
   intention: { type: String, default: '' },
   isPublic: { type: Boolean, default: true },
-  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'approved', 'rejected', 'completed'], default: 'pending' },
   prayerCount: { type: Number, default: 0 },
   language: { type: String, enum: ['en', 'ta'], default: 'en' },
   // New fields from modern form

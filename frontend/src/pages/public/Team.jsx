@@ -1,24 +1,27 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { 
-  FiMail, FiPhone, FiSearch, FiUser, FiHeart, FiShield, 
+import {
+  FiMail, FiPhone, FiSearch, FiUser, FiHeart, FiShield,
   FiUsers, FiClock, FiMessageSquare, FiExternalLink, FiChevronRight,
-  FiFacebook, FiInstagram, FiLinkedin, FiAward, FiMusic
+  FiFacebook, FiInstagram, FiLinkedin, FiAward, FiMusic, FiCode, FiBookOpen
 } from 'react-icons/fi';
-import { GiChurch, GiCrossedSwords, GiCrucifix, GiMusicalNotes } from 'react-icons/gi';
+import { GiChurch, GiCrucifix, GiMusicalNotes } from 'react-icons/gi';
 import api, { getMediaUrl } from '../../services/api';
 import PageHero from '../../components/common/PageHero';
 import { SectionLoader } from '../../components/common/Loader';
 
 const DEPARTMENTS = [
   { id: 'All', label: 'All Members', icon: <FiUsers /> },
-  { id: 'Leadership', label: 'Church Leadership', icon: <GiCrucifix /> },
-  { id: 'Administration', label: 'Administrative Team', icon: <FiShield /> },
-  { id: 'Ministries', label: 'Ministry Leaders', icon: <FiHeart /> },
-  // { id: 'Choir Team', label: 'Choir Team', icon: <FiMusic /> },
-  // { id: 'St. Vincent de Paul Sabai', label: 'St. Vincent de Paul Sabai', icon: <FiHeart /> },
+  { id: 'Leadership', label: 'Parish Leadership', icon: <GiCrucifix /> },
+  { id: 'Administration', label: 'Administration', icon: <FiShield /> },
   { id: 'Parish Council', label: 'Parish Council', icon: <GiChurch /> },
+  { id: 'Catechism', label: 'Catechism Team', icon: <FiBookOpen /> },
+  { id: 'Youth Ministry', label: 'Youth Ministry', icon: <FiHeart /> },
+  { id: 'Altar Servers', label: 'Altar Servers', icon: <GiCrucifix /> },
+  { id: 'Choir Team', label: 'Choir Team', icon: <FiMusic /> },
+  { id: 'Society of St. Vincent de Paul (SSVP)', label: 'St. Vincent de Paul Team', icon: <FiHeart /> },
+  { id: 'Website Technical Team', label: 'Tech Team', icon: <FiCode /> },
   { id: 'Volunteers', label: 'Volunteers', icon: <FiAward /> }
 ];
 
@@ -53,68 +56,132 @@ export default function Team() {
     }
   };
 
+  const getDeptMembers = (deptName) => {
+    return members.filter(m => {
+      if (deptName === 'Society of St. Vincent de Paul (SSVP)') {
+        return m.department === 'Society of St. Vincent de Paul (SSVP)' || m.department === 'St. Vincent de Paul Sabai';
+      }
+      return m.department === deptName;
+    });
+  };
+
   const filteredMembers = useMemo(() => {
     return members.filter(m => {
-      const matchDept = selectedDept === 'All' || m.department === selectedDept;
-      const matchSearch = !search || 
-        m.name.toLowerCase().includes(search.toLowerCase()) || 
+      const matchDept = selectedDept === 'All' ||
+        m.department === selectedDept ||
+        (selectedDept === 'Society of St. Vincent de Paul (SSVP)' && m.department === 'St. Vincent de Paul Sabai');
+      const matchSearch = !search ||
+        m.name.toLowerCase().includes(search.toLowerCase()) ||
         m.role.toLowerCase().includes(search.toLowerCase()) ||
         (m.description && m.description.toLowerCase().includes(search.toLowerCase()));
       return matchDept && matchSearch;
     });
   }, [members, selectedDept, search]);
 
-  const leadershipMembers = useMemo(() => members.filter(m => m.department === 'Leadership'), [members]);
-  const adminMembers = useMemo(() => members.filter(m => m.department === 'Administration'), [members]);
-  const ministryMembers = useMemo(() => members.filter(m => m.department === 'Ministries'), [members]);
-  const choirMembers = useMemo(() => members.filter(m => m.department === 'Choir Team'), [members]);
-  const vdpMembers = useMemo(() => members.filter(m => m.department === 'St. Vincent de Paul Sabai'), [members]);
-  const councilMembers = useMemo(() => members.filter(m => m.department === 'Parish Council'), [members]);
+  const leadershipMembers = useMemo(() => getDeptMembers('Leadership'), [members]);
+  const adminMembers = useMemo(() => getDeptMembers('Administration'), [members]);
+  const councilMembers = useMemo(() => getDeptMembers('Parish Council'), [members]);
+  const catechismMembers = useMemo(() => getDeptMembers('Catechism'), [members]);
+  const youthMembers = useMemo(() => getDeptMembers('Youth Ministry'), [members]);
+  const altarMembers = useMemo(() => getDeptMembers('Altar Servers'), [members]);
+  const choirMembers = useMemo(() => getDeptMembers('Choir Team'), [members]);
+  const ssvpMembers = useMemo(() => getDeptMembers('Society of St. Vincent de Paul (SSVP)'), [members]);
+  const techMembers = useMemo(() => getDeptMembers('Website Technical Team'), [members]);
+
+  const renderCardGrid = (deptMembers, categoryName, defaultDesc) => {
+    if (deptMembers.length === 0) {
+      return (
+        <div className="bg-white/80 rounded-2xl p-10 text-center border-2 border-dashed border-gray-200 my-4 shadow-sm">
+          <FiUsers className="text-4xl text-gray-300 mx-auto mb-3" />
+          <h3 className="font-display font-bold text-gray-700 text-lg">No Members Added Yet</h3>
+          <p className="text-gray-500 text-xs mt-1">There are currently no active team members added under {categoryName}.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {deptMembers.map(member => (
+          <motion.div
+            key={member._id}
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl p-5 shadow-md border border-gray-100 hover:shadow-xl hover:border-church-gold/50 transition-all flex flex-col justify-between"
+          >
+            <div>
+              <div className="relative w-full h-44 rounded-xl overflow-hidden bg-church-royal-blue/5 mb-4 border border-gray-100">
+                {member.image ? (
+                  <img src={getMediaUrl(member.image)} alt={member.name} className="w-full h-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-church-royal-blue text-white font-bold text-3xl">
+                    {member.name?.[0]}
+                  </div>
+                )}
+                {member.badge && (
+                  <span className="absolute top-2 right-2 bg-church-royal-blue/90 text-church-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-church-gold/40 shadow-sm">
+                    {member.badge}
+                  </span>
+                )}
+              </div>
+
+              <h3 className="font-bold text-gray-900 text-base">{member.name}</h3>
+              <p className="text-xs text-church-gold font-bold mb-2">{member.role}</p>
+              <p className="text-gray-600 text-xs leading-relaxed mb-4 line-clamp-3">
+                {member.description || defaultDesc}
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-gray-100 space-y-2 text-xs">
+              {member.email && (
+                <a href={`mailto:${member.email}`} className="text-gray-600 hover:text-church-royal-blue font-medium flex items-center gap-1.5 truncate">
+                  <FiMail className="text-church-gold flex-shrink-0" /> {member.email}
+                </a>
+              )}
+              {member.phone && (
+                <a href={`tel:${member.phone}`} className="text-gray-600 hover:text-church-royal-blue font-medium flex items-center gap-1.5">
+                  <FiPhone className="text-church-gold flex-shrink-0" /> {member.phone}
+                </a>
+              )}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[10px] font-bold text-gray-400 uppercase">{categoryName}</span>
+                <Link to="/contact" className="text-church-royal-blue font-bold hover:underline flex items-center gap-1">
+                  Contact <FiChevronRight />
+                </Link>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-church-cream pb-10 pt-10">
       {/* Hero Section */}
-      <PageHero 
-        title="Meet Our Team" 
+      <PageHero
+        title="Meet Our Team"
         subtitle="Serving God and our church community with faith, love, and dedication."
         badge="PARISH LEADERSHIP & MINISTRIES"
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-10">
-        
-        {/* Search & Department Filters */}
-        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-xl border border-gold-200/60 mb-12">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            
-            {/* Department Filter Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto w-full pb-2.5 scrollbar-thin scrollbar-thumb-amber-300 snap-x">
-              {DEPARTMENTS.map(dept => (
-                <button
-                  key={dept.id}
-                  onClick={() => setSelectedDept(dept.id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 flex-shrink-0 snap-start ${
-                    selectedDept === dept.id
-                      ? 'bg-church-gold text-white shadow-gold'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
-                  }`}
-                >
-                  <span>{dept.icon}</span>
-                  <span>{dept.label}</span>
-                </button>
-              ))}
-            </div>
 
-            {/* Search Input */}
-            {/* <div className="relative w-full md:w-72 flex-shrink-0">
-              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search team by name or role..."
-                className="church-input pl-10 pr-4 py-2.5 text-xs sm:text-sm w-full"
-              />
-            </div> */}
+        {/* Department Filter Tabs */}
+        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-xl border border-gold-200/60 mb-12">
+          <div className="flex items-center gap-2 overflow-x-auto w-full pb-2.5 scrollbar-thin scrollbar-thumb-amber-300 snap-x">
+            {DEPARTMENTS.map(dept => (
+              <button
+                key={dept.id}
+                onClick={() => setSelectedDept(dept.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all duration-200 flex-shrink-0 snap-start ${selectedDept === dept.id
+                  ? 'bg-church-gold text-white shadow-gold'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                  }`}
+              >
+                <span>{dept.icon}</span>
+                <span>{dept.label}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -123,7 +190,7 @@ export default function Team() {
         ) : (
           <div className="space-y-16">
 
-            {/* 1. CHURCH LEADERSHIP SECTION */}
+            {/* 1. PARISH LEADERSHIP SECTION */}
             {(selectedDept === 'All' || selectedDept === 'Leadership') && (
               <section>
                 <div className="flex items-center gap-3 mb-6">
@@ -131,72 +198,80 @@ export default function Team() {
                     <GiCrucifix />
                   </div>
                   <div>
-                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Church Leadership</h2>
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Parish Leadership</h2>
                     <p className="text-gray-500 text-xs sm:text-sm">Guiding our spiritual growth and pastoral care</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {(selectedDept === 'Leadership' ? filteredMembers : leadershipMembers).map(member => (
-                    <motion.div
-                      key={member._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-3xl p-6 shadow-xl border-2 border-church-gold/30 hover:border-church-gold transition-all flex flex-col sm:flex-row items-center sm:items-start gap-6 group"
-                    >
-                      {/* Photo */}
-                      <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-church-royal-blue/10 flex-shrink-0 border-2 border-church-gold/50 shadow-md">
-                        {member.image ? (
-                          <img 
-                            src={getMediaUrl(member.image)} 
-                            alt={member.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-church-royal-blue text-white font-bold text-4xl">
-                            {member.name?.[0]}
-                          </div>
-                        )}
-                        {member.badge && (
-                          <span className="absolute bottom-2 left-2 right-2 bg-church-gold text-white text-[10px] font-extrabold uppercase py-0.5 px-2 rounded-full text-center shadow">
-                            {member.badge}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Details */}
-                      <div className="flex-1 text-center sm:text-left">
-                        <h3 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">{member.name}</h3>
-                        <p className="text-church-gold font-semibold text-sm mb-2">{member.role}</p>
-                        
-                        <p className="text-gray-600 text-xs sm:text-sm italic mb-4 leading-relaxed bg-amber-50/60 p-3 rounded-xl border border-amber-100">
-                          "{member.description || 'Serving our parish community with faith, hope, and charity.'}"
-                        </p>
-
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
-                          {member.email && (
-                            <a href={`mailto:${member.email}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-church-gold hover:text-white text-gray-700 text-xs font-bold transition-all shadow-xs">
-                              <FiMail /> {member.email}
-                            </a>
+                {leadershipMembers.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    {leadershipMembers.map(member => (
+                      <motion.div
+                        key={member._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white rounded-3xl p-6 shadow-xl border-2 border-church-gold/30 hover:border-church-gold transition-all flex flex-col sm:flex-row items-center sm:items-start gap-6 group"
+                      >
+                        {/* Photo */}
+                        <div className="relative w-32 h-32 sm:w-36 sm:h-36 rounded-2xl overflow-hidden bg-church-royal-blue/10 flex-shrink-0 border-2 border-church-gold/50 shadow-md">
+                          {member.image ? (
+                            <img
+                              src={getMediaUrl(member.image)}
+                              alt={member.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-church-royal-blue text-white font-bold text-4xl">
+                              {member.name?.[0]}
+                            </div>
                           )}
-                          {member.phone && (
-                            <a href={`tel:${member.phone}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-church-gold hover:text-white text-gray-700 text-xs font-bold transition-all shadow-xs">
-                              <FiPhone /> {member.phone}
-                            </a>
+                          {member.badge && (
+                            <span className="absolute bottom-2 left-2 right-2 bg-church-gold text-white text-[10px] font-extrabold uppercase py-0.5 px-2 rounded-full text-center shadow">
+                              {member.badge}
+                            </span>
                           )}
-                          <Link to="/contact" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-church-royal-blue text-white text-xs font-bold hover:bg-blue-900 transition-all shadow-sm">
-                            <FiMessageSquare /> Contact
-                          </Link>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+
+                        {/* Details */}
+                        <div className="flex-1 text-center sm:text-left">
+                          <h3 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">{member.name}</h3>
+                          <p className="text-church-gold font-semibold text-sm mb-2">{member.role}</p>
+
+                          <p className="text-gray-600 text-xs sm:text-sm italic mb-4 leading-relaxed bg-amber-50/60 p-3 rounded-xl border border-amber-100">
+                            "{member.description || 'Serving our parish community with faith, hope, and charity.'}"
+                          </p>
+
+                          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
+                            {member.email && (
+                              <a href={`mailto:${member.email}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-church-gold hover:text-white text-gray-700 text-xs font-bold transition-all shadow-xs">
+                                <FiMail /> {member.email}
+                              </a>
+                            )}
+                            {member.phone && (
+                              <a href={`tel:${member.phone}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-church-gold hover:text-white text-gray-700 text-xs font-bold transition-all shadow-xs">
+                                <FiPhone /> {member.phone}
+                              </a>
+                            )}
+                            <Link to="/contact" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-church-royal-blue text-white text-xs font-bold hover:bg-blue-900 transition-all shadow-sm">
+                              <FiMessageSquare /> Contact
+                            </Link>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-white/80 rounded-2xl p-10 text-center border-2 border-dashed border-gray-200 my-4 shadow-sm">
+                    <FiUsers className="text-4xl text-gray-300 mx-auto mb-3" />
+                    <h3 className="font-display font-bold text-gray-700 text-lg">No Members Added Yet</h3>
+                    <p className="text-gray-500 text-xs mt-1">There are currently no active team members added under Parish Leadership.</p>
+                  </div>
+                )}
               </section>
             )}
 
-            {/* 2. ADMINISTRATIVE TEAM SECTION */}
+            {/* 2. ADMINISTRATION SECTION */}
             {(selectedDept === 'All' || selectedDept === 'Administration') && (
               <section>
                 <div className="flex items-center gap-3 mb-6">
@@ -204,232 +279,15 @@ export default function Team() {
                     <FiShield />
                   </div>
                   <div>
-                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Administrative Team</h2>
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Administration</h2>
                     <p className="text-gray-500 text-xs sm:text-sm">Managing parish operations, records, and office support</p>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {(selectedDept === 'Administration' ? filteredMembers : adminMembers).map(member => (
-                    <motion.div
-                      key={member._id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="bg-white rounded-2xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-all flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-16 h-16 rounded-xl overflow-hidden bg-church-gold/10 border border-church-gold/40 flex-shrink-0">
-                            {member.image ? (
-                              <img src={getMediaUrl(member.image)} alt={member.name} className="w-full h-full object-cover" loading="lazy" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-church-gold text-white font-bold text-xl">
-                                {member.name?.[0]}
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-church-gold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                              {member.badge || 'Staff'}
-                            </span>
-                            <h3 className="font-bold text-gray-900 text-base mt-1">{member.name}</h3>
-                            <p className="text-xs text-gray-500 font-medium">{member.role}</p>
-                          </div>
-                        </div>
-
-                        <p className="text-gray-600 text-xs leading-relaxed mb-4">
-                          {member.description || 'Handles daily parish operations, office administration, and record keeping.'}
-                        </p>
-                      </div>
-
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
-                        {member.email ? (
-                          <a href={`mailto:${member.email}`} className="text-xs text-church-royal-blue font-bold hover:underline flex items-center gap-1">
-                            <FiMail /> Email Staff
-                          </a>
-                        ) : <span />}
-
-                        <Link to="/contact" className="btn-outline-gold text-xs px-3 py-1.5 flex items-center gap-1">
-                          <FiMessageSquare /> Contact
-                        </Link>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+                {renderCardGrid(adminMembers, 'Administration', 'Handles daily parish operations, office administration, and record keeping.')}
               </section>
             )}
 
-            {/* 3. MINISTRY LEADERS SECTION */}
-            {(selectedDept === 'All' || selectedDept === 'Ministries') && (
-              <section>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-church-royal-blue text-church-gold flex items-center justify-center text-xl shadow-md">
-                    <FiHeart />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Ministry Leaders</h2>
-                    <p className="text-gray-500 text-xs sm:text-sm">Directing parish groups, music, youth, and spiritual activities</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {(selectedDept === 'Ministries' ? filteredMembers : ministryMembers).map(member => (
-                    <motion.div
-                      key={member._id}
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-2xl p-5 shadow-md border border-gray-100 hover:shadow-xl hover:border-church-gold/50 transition-all flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="relative w-full h-36 rounded-xl overflow-hidden bg-gray-100 mb-4">
-                          {member.image ? (
-                            <img src={getMediaUrl(member.image)} alt={member.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-church-royal-blue text-white font-bold text-3xl">
-                              {member.name?.[0]}
-                            </div>
-                          )}
-                          {member.badge && (
-                            <span className="absolute top-2 right-2 bg-church-royal-blue/90 text-church-gold text-[10px] font-bold px-2 py-0.5 rounded-full border border-church-gold/40">
-                              {member.badge}
-                            </span>
-                          )}
-                        </div>
-
-                        <h3 className="font-bold text-gray-900 text-base">{member.name}</h3>
-                        <p className="text-xs text-church-gold font-bold mb-2">{member.role}</p>
-                        <p className="text-gray-600 text-xs leading-relaxed mb-4">
-                          {member.description}
-                        </p>
-                      </div>
-
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                        <span className="text-gray-400 font-medium">Parish Ministry</span>
-                        <Link to="/contact" className="text-church-royal-blue font-bold hover:underline flex items-center gap-1">
-                          Message <FiChevronRight />
-                        </Link>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* 4. CHOIR TEAM SECTION */}
-            {(selectedDept === 'All' || selectedDept === 'Choir Team') && (
-              <section>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-purple-900 text-purple-300 flex items-center justify-center text-xl shadow-md">
-                    <FiMusic />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Choir Team & Musicians</h2>
-                    <p className="text-gray-500 text-xs sm:text-sm">Leading liturgical music, organ, keyboard, guitars, and parish choir singing</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {(selectedDept === 'Choir Team' ? filteredMembers : choirMembers).map(member => (
-                    <motion.div
-                      key={member._id}
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-2xl p-5 shadow-md border border-purple-100 hover:shadow-xl hover:border-purple-300 transition-all flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="relative w-full h-36 rounded-xl overflow-hidden bg-purple-50 mb-4">
-                          {member.image ? (
-                            <img src={getMediaUrl(member.image)} alt={member.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-purple-900 text-white font-bold text-3xl">
-                              {member.name?.[0]}
-                            </div>
-                          )}
-                          {member.badge && (
-                            <span className="absolute top-2 right-2 bg-purple-900/90 text-purple-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-purple-400/40">
-                              🎼 {member.badge}
-                            </span>
-                          )}
-                        </div>
-
-                        <h3 className="font-bold text-gray-900 text-base">{member.name}</h3>
-                        <p className="text-xs text-purple-700 font-bold mb-2">{member.role}</p>
-                        <p className="text-gray-600 text-xs leading-relaxed mb-4">
-                          {member.description}
-                        </p>
-                      </div>
-
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                        <span className="text-purple-600 font-bold">Liturgical Choir</span>
-                        <Link to="/contact" className="text-church-royal-blue font-bold hover:underline flex items-center gap-1">
-                          Contact <FiChevronRight />
-                        </Link>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* 5. ST. VINCENT DE PAUL SABAI SECTION */}
-            {(selectedDept === 'All' || selectedDept === 'St. Vincent de Paul Sabai') && (
-              <section>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 rounded-xl bg-amber-800 text-amber-300 flex items-center justify-center text-xl shadow-md">
-                    <FiHeart />
-                  </div>
-                  <div>
-                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">
-                      St. Vincent de Paul Sabai (வின்சென்ட் தே போல் சபை)
-                    </h2>
-                    <p className="text-gray-500 text-xs sm:text-sm">Providing charitable assistance, education aid, and food support to the poor</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {(selectedDept === 'St. Vincent de Paul Sabai' ? filteredMembers : vdpMembers).map(member => (
-                    <motion.div
-                      key={member._id}
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-2xl p-5 shadow-md border border-amber-200/60 hover:shadow-xl hover:border-amber-400 transition-all flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="relative w-full h-36 rounded-xl overflow-hidden bg-amber-50 mb-4">
-                          {member.image ? (
-                            <img src={getMediaUrl(member.image)} alt={member.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center bg-amber-800 text-white font-bold text-3xl">
-                              {member.name?.[0]}
-                            </div>
-                          )}
-                          {member.badge && (
-                            <span className="absolute top-2 right-2 bg-amber-900/90 text-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-400/40">
-                              ✝️ {member.badge}
-                            </span>
-                          )}
-                        </div>
-
-                        <h3 className="font-bold text-gray-900 text-base">{member.name}</h3>
-                        <p className="text-xs text-amber-800 font-bold mb-2">{member.role}</p>
-                        <p className="text-gray-600 text-xs leading-relaxed mb-4">
-                          {member.description}
-                        </p>
-                      </div>
-
-                      <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs">
-                        <span className="text-amber-800 font-bold">Charity Sabai</span>
-                        <Link to="/contact" className="text-church-royal-blue font-bold hover:underline flex items-center gap-1">
-                          Contact <FiChevronRight />
-                        </Link>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* 4. PARISH COUNCIL SECTION */}
+            {/* 3. PARISH COUNCIL SECTION */}
             {(selectedDept === 'All' || selectedDept === 'Parish Council') && (
               <section>
                 <div className="flex items-center gap-3 mb-6">
@@ -441,46 +299,173 @@ export default function Team() {
                     <p className="text-gray-500 text-xs sm:text-sm">Elected parish representatives and executive office bearers</p>
                   </div>
                 </div>
+                {renderCardGrid(councilMembers, 'Parish Council', 'Parish governance, advisory, and pastoral planning.')}
+              </section>
+            )}
 
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead>
-                        <tr className="bg-church-royal-blue text-white text-xs uppercase tracking-wider">
-                          <th className="py-3.5 px-5">Member Name</th>
-                          <th className="py-3.5 px-5">Position / Executive Role</th>
-                          <th className="py-3.5 px-5">Department / Responsibility</th>
-                          <th className="py-3.5 px-5 text-right">Contact Info</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
-                        {(selectedDept === 'Parish Council' ? filteredMembers : councilMembers).map((m, idx) => (
-                          <tr key={m._id} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                            <td className="py-3.5 px-5 font-bold text-gray-900 flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-900 font-bold flex items-center justify-center text-xs flex-shrink-0">
-                                {m.name?.[0]}
-                              </div>
-                              <span>{m.name}</span>
-                            </td>
-                            <td className="py-3.5 px-5 text-church-gold font-bold">{m.role}</td>
-                            <td className="py-3.5 px-5 text-gray-600">{m.description || 'Parish Governance & Advisory'}</td>
-                            <td className="py-3.5 px-5 text-right">
-                              {m.email ? (
-                                <a href={`mailto:${m.email}`} className="text-church-royal-blue hover:underline font-medium">
-                                  {m.email}
-                                </a>
-                              ) : <span className="text-gray-400">Via Office</span>}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+            {/* 4. CATECHISM TEAM SECTION */}
+            {(selectedDept === 'All' || selectedDept === 'Catechism') && (
+              <section>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center text-xl shadow-md">
+                    <FiBookOpen />
                   </div>
+                  <div>
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Catechism Team</h2>
+                    <p className="text-gray-500 text-xs sm:text-sm">Nurturing Catholic faith, scripture education, and First Communion/Confirmation prep</p>
+                  </div>
+                </div>
+                {renderCardGrid(catechismMembers, 'Catechism Team', 'Teaching scripture, Sunday school, and sacrament preparation for children.')}
+              </section>
+            )}
+
+            {/* 5. YOUTH MINISTRY SECTION */}
+            {(selectedDept === 'All' || selectedDept === 'Youth Ministry') && (
+              <section>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-pink-600 text-white flex items-center justify-center text-xl shadow-md">
+                    <FiHeart />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Youth Ministry</h2>
+                    <p className="text-gray-500 text-xs sm:text-sm">Empowering young parishioners through retreats, fellowship, and social action</p>
+                  </div>
+                </div>
+                {renderCardGrid(youthMembers, 'Youth Ministry', 'Organizing parish youth retreats, sports events, and community service.')}
+              </section>
+            )}
+
+            {/* 6. ALTAR SERVERS SECTION */}
+            {(selectedDept === 'All' || selectedDept === 'Altar Servers') && (
+              <section>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-red-700 text-white flex items-center justify-center text-xl shadow-md">
+                    <GiCrucifix />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Altar Servers</h2>
+                    <p className="text-gray-500 text-xs sm:text-sm">Assisting priests during Eucharistic celebrations and holy sacraments</p>
+                  </div>
+                </div>
+                {renderCardGrid(altarMembers, 'Altar Servers', 'Assisting clergy at the altar during Holy Mass, sacraments, and processions.')}
+              </section>
+            )}
+
+            {/* 7. CHOIR TEAM SECTION */}
+            {(selectedDept === 'All' || selectedDept === 'Choir Team') && (
+              <section>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-purple-900 text-purple-300 flex items-center justify-center text-xl shadow-md">
+                    <FiMusic />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Choir Team</h2>
+                    <p className="text-gray-500 text-xs sm:text-sm">Leading liturgical music, organ, keyboard, guitars, and parish singing</p>
+                  </div>
+                </div>
+                {renderCardGrid(choirMembers, 'Choir Team', 'Leading liturgical singing, hymns, and musical instruments for Sunday Mass.')}
+              </section>
+            )}
+
+            {/* 8. SOCIETY OF ST. VINCENT DE PAUL (SSVP) SECTION */}
+            {(selectedDept === 'All' || selectedDept === 'Society of St. Vincent de Paul (SSVP)') && (
+              <section>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-amber-800 text-amber-300 flex items-center justify-center text-xl shadow-md">
+                    <FiHeart />
+                  </div>
+                  <div>
+                    <h2 className="font-display text-2xl sm:text-3xl font-bold text-church-royal-blue">Society of St. Vincent de Paul (SSVP)</h2>
+                    <p className="text-gray-500 text-xs sm:text-sm">Providing charitable assistance, education aid, and food support to the needy</p>
+                  </div>
+                </div>
+                {renderCardGrid(ssvpMembers, 'SSVP Team', 'Charitable assistance, education support, and medical relief for families.')}
+              </section>
+            )}
+
+            {/* 9. WEBSITE TECHNICAL TEAM SECTION */}
+            {(selectedDept === 'All' || selectedDept === 'Website Technical Team') && (
+              <section className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden border border-blue-500/20">
+                <div className="relative z-10">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8 border-b border-white/10 pb-6">
+                    <div>
+                      <span className="bg-blue-500/20 text-blue-400 border border-blue-400/40 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5 w-fit">
+                        <FiCode /> IT & Digital Ministry
+                      </span>
+                      <h2 className="font-display text-2xl sm:text-4xl font-extrabold text-white mt-2 flex items-center gap-2">
+                        Website Technical Team
+                      </h2>
+                      <p className="text-gray-300 text-xs sm:text-sm mt-2 w-full leading-relaxed text-justify">
+                        The Website Technical Team is responsible for developing, maintaining, securing, and continuously improving the parish website and digital services. They ensure that parishioners can easily access announcements, Mass bookings, events, registrations, donations, and online services across all devices.
+                      </p>
+                    </div>
+                  </div>
+
+                  {techMembers.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                      {techMembers.map(member => (
+                        <motion.div
+                          key={member._id}
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-5 hover:bg-white/20 transition-all flex flex-col justify-between group"
+                        >
+                          <div>
+                            <div className="relative w-full h-44 rounded-xl overflow-hidden bg-slate-800 mb-4 border border-white/20">
+                              {member.image ? (
+                                <img src={getMediaUrl(member.image)} alt={member.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" loading="lazy" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-church-royal-blue text-white font-bold text-3xl">
+                                  {member.name?.[0]}
+                                </div>
+                              )}
+                              {member.badge && (
+                                <span className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-blue-300/40">
+                                  ⚡ {member.badge}
+                                </span>
+                              )}
+                            </div>
+
+                            <h3 className="font-bold text-white text-base">{member.name}</h3>
+                            <p className="text-xs text-blue-400 font-bold mb-2">{member.role}</p>
+                            <p className="text-gray-300 text-xs leading-relaxed mb-4 line-clamp-3">
+                              {member.description || 'Full Stack development, parish web maintenance, server infrastructure, and security.'}
+                            </p>
+                          </div>
+
+                          <div className="pt-3 border-t border-white/10 space-y-2 text-xs">
+                            {member.email && (
+                              <a href={`mailto:${member.email}`} className="text-gray-300 hover:text-white font-medium flex items-center gap-1.5 truncate">
+                                <FiMail className="text-blue-400 flex-shrink-0" /> {member.email}
+                              </a>
+                            )}
+                            {member.phone && (
+                              <a href={`tel:${member.phone}`} className="text-gray-300 hover:text-white font-medium flex items-center gap-1.5">
+                                <FiPhone className="text-blue-400 flex-shrink-0" /> {member.phone}
+                              </a>
+                            )}
+                            <div className="flex items-center justify-between pt-1">
+                              <span className="text-[10px] font-bold text-blue-300 uppercase">IT Department</span>
+                              <Link to="/contact" className="text-blue-400 font-bold hover:underline flex items-center gap-1">
+                                Contact <FiChevronRight />
+                              </Link>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white/10 rounded-2xl p-10 text-center border-2 border-dashed border-white/20 my-4">
+                      <FiCode className="text-4xl text-blue-400 mx-auto mb-3" />
+                      <h3 className="font-display font-bold text-white text-lg">No Members Added Yet</h3>
+                      <p className="text-gray-300 text-xs mt-1">There are currently no active team members added under Website Technical Team.</p>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
 
-            {/* 5. VOLUNTEERS SECTION */}
+            {/* 10. VOLUNTEERS SECTION */}
             {(selectedDept === 'All' || selectedDept === 'Volunteers') && (
               <section>
                 <div className="bg-gradient-to-r from-church-royal-blue to-blue-900 text-white rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden">
@@ -517,7 +502,7 @@ export default function Team() {
               </section>
             )}
 
-            {/* 6. CONTACT THE TEAM CARD */}
+            {/* CONTACT THE TEAM CARD */}
             <section className="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-gold-200/70">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                 <div className="lg:col-span-8">
@@ -532,15 +517,16 @@ export default function Team() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                     <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
                       <p className="text-gray-500 font-medium">Official Email:</p>
-                      <p className="font-bold text-church-royal-blue text-sm mt-0.5">support@sjdbchurch.org</p>
+                      <p className="font-bold text-church-royal-blue text-sm mt-0.5">[EMAIL_ADDRESS]</p>
                     </div>
                     <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
                       <p className="text-gray-500 font-medium">Parish Office Phone:</p>
-                      <p className="font-bold text-church-royal-blue text-sm mt-0.5">+91 98765 43210</p>
+                      <p className="font-bold text-church-royal-blue text-sm mt-0.5">[+91 Phone_number]</p>
                     </div>
                     <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
                       <p className="text-gray-500 font-medium">Office Hours:</p>
-                      <p className="font-bold text-church-royal-blue text-sm mt-0.5">Mon–Sat: 9:00 AM – 5:00 PM</p>
+                      <p className="font-bold text-church-royal-blue text-sm mt-0.5">Mon-Sat: 8:00 AM - 12:00PM <br />3:00 PM - 10:00 PM</p>
+                      <p className="font-bold text-church-royal-blue text-sm mt-0.5">Sun: 9:00 AM - 5:00 PM</p>
                     </div>
                   </div>
                 </div>

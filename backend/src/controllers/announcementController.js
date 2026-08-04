@@ -46,8 +46,15 @@ const getAll = async (req, res) => {
 
 const create = async (req, res) => {
   try {
-    const data = { ...req.body, publishedBy: req.user._id };
-    if (req.file) data.attachment = `/uploads/announcements/${req.file.filename}`;
+    if (req.file) {
+      const { uploadToGridFS } = require('../services/gridfsService');
+      const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+      if (buffer) {
+        const fileInfo = await uploadToGridFS(buffer, req.file.originalname, req.file.mimetype);
+        data.attachment = fileInfo.url;
+        data.image = fileInfo.url;
+      }
+    }
     const ann = await Announcement.create(data);
     
     // Notify all users in background
@@ -113,8 +120,13 @@ const update = async (req, res) => {
       data.attachment = '';
       data.image = '';
     } else if (req.file) {
-      data.attachment = `/uploads/announcements/${req.file.filename}`;
-      data.image = `/uploads/announcements/${req.file.filename}`;
+      const { uploadToGridFS } = require('../services/gridfsService');
+      const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+      if (buffer) {
+        const fileInfo = await uploadToGridFS(buffer, req.file.originalname, req.file.mimetype);
+        data.attachment = fileInfo.url;
+        data.image = fileInfo.url;
+      }
     }
     const ann = await Announcement.findByIdAndUpdate(req.params.id, data, { new: true });
 

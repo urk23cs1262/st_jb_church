@@ -9,25 +9,26 @@ const getAll = async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
 
-const processPhoto = (file) => {
-  if (!file) return null;
+const processPhoto = async (file) => {
+  if (!file) return '';
   try {
-    const fileBuffer = fs.readFileSync(file.path);
-    const mime = file.mimetype || 'image/jpeg';
-    const base64 = `data:${mime};base64,${fileBuffer.toString('base64')}`;
-    try { fs.unlinkSync(file.path); } catch (e) {}
-    return base64;
+    const { uploadToGridFS } = require('../services/gridfsService');
+    const buffer = file.buffer || (file.path ? fs.readFileSync(file.path) : null);
+    if (buffer) {
+      const fileInfo = await uploadToGridFS(buffer, file.originalname || 'priest.jpg', file.mimetype || 'image/jpeg');
+      return fileInfo.url;
+    }
   } catch (e) {
     console.error('Error processing priest photo:', e.message);
-    return `/uploads/priests/${file.filename}`;
   }
+  return '';
 };
 
 const create = async (req, res) => {
   try {
     const data = { ...req.body };
     if (req.file) {
-      data.photo = processPhoto(req.file);
+      data.photo = await processPhoto(req.file);
     }
     const priest = await Priest.create(data);
 
@@ -52,7 +53,7 @@ const update = async (req, res) => {
     if (req.body.removePhoto === 'true') {
       data.photo = '';
     } else if (req.file) {
-      data.photo = processPhoto(req.file);
+      data.photo = await processPhoto(req.file);
     } else {
       delete data.photo; // Keep existing photo in database
     }

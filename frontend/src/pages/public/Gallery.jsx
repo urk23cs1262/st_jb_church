@@ -10,15 +10,6 @@ import PageHero from '../../components/common/PageHero';
 
 const CATEGORIES = ['all', 'church', 'feast', 'events', 'priests', 'community', 'other'];
 
-const DEMO_ITEMS = [
-  { _id: '1', title: 'Church Exterior', category: 'church', imageUrl: 'https://images.unsplash.com/photo-1548625149-720754416438?w=800' },
-  { _id: '2', title: 'Church Interior', category: 'church', imageUrl: 'https://images.unsplash.com/photo-1544931170-b5dc2e7c2c45?w=800' },
-  { _id: '3', title: 'Feast Celebration', category: 'feast', imageUrl: 'https://images.unsplash.com/photo-1560019880-04bc31d9e9b4?w=800' },
-  { _id: '4', title: 'Community Prayer', category: 'community', imageUrl: 'https://images.unsplash.com/photo-1609127386264-e2d86f0e4012?w=800' },
-  { _id: '5', title: 'Holy Mass', category: 'events', imageUrl: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800' },
-  { _id: '6', title: 'Youth Ministry', category: 'community', imageUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800' },
-];
-
 export default function Gallery() {
   const { t } = useTranslation();
   const [items, setItems] = useState([]);
@@ -27,8 +18,12 @@ export default function Gallery() {
   const [lightbox, setLightbox] = useState(null);
 
   useEffect(() => {
+    setLoading(true);
     const params = category !== 'all' ? `?category=${category}` : '';
-    api.get(`/gallery${params}`).then(r => setItems(r.data.items?.length ? r.data.items : DEMO_ITEMS)).catch(() => setItems(DEMO_ITEMS)).finally(() => setLoading(false));
+    api.get(`/gallery${params}`)
+      .then(r => setItems(r.data.items || []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
   }, [category]);
 
   const filtered = category === 'all' ? items : items.filter(i => i.category === category);
@@ -39,13 +34,18 @@ export default function Gallery() {
   const nextImg = () => setLightbox(l => (l + 1) % filtered.length);
 
   useEffect(() => {
-    const onKey = (e) => { if (lightbox === null) return; if (e.key === 'ArrowLeft') prevImg(); if (e.key === 'ArrowRight') nextImg(); if (e.key === 'Escape') closeLightbox(); };
+    const onKey = (e) => { 
+      if (lightbox === null) return; 
+      if (e.key === 'ArrowLeft') prevImg(); 
+      if (e.key === 'ArrowRight') nextImg(); 
+      if (e.key === 'Escape') closeLightbox(); 
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [lightbox, filtered.length]);
 
   return (
-    <div className="min-h-screen pt-10 bg-church-cream ">
+    <div className="min-h-screen pt-10 bg-church-cream">
       <PageHero title={<>{t('nav.gallery')}</>} subtitle={<>Visual Stories</>} />
 
       <section className="py-16">
@@ -53,13 +53,27 @@ export default function Gallery() {
           {/* Filter */}
           <div className="flex gap-2 flex-wrap justify-center mb-10">
             {CATEGORIES.map(c => (
-              <button key={c} onClick={() => setCategory(c)} className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${category === c ? 'bg-church-gold text-white shadow-gold' : 'bg-white  text-gray-500 hover:bg-gold-50'}`}>
+              <button 
+                key={c} 
+                onClick={() => setCategory(c)} 
+                className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${category === c ? 'bg-church-gold text-white shadow-gold' : 'bg-white text-gray-500 hover:bg-gold-50'}`}
+              >
                 {c === 'all' ? <FiGrid className="inline mr-1" /> : null}{c}
               </button>
             ))}
           </div>
 
-          {loading ? <SectionLoader /> : (
+          {loading ? (
+            <SectionLoader />
+          ) : filtered.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 text-center border border-gray-200/80 shadow-md max-w-md mx-auto my-12">
+              <GiChurch className="text-6xl text-gray-300 mx-auto mb-4" />
+              <h3 className="font-display text-lg font-bold text-gray-700">No Gallery Photos Found</h3>
+              <p className="text-gray-400 text-xs mt-1">
+                {category !== 'all' ? `No photos uploaded under "${category}" category.` : 'No gallery photos uploaded yet.'}
+              </p>
+            </div>
+          ) : (
             <motion.div layout className="columns-2 sm:columns-3 lg:columns-4 gap-4 space-y-4">
               {filtered.map((item, i) => (
                 <motion.div
@@ -72,7 +86,11 @@ export default function Gallery() {
                   className="break-inside-avoid cursor-pointer group rounded-2xl overflow-hidden shadow-card hover:shadow-gold-lg transition-all duration-300"
                 >
                   <div className="relative overflow-hidden">
-                    <img src={item.imageUrl.startsWith('http') ? item.imageUrl : `${UPLOADS_URL.replace('/uploads', '')}${item.imageUrl.startsWith('/') ? '' : '/'}${item.imageUrl}`} alt={item.title} className="w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <img 
+                      src={item.imageUrl.startsWith('http') ? item.imageUrl : `${UPLOADS_URL.replace('/uploads', '')}${item.imageUrl.startsWith('/') ? '' : '/'}${item.imageUrl}`} 
+                      alt={item.title} 
+                      className="w-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                    />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-end">
                       <p className="text-white text-sm font-semibold p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">{item.title}</p>
                     </div>
@@ -86,7 +104,7 @@ export default function Gallery() {
 
       {/* Lightbox */}
       <AnimatePresence>
-        {lightbox !== null && (
+        {lightbox !== null && filtered[lightbox] && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -100,21 +118,18 @@ export default function Gallery() {
             <button onClick={(e) => { e.stopPropagation(); prevImg(); }} className="absolute left-4 text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition-all">
               <FiChevronLeft className="text-2xl" />
             </button>
-            <motion.img
-              key={lightbox}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              src={filtered[lightbox]?.imageUrl.startsWith('http') ? filtered[lightbox]?.imageUrl : `${UPLOADS_URL.replace('/uploads', '')}${filtered[lightbox]?.imageUrl.startsWith('/') ? '' : '/'}${filtered[lightbox]?.imageUrl}`}
-              alt={filtered[lightbox]?.title}
-              className="max-h-[85vh] max-w-[90vw] object-contain rounded-2xl"
-              onClick={(e) => e.stopPropagation()}
-            />
             <button onClick={(e) => { e.stopPropagation(); nextImg(); }} className="absolute right-4 text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition-all">
               <FiChevronRight className="text-2xl" />
             </button>
-            <p className="absolute bottom-4 text-white text-sm bg-black/50 px-4 py-2 rounded-full">
-              {filtered[lightbox]?.title} — {lightbox + 1} / {filtered.length}
-            </p>
+            <div className="max-w-4xl max-h-[85vh] p-4 text-center" onClick={(e) => e.stopPropagation()}>
+              <img 
+                src={filtered[lightbox].imageUrl.startsWith('http') ? filtered[lightbox].imageUrl : `${UPLOADS_URL.replace('/uploads', '')}${filtered[lightbox].imageUrl.startsWith('/') ? '' : '/'}${filtered[lightbox].imageUrl}`} 
+                alt={filtered[lightbox].title} 
+                className="max-h-[75vh] mx-auto rounded-xl object-contain" 
+              />
+              <p className="text-white font-bold text-lg mt-3">{filtered[lightbox].title}</p>
+              {filtered[lightbox].description && <p className="text-gray-300 text-xs mt-1">{filtered[lightbox].description}</p>}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

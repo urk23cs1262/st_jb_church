@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiSettings, FiUpload, FiYoutube, FiMusic, FiImage, FiCheck, FiLoader, FiExternalLink, FiTrash2 } from 'react-icons/fi';
+import { FiSettings, FiUpload, FiYoutube, FiMusic, FiImage, FiCheck, FiLoader, FiExternalLink, FiTrash2, FiTool } from 'react-icons/fi';
 import { GiCrucifix } from 'react-icons/gi';
 import toast from 'react-hot-toast';
 import api, { UPLOADS_URL } from '../../services/api';
@@ -15,7 +16,7 @@ const SETTING_CARDS = [
     color: 'bg-red-500',
     type: 'text',
     placeholder: 'Paste YouTube URL or Video ID here',
-    hint: 'Supports: full URL, share link, or bare ID (e.g. i1dEoV-p03k)'
+    hint: 'Supports: full URL, share link, or bare ID (e.g. wQ49o-0L1Gk)'
   },
   {
     key: 'rosaryAudio',
@@ -280,6 +281,7 @@ function SettingCard({ setting, currentValue, onValueUpdate }) {
 
 export default function SiteSettings() {
   const [currentValues, setCurrentValues] = useState({});
+  const navigate = useNavigate();
 
   useEffect(() => {
     api.get('/settings')
@@ -293,8 +295,8 @@ export default function SiteSettings() {
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-8">
-      <div>
-        <div className="flex items-center gap-3 mb-1">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-church-gold text-white rounded-xl flex items-center justify-center shadow-gold">
             <FiSettings className="text-xl" />
           </div>
@@ -303,6 +305,14 @@ export default function SiteSettings() {
             <p className="text-gray-500 text-xs">Manage website media, videos, branding files, and Daily Scripture Verses CMS.</p>
           </div>
         </div>
+
+        <button
+          onClick={() => navigate('/admin/maintenance')}
+          className="flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-amber-600 via-red-600 to-amber-700 hover:from-amber-700 hover:via-red-700 hover:to-amber-800 text-white rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
+        >
+          <FiTool className="text-lg text-amber-200 group-hover:rotate-45 transition-transform duration-300" />
+          <span>Maintenance Mode</span>
+        </button>
       </div>
 
       <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-800 leading-relaxed shadow-xs">

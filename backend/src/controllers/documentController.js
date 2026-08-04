@@ -70,7 +70,14 @@ const updateDocumentStatus = async (req, res) => {
   try {
     const { status, adminNote } = req.body;
     const updateData = { status, adminNote, processedBy: req.user._id, processedAt: new Date() };
-    if (req.file) updateData.uploadedFile = `/uploads/documents/${req.file.filename}`;
+    if (req.file) {
+      const { uploadToGridFS } = require('../services/gridfsService');
+      const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+      if (buffer) {
+        const fileInfo = await uploadToGridFS(buffer, req.file.originalname, req.file.mimetype);
+        updateData.uploadedFile = fileInfo.url;
+      }
+    }
     const doc = await Document.findByIdAndUpdate(req.params.id, updateData, { new: true });
     // Notify user and admins (Async)
     createNotification({ 

@@ -36,6 +36,16 @@ export default function Login() {
   const [lockoutMsg, setLockoutMsg] = useState('');
 
   const getRedirectDestination = (userData) => {
+    const savedRedirect = sessionStorage.getItem('redirectAfterLogin');
+    if (savedRedirect) {
+      sessionStorage.removeItem('redirectAfterLogin');
+      return savedRedirect;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const queryRedirect = params.get('redirect');
+    if (queryRedirect) {
+      return queryRedirect;
+    }
     if (userData?.role === 'admin') {
       return '/admin';
     }

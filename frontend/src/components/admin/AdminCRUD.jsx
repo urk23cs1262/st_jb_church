@@ -7,7 +7,7 @@ import { FiPlus, FiTrash2, FiEdit, FiX } from 'react-icons/fi';
 import api, { UPLOADS_URL, getMediaUrl } from '../../services/api';
 import { SectionLoader } from '../common/Loader';
 
-export default function AdminCRUD({ resource, title, fields, hasImage }) {
+export default function AdminCRUD({ resource, title, fields, hasImage, categories, onDeleteAll }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
@@ -16,13 +16,15 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
   const [isImageRemoved, setIsImageRemoved] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [generatingAi, setGeneratingAi] = useState({});
   const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm();
 
   const handleAiGenerate = async (fieldName) => {
-    const titleVal = watch('title') || watch('subject') || watch('name');
+    const currentValues = watch();
+    const titleVal = currentValues.title || currentValues.subject || currentValues.name || '';
     if (!titleVal || !titleVal.trim()) {
-      toast.error('Please enter a Title first so AI can generate content!');
+      toast.error('Please enter a Title or Name first so AI can generate content!');
       return;
     }
 
@@ -31,11 +33,15 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
       const res = await api.post('/ai/generate-content', {
         type: resource,
         title: titleVal,
-        field: fieldName
+        field: fieldName,
+        category: currentValues.category || '',
+        album: currentValues.album || '',
+        venue: currentValues.venue || currentValues.churchLocation || '',
+        role: currentValues.role || ''
       });
       if (res.data?.text) {
         setValue(fieldName, res.data.text);
-        toast.success('Generated content with AI!');
+        toast.success(`Generated ${resource} content with AI!`);
       }
     } catch {
       toast.error('Failed to generate AI content');
@@ -45,19 +51,29 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
   };
 
   const fetchItems = async () => {
-
     setLoading(true);
     try {
-      const res = await api.get(`/${resource}?page=${page}&limit=20`);
+      const catQuery = selectedCategory && selectedCategory !== 'all' ? `&category=${selectedCategory}` : '';
+      const adminParam = resource === 'gallery' ? '&admin=true' : '';
+      const res = await api.get(`/${resource}?page=${page}&limit=20${catQuery}${adminParam}`);
       setItems(res.data[Object.keys(res.data).find(k => Array.isArray(res.data[k]))] || []);
       setTotal(res.data.total || 0);
     } catch {} finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchItems(); }, [page, resource]);
+  useEffect(() => { fetchItems(); }, [page, resource, selectedCategory]);
 
   const openAdd = () => { setEditing(null); setImagePreview(null); setIsImageRemoved(false); reset(); setModal(true); };
   const openEdit = (item) => { setEditing(item); setImagePreview(item.imageUrl || item.photo || item.image || null); setIsImageRemoved(false); fields.forEach(f => setValue(f.name, item[f.name])); setModal(true); };
+
+  const getSingularTitle = (t) => {
+    if (t === 'Gallery' || t === 'Gallery Item') return 'Gallery Item';
+    if (t.endsWith('ies')) return t.slice(0, -3) + 'y';
+    if (t.endsWith('s')) return t.slice(0, -1);
+    return t;
+  };
+  const singularTitle = getSingularTitle(title);
+  const pluralTitle = title === 'Gallery Item' ? 'Gallery' : title;
 
   const onSubmit = async (data) => {
     try {
@@ -72,10 +88,10 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
       const config = hasImage ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
       if (editing) {
         await api.put(`/${resource}/${editing._id}`, hasImage ? formData : data, config);
-        toast.success(`${title.slice(0,-1)} updated`);
+        toast.success(`${singularTitle} updated`);
       } else {
         await api.post(`/${resource}`, hasImage ? formData : data, config);
-        toast.success(`${title.slice(0,-1)} added`);
+        toast.success(`${singularTitle} added`);
       }
       setModal(false);
       fetchItems();
@@ -95,8 +111,42 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
       <div className="p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Manage {title} ({total})</h1>
-          <button onClick={openAdd} className="btn-gold text-xs sm:text-sm py-2 px-4 shadow-sm self-start sm:self-auto"><FiPlus /> Add {title.slice(0, -1)}</button>
+          <div className="flex items-center gap-3 self-start sm:self-auto">
+            {onDeleteAll && items.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm(`Are you sure you want to permanently delete all ${selectedCategory !== 'all' ? selectedCategory : ''} ${title.toLowerCase()} items?`)) {
+                    onDeleteAll(selectedCategory);
+                  }
+                }}
+                className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <FiTrash2 className="text-base" /> Delete All
+              </button>
+            )}
+            <button onClick={openAdd} className="btn-gold text-xs sm:text-sm py-2 px-4 shadow-sm flex items-center gap-1.5 cursor-pointer"><FiPlus /> Add {singularTitle}</button>
+          </div>
         </div>
+
+        {categories && categories.length > 0 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => { setSelectedCategory(cat); setPage(1); }}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize whitespace-nowrap transition-all cursor-pointer ${
+                  selectedCategory === cat
+                    ? 'bg-church-gold text-white shadow-gold'
+                    : 'bg-white text-gray-600 hover:bg-gold-50 border border-gray-200'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
 
 
         {loading ? <SectionLoader /> : (
@@ -167,7 +217,7 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setModal(false)}>
           <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={e => e.stopPropagation()} className="bg-white  rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="font-display text-xl font-bold text-church-royal-blue ">{editing ? `Edit ${title.slice(0,-1)}` : `Add ${title.slice(0,-1)}`}</h2>
+              <h2 className="font-display text-xl font-bold text-church-royal-blue">{editing ? `Edit ${singularTitle}` : `Add ${singularTitle}`}</h2>
               <button onClick={() => setModal(false)}><FiX /></button>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -265,7 +315,7 @@ export default function AdminCRUD({ resource, title, fields, hasImage }) {
                 </div>
               )}
               <button type="submit" disabled={isSubmitting} className="btn-gold w-full justify-center py-3">
-                {isSubmitting ? 'Saving...' : editing ? `Update ${title.slice(0,-1)}` : `Add ${title.slice(0,-1)}`}
+                {isSubmitting ? 'Saving...' : editing ? `Update ${singularTitle}` : `Add ${singularTitle}`}
               </button>
             </form>
           </motion.div>

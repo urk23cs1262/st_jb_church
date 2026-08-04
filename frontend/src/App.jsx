@@ -92,74 +92,86 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+const Maintenance = lazy(() => import('./pages/public/Maintenance'));
+const AdminMaintenance = lazy(() => import('./pages/admin/MaintenanceAdmin'));
+
+import MaintenanceGuard from './components/common/MaintenanceGuard';
+
 function AppRoutes() {
   return (
     <BrowserRouter>
       <ScrollToTop />
       <WhatsAppWidget />
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          {/* Public routes with layout */}
-          <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/priests" element={<Priests />} />
-            <Route path="/mass-timings" element={<MassTimings />} />
-            <Route path="/events" element={<Events />} />
-            <Route path="/gallery" element={<Gallery />} />
-            <Route path="/live" element={<LiveStream />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/donate" element={<Donate />} />
-            <Route path="/bible-verse" element={<BibleVerse />} />
-            <Route path="/prayer-requests" element={<PrayerRequests />} />
-            <Route path="/announcements" element={<Announcements />} />
-            <Route path="/rosary" element={<Rosary />} />
-            <Route path="/calendar" element={<CatholicCalendar />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/parish-council" element={<ParishCouncil />} />
-            <Route path="/nearby-parishes" element={<NearbyParishes />} />
-            <Route path="/team" element={<Team />} />
-            <Route path="/member-report/:token" element={<MemberReport />} />
+      <MaintenanceGuard>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public routes with layout */}
+            <Route element={<Layout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/priests" element={<Priests />} />
+              <Route path="/mass-timings" element={<MassTimings />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/gallery" element={<Gallery />} />
+              <Route path="/live" element={<LiveStream />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/donate" element={<Donate />} />
+              <Route path="/bible-verse" element={<BibleVerse />} />
+              <Route path="/prayers" element={<PrayerRequests />} />
+              <Route path="/prayer-requests" element={<PrayerRequests />} />
+              <Route path="/announcements" element={<Announcements />} />
+              <Route path="/rosary" element={<Rosary />} />
+              <Route path="/calendar" element={<CatholicCalendar />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/parish-council" element={<ParishCouncil />} />
+              <Route path="/nearby-parishes" element={<NearbyParishes />} />
+              <Route path="/team" element={<Team />} />
+              <Route path="/member-report/:token" element={<MemberReport />} />
 
-            {/* User dashboard routes */}
-            <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
-            <Route path="/dashboard/booking" element={<ProtectedRoute><UserBooking /></ProtectedRoute>} />
-            <Route path="/dashboard/documents" element={<ProtectedRoute><UserDocuments /></ProtectedRoute>} />
-            <Route path="/dashboard/tickets" element={<ProtectedRoute><UserTickets /></ProtectedRoute>} />
-            <Route path="/dashboard/settings" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
-            <Route path="/dashboard/profile" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
-            <Route path="/dashboard/notifications" element={<ProtectedRoute><UserNotifications /></ProtectedRoute>} />
+              {/* User dashboard routes */}
+              <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
+              <Route path="/dashboard/booking" element={<ProtectedRoute><UserBooking /></ProtectedRoute>} />
+              <Route path="/dashboard/documents" element={<ProtectedRoute><UserDocuments /></ProtectedRoute>} />
+              <Route path="/dashboard/tickets" element={<ProtectedRoute><UserTickets /></ProtectedRoute>} />
+              <Route path="/dashboard/settings" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
+              <Route path="/dashboard/profile" element={<ProtectedRoute><UserSettings /></ProtectedRoute>} />
+              <Route path="/dashboard/notifications" element={<ProtectedRoute><UserNotifications /></ProtectedRoute>} />
 
-          </Route>
+            </Route>
 
-          {/* Auth & Security routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/security/report-unauthorized" element={<ReportUnauthorized />} />
+            {/* Public Maintenance Page */}
+            <Route path="/maintenance" element={<Maintenance />} />
 
-          {/* Admin dashboard routes */}
-          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="priests" element={<AdminPriests />} />
-            <Route path="events" element={<AdminEvents />} />
-            <Route path="gallery" element={<AdminGallery />} />
-            <Route path="announcements" element={<AdminAnnouncements />} />
-            <Route path="bookings" element={<AdminBookings />} />
-            <Route path="documents" element={<AdminDocuments />} />
-            <Route path="donations" element={<AdminDonations />} />
-            <Route path="tickets" element={<AdminTickets />} />
-            <Route path="prayers" element={<AdminPrayers />} />
-            <Route path="settings" element={<AdminSettings />} />
-            <Route path="whatsapp" element={<AdminWhatsApp />} />
-            <Route path="notifications" element={<AdminNotifications />} />
-            <Route path="team" element={<AdminTeam />} />
-          </Route>
+            {/* Auth & Security routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/security/report-unauthorized" element={<ReportUnauthorized />} />
 
-          {/* 404 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+            {/* Admin dashboard routes */}
+            <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="priests" element={<AdminPriests />} />
+              <Route path="events" element={<AdminEvents />} />
+              <Route path="gallery" element={<AdminGallery />} />
+              <Route path="announcements" element={<AdminAnnouncements />} />
+              <Route path="bookings" element={<AdminBookings />} />
+              <Route path="documents" element={<AdminDocuments />} />
+              <Route path="donations" element={<AdminDonations />} />
+              <Route path="tickets" element={<AdminTickets />} />
+              <Route path="prayers" element={<AdminPrayers />} />
+              <Route path="maintenance" element={<AdminMaintenance />} />
+              <Route path="settings" element={<AdminSettings />} />
+              <Route path="whatsapp" element={<AdminWhatsApp />} />
+              <Route path="notifications" element={<AdminNotifications />} />
+              <Route path="team" element={<AdminTeam />} />
+            </Route>
+
+            {/* 404 */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </MaintenanceGuard>
     </BrowserRouter>
   );
 }

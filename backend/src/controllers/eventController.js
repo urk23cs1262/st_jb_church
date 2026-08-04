@@ -1,3 +1,4 @@
+const fs = require('fs');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const { sendSMS } = require('../config/twilio');
@@ -30,8 +31,16 @@ const getOne = async (req, res) => {
 
 const create = async (req, res) => {
   try {
-    const data = { ...req.body, createdBy: req.user._id };
-    if (req.file) data.image = `/uploads/events/${req.file.filename}`;
+    const data = { ...req.body };
+    if (req.file) {
+      const { uploadToGridFS } = require('../services/gridfsService');
+      const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+      if (buffer) {
+        const fileInfo = await uploadToGridFS(buffer, req.file.originalname, req.file.mimetype);
+        data.image = fileInfo.url;
+      }
+    }
+    if (req.user) data.createdBy = req.user._id;
     const event = await Event.create(data);
 
     // Notify all users in background
@@ -97,7 +106,12 @@ const update = async (req, res) => {
     if (req.body.removeImage === 'true') {
       data.image = '';
     } else if (req.file) {
-      data.image = `/uploads/events/${req.file.filename}`;
+      const { uploadToGridFS } = require('../services/gridfsService');
+      const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+      if (buffer) {
+        const fileInfo = await uploadToGridFS(buffer, req.file.originalname, req.file.mimetype);
+        data.image = fileInfo.url;
+      }
     }
     const event = await Event.findByIdAndUpdate(req.params.id, data, { new: true });
 

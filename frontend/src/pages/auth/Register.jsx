@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { FiEye, FiEyeOff, FiPlus, FiTrash2, FiChevronRight, FiChevronLeft, FiUsers, FiUserCheck, FiCheckCircle, FiRefreshCw } from 'react-icons/fi';
 import api from '../../services/api';
@@ -142,6 +142,17 @@ export default function Register() {
 
   const watchedFamilyRole = watch('familyRole');
   const watchedMembers = watch('familyMembers');
+  const watchedPassword = useWatch({ control, name: 'password' }) || '';
+  const watchedConfirmPassword = useWatch({ control, name: 'confirmPassword' }) || '';
+
+  const isConfirmTyped = Boolean(watchedConfirmPassword && watchedConfirmPassword.length > 0);
+  const isPasswordMatched = isConfirmTyped && Boolean(watchedPassword) && watchedConfirmPassword === watchedPassword;
+  const isPasswordMismatch = isConfirmTyped && (
+    !watchedPassword || 
+    !watchedPassword.startsWith(watchedConfirmPassword) || 
+    (watchedConfirmPassword.length >= watchedPassword.length && watchedConfirmPassword !== watchedPassword)
+  );
+  const isTypingMatch = isConfirmTyped && Boolean(watchedPassword) && watchedPassword.startsWith(watchedConfirmPassword) && !isPasswordMatched;
 
   const onRegister = async (data) => {
     try {
@@ -268,7 +279,7 @@ export default function Register() {
 
                     <div>
                       <label className="church-label">Address *</label>
-                      <textarea {...register('address', { required: 'Address is required' })} className="church-input py-2.5 resize-none h-[42px]" placeholder="Enter your full address" />
+                      <textarea {...register('address', { required: 'Address is required' })} rows={3} className="church-input py-2.5 min-h-[85px] resize-y" placeholder="Enter your full address" />
                       {errors.address && <p className="text-red-500 text-[10px] mt-1">{errors.address.message}</p>}
                     </div>
                     <div>
@@ -287,17 +298,40 @@ export default function Register() {
                         <input
                           {...register('confirmPassword', {
                             required: 'Please confirm password',
-                            validate: val => val === watch('password') || 'Passwords do not match'
+                            validate: val => val === getValues('password') || 'Passwords do not match'
                           })}
                           type={showConfirmPass ? 'text' : 'password'}
-                          className="church-input pr-10"
+                          className={`church-input pr-10 transition-all ${
+                            isPasswordMatched 
+                              ? 'border-emerald-500 bg-emerald-50/20 focus:border-emerald-600 focus:ring-emerald-500/20' 
+                              : isPasswordMismatch 
+                                ? 'border-red-500 bg-red-50/20 focus:border-red-600 focus:ring-red-500/20' 
+                                : isTypingMatch
+                                  ? 'border-amber-400 bg-amber-50/10 focus:border-amber-500'
+                                  : ''
+                          }`}
                           placeholder="Re-enter your password"
                         />
-                        <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                        <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors">
                           {showConfirmPass ? <FiEyeOff /> : <FiEye />}
                         </button>
                       </div>
-                      {errors.confirmPassword && <p className="text-red-500 text-[10px] mt-1">{errors.confirmPassword.message}</p>}
+
+                      {/* Real-time live password match status indicator while typing */}
+                      {isConfirmTyped ? (
+                        <div className={`text-xs font-bold mt-1.5 flex items-center gap-1.5 transition-colors ${
+                          isPasswordMatched ? 'text-emerald-600' : isPasswordMismatch ? 'text-red-500' : 'text-amber-700 font-medium'
+                        }`}>
+                          {isPasswordMatched && <FiCheckCircle className="text-sm text-emerald-600 flex-shrink-0" />}
+                          {isPasswordMismatch && <FiXCircle className="text-sm text-red-500 flex-shrink-0" />}
+                          {isTypingMatch && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />}
+                          <span>
+                            {isPasswordMatched ? 'Password matched' : isPasswordMismatch ? 'Passwords do not match' : 'Matching password...'}
+                          </span>
+                        </div>
+                      ) : errors.confirmPassword ? (
+                        <p className="text-red-500 text-xs font-bold mt-1.5">{errors.confirmPassword.message}</p>
+                      ) : null}
                     </div>
                   </div>
                   <button type="button" onClick={handleNextStep} className="btn-gold w-full justify-center py-3.5 mt-6 group">
@@ -350,11 +384,14 @@ export default function Register() {
 
                       {suggestedFamilies.map((fam, fIdx) => (
                         <div key={fam.userId || fIdx} className="space-y-2">
-                          {fam.subStation && (
-                            <div className="text-[11px] text-amber-800/90 font-medium">
-                              Sub-Station: <span className="font-bold">{fam.subStation}</span>
-                            </div>
-                          )}
+                          <div className="flex items-center justify-between text-[11px] text-amber-800/90 font-medium">
+                            <span>Sub-Station: <strong className="text-amber-900">{fam.subStation || 'Main Parish'}</strong></span>
+                            {fam.familyId && (
+                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold bg-purple-100 text-purple-950 border border-purple-300">
+                                Family ID: {fam.familyId}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex flex-wrap gap-2 pt-1">
                             {fam.allMembers.map((m, mIdx) => {
                               const key = `${fam.userId}-${mIdx}`;
@@ -371,10 +408,14 @@ export default function Register() {
                                 >
                                   {isSelected ? <FiCheckCircle className="text-white text-sm" /> : <FiUserCheck className="text-amber-600 text-sm" />}
                                   <span>{m.name}</span>
-                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${isSelected ? 'bg-amber-700 text-amber-100' : 'bg-amber-100 text-amber-900'
-                                    }`}>
+                                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${isSelected ? 'bg-amber-700 text-amber-100' : 'bg-amber-100 text-amber-900'}`}>
                                     {m.role}
                                   </span>
+                                  {m.parishMemberId && m.parishMemberId !== '—' && (
+                                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold ${isSelected ? 'bg-amber-800 text-white' : 'bg-purple-100 text-purple-900 border border-purple-300'}`}>
+                                      {m.parishMemberId}
+                                    </span>
+                                  )}
                                 </button>
                               );
                             })}
@@ -399,7 +440,7 @@ export default function Register() {
                   </div>
 
                   <div className="bg-church-royal-blue/5 rounded-2xl p-6 border border-church-royal-blue/10">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center justify-between mb-4">
                       <div>
                         <h3 className="text-church-royal-blue font-bold text-lg">Other Family Members</h3>
                         <p className="text-gray-500 text-xs">Add details for other people in your household</p>
@@ -413,15 +454,43 @@ export default function Register() {
                       </button>
                     </div>
 
+                    {/* Family & Member ID Auto-Assignment Indicator */}
+                    <div className="bg-blue-50/90 border border-blue-200 rounded-xl p-3 mb-4 text-xs text-blue-900 flex items-center justify-between font-mono shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🪪</span>
+                        <div>
+                          <span className="font-bold block text-[11px] font-sans text-blue-950">Auto-Assigned Family & Member IDs:</span>
+                          <span className="text-[10px] text-blue-800 font-medium font-sans block">
+                            All members in family <strong>"{watch('familyName') || 'Household'}"</strong> will share the same Family ID.
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <span className="px-2 py-1 rounded-lg text-[11px] font-mono font-bold bg-purple-100 text-purple-950 border border-purple-300">
+                          Shared Family ID
+                        </span>
+                      </div>
+                    </div>
+
                     <div className="space-y-4 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
                       {fields.map((item, index) => (
-                        <div key={item.id} className="grid grid-cols-12 gap-3 items-start bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-white shadow-sm hover:shadow-md transition-all">
+                        <div key={item.id} className="grid grid-cols-12 gap-3 items-start bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-white shadow-sm hover:shadow-md transition-all">
                           <div className="col-span-6">
-                            <label className="text-[11px] text-church-royal-blue font-bold mb-1.5 block uppercase tracking-wider">Member Name</label>
+                            <label className="text-[11px] text-church-royal-blue font-bold mb-1.5 flex items-center justify-between uppercase tracking-wider">
+                              <span>Member Name</span>
+                              <span className="text-[9px] font-mono font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
+                                Member #{index + 2}
+                              </span>
+                            </label>
                             <input {...register(`familyMembers.${index}.name`, { required: true })} className="church-input py-2 text-sm border-church-royal-blue/10 shadow-inner" placeholder="Enter name" />
                           </div>
                           <div className="col-span-5">
-                            <label className="text-[11px] text-church-royal-blue font-bold mb-1.5 block uppercase tracking-wider">Role</label>
+                            <label className="text-[11px] text-church-royal-blue font-bold mb-1.5 flex items-center justify-between uppercase tracking-wider">
+                              <span>Role</span>
+                              <span className="text-[9px] font-mono font-bold text-purple-900 bg-purple-100 px-1.5 py-0.5 rounded border border-purple-300">
+                                Same Family ID
+                              </span>
+                            </label>
                             <select {...register(`familyMembers.${index}.role`, { required: true })} className="church-input py-2 text-sm border-church-royal-blue/10 shadow-inner">
                               <option value="">Select Role</option>
                               {FAMILY_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
@@ -438,9 +507,9 @@ export default function Register() {
                         </div>
                       ))}
                       {fields.length === 0 && (
-                        <div className="text-center py-10 bg-white/40 rounded-2xl border border-dashed border-gray-300">
+                        <div className="text-center py-8 bg-white/40 rounded-2xl border border-dashed border-gray-300">
                           <p className="text-gray-500 text-sm">No other members added yet</p>
-                          <p className="text-gray-400 text-[10px] mt-1">Click the "Add Member" button above</p>
+                          <p className="text-gray-400 text-[10px] mt-1">Click the "+ ADD MEMBER" button to add household members</p>
                         </div>
                       )}
                     </div>

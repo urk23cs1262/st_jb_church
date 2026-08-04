@@ -9,7 +9,20 @@ function sendWA(phone, text) {
 
 const getPublic = async (req, res) => {
   try {
-    const prayers = await PrayerRequest.find({ isPublic: true, status: 'approved' }).sort({ createdAt: -1 }).limit(50);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const query = {
+      isPublic: true,
+      status: 'approved',
+      $or: [
+        { preferredDate: { $gte: today } },
+        { preferredDate: { $exists: false } },
+        { preferredDate: null }
+      ]
+    };
+
+    const prayers = await PrayerRequest.find(query).sort({ createdAt: -1 }).limit(100);
     res.json({ success: true, prayers });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 };
@@ -17,8 +30,26 @@ const getPublic = async (req, res) => {
 const getAll = async (req, res) => {
   try {
     const { status } = req.query;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const query = {};
-    if (status) query.status = status;
+    if (status === 'completed') {
+      query.$or = [
+        { status: 'completed' },
+        { preferredDate: { $lt: today } }
+      ];
+    } else if (status === 'pending' || status === 'approved' || status === 'rejected') {
+      query.status = status;
+      query.$or = [
+        { preferredDate: { $gte: today } },
+        { preferredDate: { $exists: false } },
+        { preferredDate: null }
+      ];
+    } else if (status) {
+      query.status = status;
+    }
+
     const prayers = await PrayerRequest.find(query).populate('userId', 'name email phone').sort({ createdAt: -1 });
     res.json({ success: true, prayers });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
@@ -80,7 +111,7 @@ const create = async (req, res) => {
     // 2. Email & WhatsApp to Admin alone
     notifyAdmins({
       title: notifTitle,
-      message: `A new ${isConfession ? 'private confession request' : 'prayer request'} has been received:\n\n👤 Name: ${applicantName}\n📝 Type: ${type || 'Prayer'}\n📍 Location: ${churchLocation || confessionLocation || prayerLocation}\n${preferredDate ? `📅 Preferred Date: ${new Date(preferredDate).toLocaleDateString('en-IN')}\n` : ''}${preferredTime ? `⏰ Preferred Time: ${preferredTime}\n` : ''}${userPhone ? `📞 Phone: ${userPhone}\n` : ''}💭 Intention: ${finalIntention}\n\nReview & manage in Admin Panel: ${clientBaseUrl}/admin/prayers`
+      message: `A new ${isConfession ? 'private confession request' : 'prayer request'} has been received:\n\n👤 Name: ${applicantName}\n📝 Type: ${type || 'Prayer'}\n📍 Location: ${churchLocation || confessionLocation || (prayerLocation === 'personal' ? 'Home' : prayerLocation === 'church' ? 'Church' : prayerLocation === 'confession' ? 'Confession' : prayerLocation || 'Home')}\n${preferredDate ? `📅 Preferred Date: ${new Date(preferredDate).toLocaleDateString('en-IN')}\n` : ''}${preferredTime ? `⏰ Preferred Time: ${preferredTime}\n` : ''}${userPhone ? `📞 Phone: ${userPhone}\n` : ''}💭 Intention: ${finalIntention}\n\nReview & manage in Admin Panel: ${clientBaseUrl}/admin/prayers`
     }).catch(e => console.error('Prayer admin notification error:', e.message));
 
     // 3. User Notifications (In-App, Email, WhatsApp Bot) -> Submitted
@@ -196,8 +227,23 @@ const deletePrayer = async (req, res) => {
 const deleteAllByStatus = async (req, res) => {
   try {
     const { status } = req.query;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const query = {};
-    if (status) query.status = status;
+    if (status === 'completed') {
+      query.$or = [
+        { status: 'completed' },
+        { preferredDate: { $lt: today } }
+      ];
+    } else if (status === 'pending' || status === 'approved' || status === 'rejected') {
+      query.status = status;
+      query.$or = [
+        { preferredDate: { $gte: today } },
+        { preferredDate: { $exists: false } },
+        { preferredDate: null }
+      ];
+    }
     const result = await PrayerRequest.deleteMany(query);
     res.json({ success: true, message: `Permanently deleted all ${status || 'matching'} prayer requests`, count: result.deletedCount });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }

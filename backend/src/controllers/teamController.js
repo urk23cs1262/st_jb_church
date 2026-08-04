@@ -231,7 +231,7 @@ const getAllTeamMembers = async (req, res) => {
 // POST /api/team — admin (create)
 const createTeamMember = async (req, res) => {
   try {
-    const { name, role, department, badge, description, email, phone, socialLinks, order, isActive } = req.body;
+    const { name, role, department, subGroup, assignedClass, qualification, yearsOfService, badge, description, email, phone, socialLinks, order, isActive } = req.body;
     if (!name || !role) {
       return res.status(400).json({ success: false, message: 'Name and role are required' });
     }
@@ -239,12 +239,14 @@ const createTeamMember = async (req, res) => {
     let image = req.body.image || '';
     if (req.file) {
       try {
-        const fileBuffer = fs.readFileSync(req.file.path);
-        const mime = req.file.mimetype || 'image/jpeg';
-        image = `data:${mime};base64,${fileBuffer.toString('base64')}`;
-        try { fs.unlinkSync(req.file.path); } catch (e) {}
+        const { uploadToGridFS } = require('../services/gridfsService');
+        const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+        if (buffer) {
+          const fileInfo = await uploadToGridFS(buffer, req.file.originalname || 'team.jpg', req.file.mimetype || 'image/jpeg');
+          image = fileInfo.url;
+        }
       } catch (e) {
-        image = `/uploads/team/${req.file.filename}`;
+        console.error('Error uploading team photo to GridFS:', e.message);
       }
     }
 
@@ -262,6 +264,10 @@ const createTeamMember = async (req, res) => {
       name,
       role,
       department: department || 'Leadership',
+      subGroup: subGroup || '',
+      assignedClass: assignedClass || '',
+      qualification: qualification || '',
+      yearsOfService: yearsOfService || '',
       badge,
       description,
       email,
@@ -281,11 +287,15 @@ const createTeamMember = async (req, res) => {
 // PUT /api/team/:id — admin (update)
 const updateTeamMember = async (req, res) => {
   try {
-    const { name, role, department, badge, description, email, phone, socialLinks, order, isActive } = req.body;
+    const { name, role, department, subGroup, assignedClass, qualification, yearsOfService, badge, description, email, phone, socialLinks, order, isActive } = req.body;
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (role !== undefined) updateData.role = role;
     if (department !== undefined) updateData.department = department;
+    if (subGroup !== undefined) updateData.subGroup = subGroup;
+    if (assignedClass !== undefined) updateData.assignedClass = assignedClass;
+    if (qualification !== undefined) updateData.qualification = qualification;
+    if (yearsOfService !== undefined) updateData.yearsOfService = yearsOfService;
     if (badge !== undefined) updateData.badge = badge;
     if (description !== undefined) updateData.description = description;
     if (email !== undefined) updateData.email = email;
@@ -303,12 +313,14 @@ const updateTeamMember = async (req, res) => {
 
     if (req.file) {
       try {
-        const fileBuffer = fs.readFileSync(req.file.path);
-        const mime = req.file.mimetype || 'image/jpeg';
-        updateData.image = `data:${mime};base64,${fileBuffer.toString('base64')}`;
-        try { fs.unlinkSync(req.file.path); } catch (e) {}
+        const { uploadToGridFS } = require('../services/gridfsService');
+        const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+        if (buffer) {
+          const fileInfo = await uploadToGridFS(buffer, req.file.originalname || 'team.jpg', req.file.mimetype || 'image/jpeg');
+          updateData.image = fileInfo.url;
+        }
       } catch (e) {
-        updateData.image = `/uploads/team/${req.file.filename}`;
+        console.error('Error uploading team photo to GridFS:', e.message);
       }
     } else if (req.body.image !== undefined) {
       updateData.image = req.body.image;

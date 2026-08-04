@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { useInView } from 'react-intersection-observer';
+import toast from 'react-hot-toast';
 import CountUpLib from 'react-countup';
 const CountUp = CountUpLib.default || CountUpLib;
 import { GiChurch, GiCrucifix, GiCandleLight, GiDove, GiPrayer, GiSpellBook } from 'react-icons/gi';
@@ -26,12 +27,12 @@ const BIBLE_VERSES = [
 ];
 
 const QUICK_LINKS = [
-  // { icon: <FiClock />, label: 'Mass Timings', path: '/mass-timings', color: 'from-blue-600 to-royal-800' },
   { icon: <GiPrayerBeads />, label: 'Rosary', path: '/rosary', color: 'from-purple-600 to-indigo-800' },
-  { icon: <GiAngelWings />, label: ' Catholic Calendar', path: '/calendar', color: 'from-amber-600 to-orange-800' },
-  { icon: <GiSpellBook />, label: 'DailyMass Readings', path: '/bible-verse', color: 'from-green-600 to-teal-800' },
+  { icon: <GiAngelWings />, label: 'Catholic Calendar', path: '/calendar', color: 'from-amber-600 to-orange-800' },
+  { icon: <GiSpellBook />, label: 'DailyMassReadings', path: '/bible-verse', color: 'from-green-600 to-teal-800' },
   { icon: <FiCalendar />, label: 'Events', path: '/events', color: 'from-pink-600 to-rose-800' },
-  { icon: <FaDonate />, label: 'Donate', path: '/donate', color: 'from-yellow-600 to-gold-800' },
+  { icon: <GiPrayer />, label: 'Prayer Wall', path: '/prayers', color: 'from-blue-600 to-royal-800', requireAuth: true },
+  { icon: <FaDonate />, label: 'Donate', path: '/donate', color: 'from-yellow-600 to-gold-800', requireAuth: true },
 ];
 
 
@@ -66,12 +67,21 @@ function CountdownTimer({ targetDate }) {
 
 export default function Home() {
   const { isAuthenticated, isAdmin } = useAuth();
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { ref: statsRef, inView: statsInView } = useInView({ triggerOnce: true });
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const y = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+
+  const handleQuickLinkClick = (e, ql) => {
+    if (ql.requireAuth && !isAuthenticated) {
+      e.preventDefault();
+      toast.error(`Please login first to use ${ql.label}`);
+      sessionStorage.setItem('redirectAfterLogin', ql.path);
+      navigate(`/login?redirect=${encodeURIComponent(ql.path)}`);
+    }
+  };
 
   const [verseIdx, setVerseIdx] = useState(0);
   const [dailyVerse, setDailyVerse] = useState(null);
@@ -150,7 +160,7 @@ export default function Home() {
           ))}
         </motion.div>
 
-        <motion.div style={{ opacity }} className="relative z-10 text-center px-4 max-w-5xl mx-auto pt-32">
+        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto pt-32">
           {/* Church icon */}
           <motion.div
             initial={{ scale: 0 }}
@@ -194,7 +204,7 @@ export default function Home() {
             </Link>
             {isAuthenticated ? (
               <Link to={isAdmin ? "/admin" : "/dashboard"} className="w-full sm:w-auto px-8 py-4 border-2 border-white/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300 inline-flex items-center justify-center gap-2 text-base text-center">
-                <FiLayout /> Go to Dashboard
+                <FiLayout /> {isAdmin ? "Go to Admin Panel" : "Go to Dashboard"}
               </Link>
             ) : (
               <Link to="/register" className="w-full sm:w-auto px-8 py-4 border-2 border-white/50 text-white font-semibold rounded-xl hover:bg-white/10 transition-all duration-300 inline-flex items-center justify-center gap-2 text-base text-center">
@@ -214,14 +224,15 @@ export default function Home() {
               <Link
                 key={i}
                 to={ql.path}
-                className={`flex flex-col items-center gap-2 p-6 rounded-2xl bg-gradient-to-br ${ql.color} bg-opacity-30 backdrop-blur-sm border border-white/20 hover:scale-110 transition-all duration-300 group`}
+                onClick={(e) => handleQuickLinkClick(e, ql)}
+                className={`flex flex-col items-center gap-2 p-6 rounded-2xl bg-gradient-to-br ${ql.color} bg-opacity-30 backdrop-blur-sm border border-white/20 hover:scale-110 transition-all duration-300 group cursor-pointer`}
               >
                 <span className="text-white text-2xl group-hover:scale-110 transition-transform">{ql.icon}</span>
                 <span className="text-white text-xs font-medium text-center leading-tight">{ql.label}</span>
               </Link>
             ))}
           </motion.div>
-        </motion.div>
+        </div>
 
         {/* Scroll indicator */}
         {/* <motion.div

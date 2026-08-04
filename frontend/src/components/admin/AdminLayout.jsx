@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { FiUsers, FiBriefcase, FiCalendar, FiFileText, FiMessageSquare, FiVolume2, FiDollarSign, FiImage, FiBell, FiMenu, FiX, FiLogOut, FiArrowLeft, FiSettings } from 'react-icons/fi';
+import { FiUsers, FiBriefcase, FiBookOpen, FiCalendar, FiFileText, FiMessageSquare, FiVolume2, FiDollarSign, FiImage, FiBell, FiMenu, FiX, FiLogOut, FiArrowLeft, FiSettings, FiTool } from 'react-icons/fi';
 import { SiWhatsapp } from 'react-icons/si';
 import { GiChurch, GiCrucifix, GiPrayer } from 'react-icons/gi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import PreMaintenanceBanner from '../common/PreMaintenanceBanner';
 import churchLogo from '../../assets/image copy.png';
 
 const NAV_ITEMS = [
@@ -15,7 +16,7 @@ const NAV_ITEMS = [
   { icon: <FiCalendar />, label: 'Events', path: '/admin/events', color: 'bg-green-600' },
   { icon: <FiImage />, label: 'Gallery', path: '/admin/gallery', color: 'bg-purple-600' },
   { icon: <FiVolume2 />, label: 'Announcements', path: '/admin/announcements', color: 'bg-orange-500' },
-  { icon: <GiCrucifix />, label: 'Bookings', path: '/admin/bookings', color: 'bg-indigo-600' },
+  { icon: <FiBookOpen    />, label: 'Bookings', path: '/admin/bookings', color: 'bg-indigo-600' },
   { icon: <FiFileText />, label: 'Documents', path: '/admin/documents', color: 'bg-teal-600' },
   { icon: <FiDollarSign />, label: 'Donations', path: '/admin/donations', color: 'bg-yellow-600' },
   { icon: <FiMessageSquare />, label: 'Tickets', path: '/admin/tickets', color: 'bg-rose-600' },
@@ -78,7 +79,7 @@ export default function AdminLayout() {
           <FiArrowLeft className={`transition-transform duration-300 ${!desktopOpen ? 'rotate-180' : ''}`} size={12} />
         </button>
         
-        <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-white/20 hover:scrollbar-thumb-white/40">
+        <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-1.5 admin-sidebar-scroll">
           <Link 
             to="/admin" 
             onMouseEnter={(e) => handleMouseEnter('Dashboard', e)}
@@ -174,7 +175,8 @@ export default function AdminLayout() {
           </div>
         </div>
 
-
+        {/* Scheduled Maintenance Notice Banner for Admin Panel */}
+        <PreMaintenanceBanner />
         
         {/* Outlet Content */}
         <div className="flex-1 overflow-x-hidden">

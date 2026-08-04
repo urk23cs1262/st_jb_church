@@ -14,7 +14,7 @@ const getSettings = async (req, res) => {
     }
 
     const settings = await SiteSettings.find().lean();
-    const map = { videoAdId: 'i1dEoV-p03k' };
+    const map = { videoAdId: 'wQ49o-0L1Gk' };
     settings.forEach(s => { map[s.key] = s.value; });
     cachedMap = map;
     cacheTime = now;
@@ -33,7 +33,7 @@ const getSetting = async (req, res) => {
     const setting = await SiteSettings.findOne({ key: req.params.key }).lean();
     let value = setting?.value || null;
     if (!value && req.params.key === 'videoAdId') {
-      value = 'i1dEoV-p03k';
+      value = 'wQ49o-0L1Gk';
     }
     res.json({ success: true, value });
   } catch (err) {
