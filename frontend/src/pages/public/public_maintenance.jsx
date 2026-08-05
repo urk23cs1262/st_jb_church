@@ -7,7 +7,7 @@ import {
 } from 'react-icons/fi';
 import { FaFacebook, FaInstagram, FaYoutube } from 'react-icons/fa';
 import churchLogo from '../../assets/image.png';
-import maintenanceDefaultImg from '../../assets/image copy 2.png';
+// import maintenanceDefaultImg from '../../assets/image copy 2.png';
 import constructionImg from '../../assets/construction.png';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
