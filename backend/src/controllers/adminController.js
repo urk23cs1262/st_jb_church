@@ -7,6 +7,8 @@ const Ticket = require('../models/Ticket');
 const Announcement = require('../models/Announcement');
 const PrayerRequest = require('../models/PrayerRequest');
 const DailyVerse = require('../models/DailyVerse');
+const TeamMember = require('../models/TeamMember');
+const { getTodayVerseData } = require('./dailyVerseController');
 
 let timelineResetCutoff = new Date(); // Start timeline fresh from now
 
@@ -39,6 +41,8 @@ const getDashboardStats = async (req, res) => {
       pendingDocuments,
       openTickets,
       pendingPrayers,
+      totalTeamMembers,
+      activeTeamMembers,
       donationsTodayAgg,
       donationsMonthAgg,
       donationsYearAgg,
@@ -68,6 +72,8 @@ const getDashboardStats = async (req, res) => {
       Document.countDocuments({ status: 'pending' }),
       Ticket.countDocuments({ status: { $in: ['open', 'in_progress', 'pending'] } }),
       PrayerRequest.countDocuments({ status: 'pending' }),
+      TeamMember.countDocuments(),
+      TeamMember.countDocuments({ isActive: true }),
       Donation.aggregate([
         { $match: { createdAt: { $gte: startOfToday, $lte: endOfToday } } },
         { $group: { _id: null, total: { $sum: '$amount' } } }
@@ -87,24 +93,27 @@ const getDashboardStats = async (req, res) => {
       Donation.find({ createdAt: { $gte: timelineResetCutoff } }).populate('userId', 'name').sort({ createdAt: -1 }).limit(10),
       Ticket.find({ createdAt: { $gte: timelineResetCutoff } }).populate('userId', 'name').sort({ createdAt: -1 }).limit(5),
       Announcement.find({ createdAt: { $gte: timelineResetCutoff } }).sort({ createdAt: -1 }).limit(5),
-      DailyVerse.findOne().sort({ createdAt: -1 }),
+      getTodayVerseData(),
       User.find().select('name phone dob weddingDate profilePhoto parishMemberId familyId')
     ]);
 
     // Calculate Birthdays and Anniversaries accurately in current month
     const currentMonth = now.getMonth();
     
-    const upcomingBirthdays = allUsersForSpecialDays.filter(u => {
+    const allBirthdaysThisMonth = allUsersForSpecialDays.filter(u => {
       if (!u.dob) return false;
       const d = new Date(u.dob);
       return !isNaN(d.getTime()) && d.getMonth() === currentMonth;
-    }).slice(0, 5);
+    });
 
-    const upcomingAnniversaries = allUsersForSpecialDays.filter(u => {
+    const allAnniversariesThisMonth = allUsersForSpecialDays.filter(u => {
       if (!u.weddingDate) return false;
       const d = new Date(u.weddingDate);
       return !isNaN(d.getTime()) && d.getMonth() === currentMonth;
-    }).slice(0, 5);
+    });
+
+    const upcomingBirthdays = allBirthdaysThisMonth.slice(0, 5);
+    const upcomingAnniversaries = allAnniversariesThisMonth.slice(0, 5);
 
     // Build timeline activities accurately
     const activities = [];
@@ -183,7 +192,12 @@ const getDashboardStats = async (req, res) => {
         pendingBookings,
         pendingDocuments,
         openTickets,
+        pendingPrayers,
         pendingMessages: pendingPrayers + openTickets,
+        totalTeamMembers,
+        activeTeamMembers,
+        upcomingBirthdaysCount: allBirthdaysThisMonth.length,
+        upcomingAnniversariesCount: allAnniversariesThisMonth.length,
         donationsToday: donationsTodayAgg[0]?.total || 0,
         donationsThisMonth: donationsMonthAgg[0]?.total || 0,
         donationsThisYear: donationsYearAgg[0]?.total || 0,

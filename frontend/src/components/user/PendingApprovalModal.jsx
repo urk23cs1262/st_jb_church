@@ -4,7 +4,7 @@ import { FiX, FiCheck, FiXCircle, FiShield, FiUserCheck, FiCalendar } from 'reac
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 
-import { useNotifications } from '../../context/NotificationContext';
+import { useNotifications } from '../../context/context_notification_context';
 
 export default function PendingApprovalModal({ request, onClose, onResponded }) {
   const [submittingAction, setSubmittingAction] = useState(null);

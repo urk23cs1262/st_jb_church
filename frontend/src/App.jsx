@@ -1,70 +1,70 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { NotificationProvider } from './context/NotificationContext';
+import { AuthProvider, useAuth } from './context/context_auth_context';
+import { NotificationProvider } from './context/context_notification_context';
 
 import './i18n';
-import PageLoader from './components/common/Loader';
-import Layout from './components/common/Layout';
-import ScrollToTop from './components/common/ScrollToTop';
-import WhatsAppWidget from './components/common/WhatsAppWidget';
+import PageLoader from './components/common/common_loader';
+import Layout from './components/common/common_layout';
+import ScrollToTop from './components/common/common_scroll_to_top';
+import WhatsAppWidget from './components/common/common_whatsapp_widget';
 
 // Lazy-loaded pages
-const Home = lazy(() => import('./pages/public/Home'));
-const About = lazy(() => import('./pages/public/About'));
-const Priests = lazy(() => import('./pages/public/Priests'));
-const MassTimings = lazy(() => import('./pages/public/MassTimings'));
-const Events = lazy(() => import('./pages/public/Events'));
-const Gallery = lazy(() => import('./pages/public/Gallery'));
-const LiveStream = lazy(() => import('./pages/public/LiveStream'));
-const Contact = lazy(() => import('./pages/public/Contact'));
-const Donate = lazy(() => import('./pages/public/Donate'));
-const BibleVerse = lazy(() => import('./pages/public/BibleVerse'));
-const PrayerRequests = lazy(() => import('./pages/user/PrayerRequests'));
-const Announcements = lazy(() => import('./pages/public/Announcements'));
-const Rosary = lazy(() => import('./pages/public/Rosary'));
-const CatholicCalendar = lazy(() => import('./pages/public/CatholicCalendar'));
-const FAQ = lazy(() => import('./pages/public/FAQ'));
-const ParishCouncil = lazy(() => import('./pages/public/ParishCouncil'));
-const NearbyParishes = lazy(() => import('./pages/public/NearbyParishes'));
-const Team = lazy(() => import('./pages/public/Team'));
-const MemberReport = lazy(() => import('./pages/public/MemberReport'));
+const Home = lazy(() => import('./pages/public/public_home'));
+const About = lazy(() => import('./pages/public/public_about'));
+const Priests = lazy(() => import('./pages/public/public_priests'));
+const MassTimings = lazy(() => import('./pages/public/public_mass_timings'));
+const Events = lazy(() => import('./pages/public/public_events'));
+const Gallery = lazy(() => import('./pages/public/public_gallery'));
+const LiveStream = lazy(() => import('./pages/public/public_live_stream'));
+const Contact = lazy(() => import('./pages/public/public_contact'));
+const Donate = lazy(() => import('./pages/public/public_donate'));
+const BibleVerse = lazy(() => import('./pages/public/public_bible_verse'));
+const PrayerRequests = lazy(() => import('./pages/user/user_prayer_requests'));
+const Announcements = lazy(() => import('./pages/public/public_announcements'));
+const Rosary = lazy(() => import('./pages/public/public_rosary'));
+const CatholicCalendar = lazy(() => import('./pages/public/public_catholic_calendar'));
+const FAQ = lazy(() => import('./pages/public/public_faq'));
+const ParishCouncil = lazy(() => import('./pages/public/public_parish_council'));
+const NearbyParishes = lazy(() => import('./pages/public/public_nearby_parishes'));
+const Team = lazy(() => import('./pages/public/public_our_team'));
+const MemberReport = lazy(() => import('./pages/public/public_member_report'));
+const Anbiyams = lazy(() => import('./pages/public/public_anbiyams'));
 
-
-import AdminLayout from './components/admin/AdminLayout';
+import AdminLayout from './components/admin/admin_layout';
 
 // Auth & Security pages
-const Login = lazy(() => import('./pages/auth/Login'));
-const Register = lazy(() => import('./pages/auth/Register'));
-const ReportUnauthorized = lazy(() => import('./pages/security/ReportUnauthorized'));
+const Login = lazy(() => import('./pages/auth/auth_login'));
+const Register = lazy(() => import('./pages/auth/auth_register'));
+const ReportUnauthorized = lazy(() => import('./pages/security/security_report_unauthorized'));
 
 // User dashboard
-const UserDashboard = lazy(() => import('./pages/user/Dashboard'));
-const UserBooking = lazy(() => import('./pages/user/Booking'));
-const UserDocuments = lazy(() => import('./pages/user/Documents'));
-const UserTickets = lazy(() => import('./pages/user/Tickets'));
-const UserProfile = lazy(() => import('./pages/user/Profile'));
-const UserSettings = lazy(() => import('./pages/user/Settings'));
-const UserNotifications = lazy(() => import('./pages/user/Notifications'));
-
+const UserDashboard = lazy(() => import('./pages/user/user_dashboard'));
+const UserBooking = lazy(() => import('./pages/user/user_mass_bookings'));
+const UserDocuments = lazy(() => import('./pages/user/user_documents'));
+const UserTickets = lazy(() => import('./pages/user/user_tickets'));
+const UserProfile = lazy(() => import('./pages/user/user_profile'));
+const UserSettings = lazy(() => import('./pages/user/user_settings'));
+const UserNotifications = lazy(() => import('./pages/user/user_notifications'));
 
 // Admin dashboard
-const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
-const AdminUsers = lazy(() => import('./pages/admin/Users'));
-const AdminPriests = lazy(() => import('./pages/admin/Priests'));
-const AdminEvents = lazy(() => import('./pages/admin/Events'));
-const AdminGallery = lazy(() => import('./pages/admin/GalleryAdmin'));
-const AdminAnnouncements = lazy(() => import('./pages/admin/Announcements'));
-const AdminBookings = lazy(() => import('./pages/admin/Bookings'));
-const AdminDocuments = lazy(() => import('./pages/admin/Documents'));
-const AdminDonations = lazy(() => import('./pages/admin/Donations'));
-const AdminTickets = lazy(() => import('./pages/admin/Tickets'));
-const AdminPrayers = lazy(() => import('./pages/admin/Prayers'));
-const AdminSettings = lazy(() => import('./pages/admin/SiteSettings'));
-const AdminWhatsApp = lazy(() => import('./pages/admin/WhatsApp'));
-const AdminNotifications = lazy(() => import('./pages/admin/Notifications'));
-const AdminTeam = lazy(() => import('./pages/admin/TeamAdmin'));
+const AdminDashboard = lazy(() => import('./pages/admin/admin_dashboard'));
+const AdminUsers = lazy(() => import('./pages/admin/admin_users'));
+const AdminPriests = lazy(() => import('./pages/admin/admin_priests'));
+const AdminEvents = lazy(() => import('./pages/admin/admin_events'));
+const AdminGallery = lazy(() => import('./pages/admin/admin_gallery'));
+const AdminAnnouncements = lazy(() => import('./pages/admin/admin_announcements'));
+const AdminBookings = lazy(() => import('./pages/admin/admin_bookings'));
+const AdminDocuments = lazy(() => import('./pages/admin/admin_documents'));
+const AdminDonations = lazy(() => import('./pages/admin/admin_donations'));
+const AdminTickets = lazy(() => import('./pages/admin/admin_tickets'));
+const AdminPrayers = lazy(() => import('./pages/admin/admin_prayers'));
+const AdminSettings = lazy(() => import('./pages/admin/admin_site_settings'));
+const AdminWhatsApp = lazy(() => import('./pages/admin/admin_whatsapp'));
+const AdminNotifications = lazy(() => import('./pages/admin/admin_notifications'));
+const AdminTeam = lazy(() => import('./pages/admin/admin_team'));
+const AdminAnbiyam = lazy(() => import('./pages/admin/admin_anbiyams'));
 
 // Route guards
 const ProtectedRoute = ({ children }) => {
@@ -92,10 +92,10 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-const Maintenance = lazy(() => import('./pages/public/Maintenance'));
-const AdminMaintenance = lazy(() => import('./pages/admin/MaintenanceAdmin'));
+const Maintenance = lazy(() => import('./pages/public/public_maintenance'));
+const AdminMaintenance = lazy(() => import('./pages/admin/admin_maintenance'));
 
-import MaintenanceGuard from './components/common/MaintenanceGuard';
+import MaintenanceGuard from './components/common/common_maintenance_guard';
 
 function AppRoutes() {
   return (
@@ -126,6 +126,7 @@ function AppRoutes() {
               <Route path="/parish-council" element={<ParishCouncil />} />
               <Route path="/nearby-parishes" element={<NearbyParishes />} />
               <Route path="/team" element={<Team />} />
+              <Route path="/anbiyams" element={<Anbiyams />} />
               <Route path="/member-report/:token" element={<MemberReport />} />
 
               {/* User dashboard routes */}
@@ -160,6 +161,7 @@ function AppRoutes() {
               <Route path="donations" element={<AdminDonations />} />
               <Route path="tickets" element={<AdminTickets />} />
               <Route path="prayers" element={<AdminPrayers />} />
+              <Route path="anbiyam" element={<AdminAnbiyam />} />
               <Route path="maintenance" element={<AdminMaintenance />} />
               <Route path="settings" element={<AdminSettings />} />
               <Route path="whatsapp" element={<AdminWhatsApp />} />

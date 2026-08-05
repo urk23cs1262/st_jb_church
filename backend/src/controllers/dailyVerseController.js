@@ -28,42 +28,53 @@ async function ensureDefaultVerses() {
   }
 }
 
+// Helper to fetch today's verse data
+const getTodayVerseData = async () => {
+  await ensureDefaultVerses();
+  const total = await DailyVerse.countDocuments();
+  const dayOfYear = getDayOfYear();
+  const targetId = total > 0 ? (((dayOfYear - 1) % total) + 1) : 1;
+
+  let verse = await DailyVerse.findOne({ id: targetId });
+  if (!verse) {
+    verse = await DailyVerse.findOne();
+  }
+
+  // Dynamic fetch if English text is missing
+  if (verse && !verse.verseTextEn) {
+    try {
+      const encoded = encodeURIComponent(verse.ref);
+      const apiRes = await axios.get(`https://bible-api.com/${encoded}?translation=kjv`, { timeout: 6000 });
+      if (apiRes.data && apiRes.data.text) {
+        verse.verseTextEn = apiRes.data.text.trim().replace(/\n/g, ' ');
+        await verse.save();
+      }
+    } catch (err) {
+      console.warn(`⚠️ Could not auto-fetch text for ${verse.ref}:`, err.message);
+    }
+  }
+
+  return {
+    id: verse?.id || 1,
+    ref: verse?.ref || 'John 3:16',
+    reference: verse?.ref || 'John 3:16',
+    english: verse?.verseTextEn || 'For God so loved the world...',
+    verseTextEn: verse?.verseTextEn || 'For God so loved the world...',
+    tamil: verse?.verseTextTa || '',
+    verseTextTa: verse?.verseTextTa || '',
+    category: verse?.category || 'General',
+    dayOfYear,
+    totalVerses: total
+  };
+};
+
 // GET /api/daily-verse or GET /api/site-settings/daily-verses/today (Public)
 const getTodayVerse = async (req, res) => {
   try {
-    await ensureDefaultVerses();
-    const total = await DailyVerse.countDocuments();
-    const dayOfYear = getDayOfYear();
-    const targetId = ((dayOfYear - 1) % total) + 1;
-
-    let verse = await DailyVerse.findOne({ id: targetId });
-    if (!verse) {
-      verse = await DailyVerse.findOne();
-    }
-
-    // Dynamic fetch if English text is missing
-    if (verse && !verse.verseTextEn) {
-      try {
-        const encoded = encodeURIComponent(verse.ref);
-        const apiRes = await axios.get(`https://bible-api.com/${encoded}?translation=kjv`, { timeout: 6000 });
-        if (apiRes.data && apiRes.data.text) {
-          verse.verseTextEn = apiRes.data.text.trim().replace(/\n/g, ' ');
-          await verse.save();
-        }
-      } catch (err) {
-        console.warn(`⚠️ Could not auto-fetch text for ${verse.ref}:`, err.message);
-      }
-    }
-
+    const data = await getTodayVerseData();
     res.json({
       success: true,
-      id: verse?.id || 1,
-      reference: verse?.ref || 'John 3:16',
-      english: verse?.verseTextEn || 'For God so loved the world...',
-      tamil: verse?.verseTextTa || '',
-      category: verse?.category || 'General',
-      dayOfYear,
-      totalVerses: total
+      ...data
     });
   } catch (err) {
     console.error('Failed to get today verse:', err);
@@ -294,6 +305,7 @@ const resetVerses = async (req, res) => {
 
 module.exports = {
   getTodayVerse,
+  getTodayVerseData,
   getAllVerses,
   uploadVerses,
   createVerse,
