@@ -47,7 +47,7 @@ export default function Footer() {
     <footer className="bg-church-dark text-white">
       {/* Centered Large Premium Title Banner */}
       <div className="w-full text-center py-6 md:py-4 px-4 overflow-hidden bg-church-dark notranslate" translate="no">
-        <h1 className="text-white text-5xl sm:text-6xl gap-10 md:text-7xl lg:text-[7.5rem] font-premium-banner font-extrabold tracking-tight text-center leading-none text-white/95 drop-shadow-2xl select-none">
+        <h1 className="text-white text-6xl sm:text-7xl gap-10 md:text-8xl lg:text-[7.5rem] font-premium-banner font-extrabold tracking-tight text-center leading-none text-white/95 drop-shadow-2xl select-none">
           St. John De Britto
         </h1>
       </div>
