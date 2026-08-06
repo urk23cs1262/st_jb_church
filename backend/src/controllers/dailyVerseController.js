@@ -28,16 +28,46 @@ async function ensureDefaultVerses() {
   }
 }
 
+// Helper to get today date string e.g. "2026-08-06"
+function getTodayDateStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 // Helper to fetch today's verse data
 const getTodayVerseData = async () => {
   await ensureDefaultVerses();
   const total = await DailyVerse.countDocuments();
   const dayOfYear = getDayOfYear();
-  const targetId = total > 0 ? (((dayOfYear - 1) % total) + 1) : 1;
+  const todayDateStr = getTodayDateStr();
 
-  let verse = await DailyVerse.findOne({ id: targetId });
+  let verse = null;
+
+  // Check if admin override exists for today
+  try {
+    const SiteSettings = require('../models/SiteSettings');
+    const overrideSetting = await SiteSettings.findOne({ key: 'today_verse_override' }).lean();
+    if (overrideSetting && overrideSetting.value) {
+      const parsed = JSON.parse(overrideSetting.value);
+      if (parsed && (parsed.date === todayDateStr || parsed.date === 'manual' || parsed.persistent !== false)) {
+        if (parsed.verseMongoId) {
+          verse = await DailyVerse.findById(parsed.verseMongoId);
+        }
+        if (!verse && parsed.id) {
+          verse = await DailyVerse.findOne({ id: Number(parsed.id) });
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore parse error
+  }
+
   if (!verse) {
-    verse = await DailyVerse.findOne();
+    const targetId = total > 0 ? (((dayOfYear - 1) % total) + 1) : 1;
+    verse = await DailyVerse.findOne({ id: targetId });
+    if (!verse) {
+      verse = await DailyVerse.findOne();
+    }
   }
 
   // Dynamic fetch if English text is missing
@@ -303,9 +333,72 @@ const resetVerses = async (req, res) => {
   }
 };
 
+// POST /api/site-settings/daily-verses/change-today or POST /api/daily-verse/change (Admin)
+const changeTodayVerse = async (req, res) => {
+  try {
+    await ensureDefaultVerses();
+    const count = await DailyVerse.countDocuments();
+    if (count === 0) {
+      return res.status(400).json({ success: false, message: 'No verses available in database' });
+    }
+
+    const { verseId } = req.body || {};
+    let targetVerse = null;
+
+    if (verseId) {
+      targetVerse = await DailyVerse.findOne({ $or: [{ id: Number(verseId) || -1 }, { _id: verseId }] });
+    }
+
+    if (!targetVerse) {
+      const currentToday = await getTodayVerseData();
+      const allVerses = await DailyVerse.find().sort({ id: 1 }).lean();
+      let currentIndex = allVerses.findIndex(v => v.id === currentToday.id || String(v._id) === String(currentToday.id));
+      if (currentIndex === -1) {
+        currentIndex = 0;
+      }
+      const nextIndex = (currentIndex + 1) % allVerses.length;
+      targetVerse = allVerses[nextIndex];
+    }
+
+    if (!targetVerse) {
+      targetVerse = await DailyVerse.findOne();
+    }
+
+    const SiteSettings = require('../models/SiteSettings');
+    const todayDateStr = getTodayDateStr();
+
+    await SiteSettings.findOneAndUpdate(
+      { key: 'today_verse_override' },
+      {
+        value: JSON.stringify({
+          verseMongoId: String(targetVerse._id),
+          id: targetVerse.id,
+          ref: targetVerse.ref,
+          date: todayDateStr
+        }),
+        label: 'Today Bible Verse Override',
+        type: 'text'
+      },
+      { upsert: true, new: true }
+    );
+
+    const updatedData = await getTodayVerseData();
+
+    res.json({
+      success: true,
+      message: `Today's verse successfully updated to ${targetVerse.ref}`,
+      verse: updatedData
+    });
+  } catch (err) {
+    console.error('Failed to change today verse:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   getTodayVerse,
   getTodayVerseData,
+  changeTodayVerse,
   getAllVerses,
   uploadVerses,
   createVerse,
@@ -314,3 +407,4 @@ module.exports = {
   exportVerses,
   resetVerses
 };
+

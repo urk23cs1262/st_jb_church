@@ -46,7 +46,7 @@ export default function Footer() {
   return (
     <footer className="bg-church-dark text-white">
       {/* Centered Large Premium Title Banner */}
-      <div className="w-full text-center py-6 md:py-4 px-4 overflow-hidden bg-church-dark">
+      <div className="w-full text-center py-6 md:py-4 px-4 overflow-hidden bg-church-dark notranslate" translate="no">
         <h1 className="text-white text-5xl sm:text-6xl gap-10 md:text-7xl lg:text-[7.5rem] font-premium-banner font-extrabold tracking-tight text-center leading-none text-white/95 drop-shadow-2xl select-none">
           St. John De Britto
         </h1>
@@ -58,7 +58,7 @@ export default function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gold-400/40 shadow-gold flex items-center justify-center bg-white/5">
+              <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-gold-400/40 shadow-gold flex items-center justify-center bg-white/5">
                 <img src={churchLogo} alt="Church Logo" className="w-full h-full object-cover object-[center_20%]" />
               </div>
               <div>
@@ -110,13 +110,13 @@ export default function Footer() {
           {/* Quick Links */}
           <div>
             <h4 className="font-semibold text-gold-300 mb-4 uppercase tracking-wider text-xs flex items-center gap-2">
-              <GiCrucifix className="text-gold-400" /> {t('footer.quickLinks', 'Quick Links')}
+              <GiCrucifix className="text-gold-400" /> <span className="notranslate" translate="no">{t('footer.quickLinks', 'Quick Links')}</span>
             </h4>
             <ul className="space-y-2 text-xs">
               {quickLinks.map(link => (
                 <li key={link.path}>
                   <Link to={link.path} className="text-gray-300 hover:text-gold-300 transition-colors duration-200 hover:translate-x-1 inline-block">
-                    {t(link.label, link.name)}
+                    <span className="notranslate" translate="no">{t(link.label, link.name)}</span>
                   </Link>
                 </li>
               ))}
@@ -126,13 +126,13 @@ export default function Footer() {
           {/* Services */}
           <div>
             <h4 className="font-semibold text-gold-300 mb-4 uppercase tracking-wider text-xs flex items-center gap-2">
-              <GiDove className="text-gold-400" /> {t('footer.services', 'Services')}
+              <GiDove className="text-gold-400" /> <span className="notranslate" translate="no">{t('footer.services', 'Services')}</span>
             </h4>
             <ul className="space-y-2 text-xs">
               {serviceLinks.map(link => (
                 <li key={link.path}>
                   <Link to={link.path} className="text-gray-300 hover:text-gold-300 transition-colors duration-200 hover:translate-x-1 inline-block">
-                    {t(link.label, link.name)}
+                    <span className="notranslate" translate="no">{t(link.label, link.name)}</span>
                   </Link>
                 </li>
               ))}

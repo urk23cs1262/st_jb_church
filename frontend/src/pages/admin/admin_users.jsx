@@ -698,13 +698,13 @@ export default function AdminUsers() {
                 </div>
 
                 <div className="pt-4 flex flex-col sm:flex-row gap-3">
-                  <button 
+                  {/* <button 
                     type="button" 
                     onClick={() => downloadUserPdf(editingUser._id, editingUser.name)} 
                     className="btn-outline-gold flex-1 justify-center py-2.5 flex items-center gap-2 text-xs font-bold shadow-sm"
                   >
                     <FiFileText size={16} /> Download User PDF Report
-                  </button>
+                  </button> */}
                   <button type="submit" disabled={isSubmitting} className="btn-gold flex-1 justify-center py-2.5">
                     {isSubmitting ? 'Saving...' : 'Save & Update Details'}
                   </button>

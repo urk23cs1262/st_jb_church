@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -34,6 +34,16 @@ export default function Login() {
 
   const [suspendedMsg, setSuspendedMsg] = useState('');
   const [lockoutMsg, setLockoutMsg] = useState('');
+  const [restrictedMsg, setRestrictedMsg] = useState('');
+  const [isMaintenanceActive, setIsMaintenanceActive] = useState(false);
+
+  useEffect(() => {
+    api.get('/maintenance/status').then(res => {
+      if (res.data.success && res.data.isEnabled) {
+        setIsMaintenanceActive(true);
+      }
+    }).catch(() => {});
+  }, []);
 
   const getRedirectDestination = (userData) => {
     const savedRedirect = sessionStorage.getItem('redirectAfterLogin');
@@ -46,9 +56,11 @@ export default function Login() {
     if (queryRedirect) {
       return queryRedirect;
     }
-    if (userData?.role === 'admin') {
+    if (userData?.role === 'admin' || userData?.isTechnicalTeam || userData?.role === 'staff' || userData?.role === 'technical_team' || userData?.role === 'priest') {
       return '/admin';
     }
+    // Normal users cannot access the site during maintenance
+    if (isMaintenanceActive) return '/maintenance';
     return '/';
   };
 
@@ -61,7 +73,9 @@ export default function Login() {
       navigate(target);
     } catch (e) {
       const resData = e.response?.data;
-      if (resData?.isSuspended) {
+      if (resData?.isMaintenanceRestricted || e.response?.status === 503) {
+        navigate('/maintenance', { replace: true });
+      } else if (resData?.isSuspended) {
         setSuspendedMsg(resData.message);
         setStage('suspended');
         toast.error('Account Suspended: Exceeded failed login attempts');
@@ -150,6 +164,13 @@ export default function Login() {
           {/* Login Form */}
           {stage === 'login' && (
             <form onSubmit={handleSubmit(onLogin)} className="space-y-4">
+              {isMaintenanceActive && (
+                <div className="mb-4 p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900 text-center shadow-sm space-y-1">
+                  <p className="text-sm font-extrabold tracking-wide">🚧 Maintenance Mode Active</p>
+                  <p className="text-xs font-medium text-amber-800">Only <strong>Admin</strong> &amp; <strong>Technical Team</strong> logins are permitted right now.</p>
+                </div>
+              )}
+
               <div>
                 <label className="church-label">{t('auth.phone')} / {t('auth.email')}</label>
                 <div className="relative">
@@ -196,7 +217,6 @@ export default function Login() {
                 </label>
               </div>
 
-
               <button
                 type="submit"
                 disabled={isSubmitting || !agreePolicy}
@@ -205,13 +225,60 @@ export default function Login() {
                 {isSubmitting ? '⏳ Logging in...' : t('auth.login')}
               </button>
 
-              
-
-              <p className="text-center text-gray-500 text-sm pt-1">
-                {t('auth.registerPrompt')}{' '}
-                <Link to="/register" className="text-church-gold font-semibold hover:underline">{t('nav.register')}</Link>
-              </p>
+              {!isMaintenanceActive && (
+                <p className="text-center text-gray-500 text-sm pt-1">
+                  {t('auth.registerPrompt')}{' '}
+                  <Link to="/register" className="text-church-gold font-semibold hover:underline">{t('nav.register')}</Link>
+                </p>
+              )}
             </form>
+          )}
+
+          {/* Maintenance Restricted Notice */}
+          {stage === 'restricted' && (
+            <div className="space-y-6 text-center">
+              <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-2xl flex items-center justify-center mx-auto border border-amber-200 shadow-inner">
+                <FiShield size={32} />
+              </div>
+
+              <div>
+                <span className="text-[11px] font-bold text-amber-800 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                  🚧 Access Restricted
+                </span>
+                <h2 className="text-xl font-display font-extrabold text-church-royal-blue mt-2">
+                  Access Restricted
+                </h2>
+              </div>
+
+              <div className="text-xs sm:text-sm text-slate-700 leading-relaxed bg-amber-50/80 p-5 rounded-2xl border border-amber-200/90 text-center space-y-3 font-medium">
+                <p className="font-bold text-amber-900 text-sm">
+                  The website is currently under maintenance.
+                </p>
+                <p className="text-slate-700">
+                  Only Administrators and the Technical Team can access the system at this time.
+                </p>
+                <p className="text-slate-500 text-xs">
+                  Please try again later.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/maintenance')}
+                  className="btn-gold w-full justify-center py-3 text-sm font-bold shadow-md flex items-center gap-2"
+                >
+                  ← Back to Maintenance Page
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStage('login')}
+                  className="btn-outline-gold w-full justify-center py-3 text-sm font-bold flex items-center gap-2"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Account Under Security Review Notice */}

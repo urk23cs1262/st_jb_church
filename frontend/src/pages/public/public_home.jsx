@@ -86,7 +86,9 @@ export default function Home() {
   const [verseIdx, setVerseIdx] = useState(0);
   const [dailyVerse, setDailyVerse] = useState(null);
   const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [announcements, setAnnouncements] = useState([]);
+  const [announcementsLoading, setAnnouncementsLoading] = useState(true);
   const isTamil = i18n.language === 'ta';
   const [dynamicImages, setDynamicImages] = useState({});
 
@@ -114,8 +116,16 @@ export default function Home() {
       .catch(() => { });
 
     // Fetch data
-    api.get('/events?upcoming=true&limit=3').then(r => setEvents(r.data.events || [])).catch(() => { });
-    api.get('/announcements?limit=4').then(r => setAnnouncements(r.data.announcements || [])).catch(() => { });
+    api.get('/events?upcoming=true&limit=3')
+      .then(r => setEvents(r.data.events || []))
+      .catch(() => { })
+      .finally(() => setEventsLoading(false));
+
+    api.get('/announcements?limit=4')
+      .then(r => setAnnouncements(r.data.announcements || []))
+      .catch(() => { })
+      .finally(() => setAnnouncementsLoading(false));
+
     // Fetch dynamic images from settings
     api.get('/settings').then(r => setDynamicImages(r.data.settings || {})).catch(() => { });
   }, []);
@@ -316,7 +326,7 @@ export default function Home() {
             </div>
             <Link to="/events" className="btn-outline-gold hidden sm:flex">{t('common.seeAll')} <FiArrowRight /></Link>
           </div>
-          {events.length === 0 ? (
+          {eventsLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[1, 2, 3].map(i => (
                 <div key={i} className="church-card animate-pulse">
@@ -325,6 +335,13 @@ export default function Home() {
                   <div className="h-3 bg-gray-100 rounded w-full" />
                 </div>
               ))}
+            </div>
+          ) : events.length === 0 ? (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 text-center border border-amber-200/70 shadow-xs my-2">
+              <h3 className="font-display font-bold text-gray-800 text-base mb-1">No Upcoming Events Found</h3>
+              <p className="text-gray-500 text-xs max-w-sm mx-auto">
+                There are currently no upcoming events scheduled. Please check back later or explore all church activities.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -371,7 +388,7 @@ export default function Home() {
             <GiCandleLight className="text-gold-300 text-5xl mx-auto mb-4 animate-candle-flicker" />
             <p className="text-gold-300 text-sm font-semibold uppercase tracking-widest mb-2">Feast Day Countdown</p>
             <h2 className="text-white font-display text-3xl md:text-4xl font-bold mb-2">Feast of St. John de Britto</h2>
-            <p className="text-gray-300 text-sm mb-8">Patron Saint Feast Day — February 4th</p>
+            <p className="text-gray-300 text-sm mb-8">Patron Saint Feast Day - 4th February</p>
             <CountdownTimer targetDate={`${new Date().getFullYear() + (new Date().getMonth() >= 1 ? 1 : 0)}-02-04`} />
           </motion.div>
         </div>
@@ -382,14 +399,28 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <p className="section-subtitle">{t('home.announcement')}</p>
+              <p className="section-subtitle">{t('home.importantAnnouncements', 'Important Announcements')}</p>
               <h2 className="section-title mt-1">{t('nav.announcements')}</h2>
             </div>
             <Link to="/announcements" className="btn-outline-gold hidden sm:flex">{t('common.seeAll')} <FiArrowRight /></Link>
           </div>
           <div className="space-y-4">
-            {announcements.length === 0 ? (
-              <p className="text-gray-400 text-center py-10">{t('common.noData')}</p>
+            {announcementsLoading ? (
+              <div className="space-y-3">
+                {[1, 2].map(i => (
+                  <div key={i} className="p-5 rounded-2xl border border-gray-100 animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded mb-2 w-1/3" />
+                    <div className="h-3 bg-gray-100 rounded w-full" />
+                  </div>
+                ))}
+              </div>
+            ) : announcements.length === 0 ? (
+              <div className="bg-amber-50/50 rounded-2xl p-8 text-center border border-amber-200/60 shadow-xs my-2">
+                <h3 className="font-display font-bold text-gray-800 text-base mb-1">No Announcements Found</h3>
+                <p className="text-gray-500 text-xs max-w-sm mx-auto">
+                  There are currently no active announcements published. Please check back later for parish updates.
+                </p>
+              </div>
             ) : (
               announcements.map((ann, i) => (
                 <motion.div

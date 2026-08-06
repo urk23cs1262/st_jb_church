@@ -11,6 +11,17 @@ const { generateNextMemberId, generateNextFamilyId } = require('../services/memb
 // @POST /api/auth/register
 const register = async (req, res) => {
   try {
+    const MaintenanceSetting = require('../models/MaintenanceSetting');
+    const maintSettings = await MaintenanceSetting.findOne({ key: 'site_maintenance' });
+    if (maintSettings && maintSettings.isEnabled) {
+      return res.status(503).json({
+        success: false,
+        isMaintenanceRestricted: true,
+        title: 'Access Restricted',
+        message: 'The website is currently under maintenance. Registration is temporarily disabled for normal users. Please try again later.'
+      });
+    }
+
     let { name, familyName, familyId, dob, gender, phone, email, address, parishMemberId, password, subStation, familyRole, familyMembers } = req.body;
     if (!name || !phone || !password) {
       return res.status(400).json({ success: false, message: 'Name, phone, and password are required' });
@@ -345,6 +356,24 @@ const login = async (req, res) => {
 
     if (!user.isVerified) return res.status(403).json({ success: false, message: 'Account not verified. Please verify OTP first.', userId: user._id });
 
+    // Check Maintenance Mode Restriction
+    const MaintenanceSetting = require('../models/MaintenanceSetting');
+    const maintSettings = await MaintenanceSetting.findOne({ key: 'site_maintenance' });
+    if (maintSettings && maintSettings.isEnabled) {
+      const userRole = (user.role || '').toLowerCase();
+      const isAdmin = ['admin', 'priest'].includes(userRole);
+      const isTech = Boolean(user.isTechnicalTeam) || ['staff', 'technical_team', 'tech_team'].includes(userRole);
+
+      if (!isAdmin && !isTech) {
+        return res.status(403).json({
+          success: false,
+          isMaintenanceRestricted: true,
+          title: 'Access Restricted',
+          message: 'The website is currently under maintenance.\nOnly Administrators and the Technical Team can access the system at this time.\nPlease try again later.'
+        });
+      }
+    }
+
     // Successful login: Reset all failed attempt & lockout counters
     await User.findByIdAndUpdate(user._id, {
       lastLogin: now,
@@ -371,6 +400,7 @@ const login = async (req, res) => {
         email: user.email, 
         phone: user.phone, 
         role: user.role, 
+        isTechnicalTeam: user.isTechnicalTeam || (user.role === 'staff' || user.role === 'technical_team'),
         profilePhoto: user.profilePhoto,
         dob: user.dob
       },
@@ -396,6 +426,17 @@ const resendOtp = async (req, res) => {
 // @POST /api/auth/forgot-password
 const forgotPassword = async (req, res) => {
   try {
+    const MaintenanceSetting = require('../models/MaintenanceSetting');
+    const maintSettings = await MaintenanceSetting.findOne({ key: 'site_maintenance' });
+    if (maintSettings && maintSettings.isEnabled) {
+      return res.status(503).json({
+        success: false,
+        isMaintenanceRestricted: true,
+        title: 'Access Restricted',
+        message: 'The website is currently under maintenance. Password reset is temporarily disabled. Please try again later.'
+      });
+    }
+
     const { login: loginId } = req.body;
     
     let user = await User.findOne({

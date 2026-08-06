@@ -17,6 +17,24 @@ export default function DailyVersesManager() {
   const [totalCount, setTotalCount] = useState(0);
   const [lastUpdated, setLastUpdated] = useState('');
   const [todayVerse, setTodayVerse] = useState(null);
+  const [changingToday, setChangingToday] = useState(false);
+
+  const handleChangeTodayVerse = async (targetVerseId = null) => {
+    setChangingToday(true);
+    const toastId = toast.loading('Updating today\'s Bible verse...');
+    try {
+      const payload = targetVerseId ? { verseId: targetVerseId } : {};
+      const res = await api.post('/settings/daily-verses/change-today', payload);
+      if (res.data.success) {
+        setTodayVerse(res.data.verse);
+        toast.success(res.data.message || 'Today\'s Bible verse updated!', { id: toastId });
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to change today verse', { id: toastId });
+    } finally {
+      setChangingToday(false);
+    }
+  };
 
   // File upload state
   const [file, setFile] = useState(null);
@@ -333,6 +351,16 @@ export default function DailyVersesManager() {
             <FiEye /> Preview Today's Verse
           </button>
 
+          <button
+            onClick={() => handleChangeTodayVerse()}
+            disabled={changingToday}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50"
+            title="Change Today's Verse to Next Verse"
+          >
+            <FiRefreshCw className={changingToday ? 'animate-spin' : ''} />
+            <span>{changingToday ? 'Changing...' : 'Change Today\'s Verse'}</span>
+          </button>
+
           {/* <button
             onClick={handleReset}
             className="flex items-center gap-1.5 px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-xl text-xs font-bold shadow-xs transition-all"
@@ -397,6 +425,13 @@ export default function DailyVersesManager() {
                     </td>
                     <td className="py-3 px-3 text-center w-24">
                       <div className="flex items-center justify-center gap-1.5">
+                        <button
+                          onClick={() => handleChangeTodayVerse(v.id || v._id)}
+                          className="p-1.5 hover:bg-amber-100 text-amber-800 rounded-lg transition-colors border border-amber-300"
+                          title="Set as Today's Verse"
+                        >
+                          <FiCheck className="text-sm font-bold" />
+                        </button>
                         <button
                           onClick={() => openModal(v)}
                           className="p-1.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors border border-blue-200/60"

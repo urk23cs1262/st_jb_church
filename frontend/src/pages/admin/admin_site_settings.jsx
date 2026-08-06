@@ -6,6 +6,7 @@ import { GiCrucifix } from 'react-icons/gi';
 import toast from 'react-hot-toast';
 import api, { UPLOADS_URL } from '../../services/api';
 import DailyVersesManager from '../../components/admin/admin_daily_verses_manager';
+import DailySaintManager from '../../components/admin/admin_daily_saint_manager';
 
 const SETTING_CARDS = [
   {
@@ -57,6 +58,16 @@ const SETTING_CARDS = [
     type: 'file',
     accept: 'image/*',
     fileLabel: 'Upload Priest Photo'
+  },
+  {
+    key: 'daily_saint_fetch_url',
+    label: 'Daily Saint Fetch URL',
+    description: 'The URL to fetch the daily Saint of the Day details from (e.g. Catholic.org).',
+    icon: <FiTool className="text-2xl" />,
+    color: 'bg-indigo-600',
+    type: 'text',
+    placeholder: 'https://www.catholic.org/saints/sofd.php',
+    hint: 'Default: https://www.catholic.org/saints/sofd.php'
   },
 ];
 
@@ -330,6 +341,9 @@ export default function SiteSettings() {
           />
         ))}
       </div>
+
+      {/* Daily Saint Scraper Sync Manager */}
+      <DailySaintManager />
 
       {/* Daily Bible Verses CMS Manager */}
       <DailyVersesManager />

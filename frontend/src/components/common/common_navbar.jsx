@@ -34,6 +34,16 @@ const MORE_LINKS = [
 
 
 
+function checkIsTamil() {
+  if (typeof document === 'undefined') return false;
+  const cookie = document.cookie || '';
+  const htmlLang = document.documentElement?.lang || '';
+  const hasGoogTransTa = cookie.includes('/ta') || cookie.includes('googtrans=/en/ta') || cookie.includes('googtrans=/auto/ta');
+  const isHtmlTa = htmlLang.toLowerCase().startsWith('ta');
+  const localLang = localStorage.getItem('lang') === 'ta';
+  return hasGoogTransTa || isHtmlTa || localLang;
+}
+
 export default function Navbar() {
   const { t, i18n } = useTranslation();
   const { user, logout, isAdmin, isAuthenticated } = useAuth();
@@ -46,13 +56,25 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showRosaryModal, setShowRosaryModal] = useState(false);
   const [moreInfoOpen, setMoreInfoOpen] = useState(false);
-  const [isTamil, setIsTamil] = useState(
-    document.cookie.includes('googtrans=/en/ta')
-  );
+
+  const isTamil = checkIsTamil();
+
+  // Sync i18n react language with cookie/local settings on mount/render
+  useEffect(() => {
+    const isCurrentlyTamil = checkIsTamil();
+    if (i18n && typeof i18n.changeLanguage === 'function') {
+      i18n.changeLanguage(isCurrentlyTamil ? 'ta' : 'en');
+    }
+  }, [i18n]);
 
   const toggleGoogleTranslate = () => {
     const nextLang = isTamil ? 'en' : 'ta';
     sessionStorage.setItem('scrollPos', window.scrollY);
+
+    if (i18n && typeof i18n.changeLanguage === 'function') {
+      i18n.changeLanguage(nextLang);
+    }
+    localStorage.setItem('lang', nextLang);
 
     if (nextLang === 'ta') {
       document.cookie = 'googtrans=/en/ta; path=/';
@@ -64,7 +86,15 @@ export default function Navbar() {
       document.cookie = `googtrans=/en/en; domain=${window.location.hostname}; path=/`;
     }
 
-    window.location.reload();
+    // Instantly switch Google Translate in-page combo box (0ms delay)
+    const selectEl = document.querySelector('.goog-te-combo');
+    if (selectEl) {
+      selectEl.value = nextLang;
+      selectEl.dispatchEvent(new Event('change'));
+    } else {
+      // Fallback reload if dropdown not initialized
+      window.location.reload();
+    }
   };
 
   useEffect(() => {
@@ -137,7 +167,7 @@ export default function Navbar() {
                       onClick={toggleRosaryAudio}
                     >
                       <FiHeadphones />
-                      {t(`nav.${link.key}`)}
+                      <span className="notranslate" translate="no">{t(`nav.${link.key}`)}</span>
                     </button>
                   ) : (
                     <NavLink
@@ -149,7 +179,7 @@ export default function Navbar() {
                         }`
                       }
                     >
-                      {t(`nav.${link.key}`)}
+                      <span className="notranslate" translate="no">{t(`nav.${link.key}`)}</span>
                     </NavLink>
                   )}
                 </div>
@@ -161,7 +191,7 @@ export default function Navbar() {
                   className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${moreInfoOpen ? 'text-church-gold bg-white/10' : 'text-gray-200 hover:text-church-gold hover:bg-white/10'
                     }`}
                 >
-                  More Info
+                  <span className="notranslate" translate="no">{isTamil ? 'மேலும் தகவல்' : 'More Info'}</span>
                   <FiChevronDown className={`transition-transform duration-200 ${moreInfoOpen ? 'rotate-180 text-church-gold' : ''}`} />
                 </button>
 
@@ -186,7 +216,7 @@ export default function Navbar() {
                             }`
                           }
                         >
-                          {item.label}
+                          <span className="notranslate" translate="no">{t(`nav.${item.key}`, item.label)}</span>
                         </NavLink>
                       ))}
                     </motion.div>
@@ -204,7 +234,7 @@ export default function Navbar() {
                   }`
                 }
               >
-                {t('nav.contact')}
+                <span className="notranslate" translate="no">{t('nav.contact')}</span>
               </NavLink>
             </div>
 
@@ -224,12 +254,13 @@ export default function Navbar() {
 
               <button
                 onClick={toggleGoogleTranslate}
-                className="flex items-center gap-1.5 text-gray-200 hover:text-gold-300 transition-colors p-2 rounded-lg hover:bg-white/10"
-                title={isTamil ? "Switch to English" : "தமிழில் மாற்றுக"}
+                translate="no"
+                className="notranslate flex items-center gap-1.5 text-gray-200 hover:text-gold-300 transition-colors p-2 rounded-lg hover:bg-white/10"
+                title={isTamil ? "Switch to English" : "தமிழில் பார்க்க"}
               >
-                <FiGlobe className="text-base text-gold-400" />
-                <span className="notranslate text-xs font-bold whitespace-nowrap">
-                  {isTamil ? "ஆங்கிலத்தில் காண்க" : "தமிழில்"}
+                <FiGlobe className="text-base text-gold-400 notranslate" translate="no" />
+                <span className="notranslate text-xs font-bold whitespace-nowrap" translate="no">
+                  {isTamil ? "English" : "தமிழில்"}
                 </span>
               </button>
 
@@ -342,7 +373,7 @@ export default function Navbar() {
                         className={`flex-1 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all cursor-pointer text-gray-200 hover:bg-white/10`}
                       >
                         <FiHeadphones />
-                        {t(`nav.${link.key}`)}
+                        <span className="notranslate" translate="no">{t(`nav.${link.key}`)}</span>
                       </button>
                     ) : (
                       <NavLink
@@ -353,7 +384,7 @@ export default function Navbar() {
                           }`
                         }
                       >
-                        {t(`nav.${link.key}`)}
+                        <span className="notranslate" translate="no">{t(`nav.${link.key}`)}</span>
                       </NavLink>
                     )}
                   </div>
@@ -369,13 +400,13 @@ export default function Navbar() {
                       }`
                     }
                   >
-                    {t('nav.contact')}
+                    <span className="notranslate" translate="no">{t('nav.contact')}</span>
                   </NavLink>
                 </div>
 
                 {/* More Info links in mobile */}
                 <div className="pt-1">
-                  <p className="px-4 text-[10px] text-church-gold/70 font-bold uppercase tracking-widest mb-1">More Info</p>
+                  <p className="px-4 text-[10px] text-church-gold/70 font-bold uppercase tracking-widest mb-1 notranslate" translate="no">{isTamil ? 'மேலும் தகவல்' : 'More Info'}</p>
                   {MORE_LINKS.map(item => (
                     <NavLink
                       key={item.key}
@@ -385,7 +416,7 @@ export default function Navbar() {
                         `block px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-church-gold text-white' : 'text-gray-200 hover:text-church-gold hover:bg-white/10'}`
                       }
                     >
-                      {item.label}
+                      <span className="notranslate" translate="no">{t(`nav.${item.key}`, item.label)}</span>
                     </NavLink>
                   ))}
                 </div>
@@ -394,6 +425,20 @@ export default function Navbar() {
 
                 {/* Google Translate Mobile Hidden */}
                 <div id="google_translate_element_mobile" style={{ display: 'none' }}></div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={() => { toggleGoogleTranslate(); setMobileOpen(false); }}
+                    translate="no"
+                    className="notranslate w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/10 text-white text-xs font-bold transition-all border border-white/20"
+                    title={isTamil ? "Switch to English" : "தமிழில் பார்க்க"}
+                  >
+                    <FiGlobe className="text-base text-gold-400 notranslate" translate="no" />
+                    <span className="notranslate text-xs font-bold" translate="no">
+                      {isTamil ? "English" : "தமிழில்"}
+                    </span>
+                  </button>
+                </div>
 
                 {!isAuthenticated ? null : (
                   <div className="pt-2 flex flex-col gap-2">

@@ -7,7 +7,6 @@ import {
 } from 'react-icons/fi';
 import { FaFacebook, FaInstagram, FaYoutube } from 'react-icons/fa';
 import churchLogo from '../../assets/image.png';
-// import maintenanceDefaultImg from '../../assets/image copy 2.png';
 import constructionImg from '../../assets/construction.png';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -97,7 +96,7 @@ export default function Maintenance() {
 
   const mediaSource = (status?.mediaUrl && status?.mediaType !== 'none')
     ? status.mediaUrl
-    : maintenanceDefaultImg;
+    : constructionImg;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50/70 via-slate-50 to-amber-100/50 text-slate-800 flex flex-col items-center justify-between p-4 sm:p-6 md:p-10 relative overflow-hidden font-sans">
@@ -138,8 +137,8 @@ export default function Maintenance() {
             animate={{ opacity: 1, y: 0 }}
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-100 border border-amber-300 text-amber-900 text-xs sm:text-sm font-bold shadow-sm mb-3"
           >
-            <FiAlertTriangle className="text-amber-600 animate-pulse text-base" />
-            <span>{status?.category ? `${status.category.toUpperCase()} IN PROGRESS` : 'SYSTEM MAINTENANCE MODE'}</span>
+            <span className="text-base">🚧</span>
+            <span>Website Under Maintenance</span>
           </motion.div>
 
           <motion.h2
@@ -151,17 +150,22 @@ export default function Maintenance() {
             {status?.title || 'Website Under Maintenance'}
           </motion.h2>
 
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-slate-600 text-xs sm:text-sm md:text-base max-w-2xl mx-auto mt-2 font-medium"
+            className="text-slate-600 text-xs sm:text-sm md:text-base max-w-2xl mx-auto mt-4 font-medium space-y-2"
           >
-            {status?.message || "We are making improvements to serve you better. Please visit again shortly."}
-          </motion.p>
+            <p>Our website is currently undergoing scheduled maintenance to improve performance, security, and user experience.</p>
+            <p>We apologize for the inconvenience.</p>
+            <p>Please check back again shortly.</p>
+            {/* <p className="text-amber-800 font-semibold bg-amber-50/80 p-2.5 rounded-xl border border-amber-200/80 inline-block mt-1">
+              🔒 Only Administrators and the Technical Team can access the website during maintenance.
+            </p> */}
+          </motion.div>
         </div>
 
-        {/* 2-Column Split: Image Left, Countdown Right */}
+        {/* 2-Column Split: Image Left, Countdown & Login Right */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center max-w-5xl mx-auto">
 
           {/* Left Column: Construction Illustration Only */}
@@ -178,15 +182,30 @@ export default function Maintenance() {
             />
           </motion.div>
 
-          {/* Right Column: Countdown Timer & Refresh Action */}
+          {/* Right Column: Login CTA & Countdown Timer */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.3 }}
             className="bg-white/90 backdrop-blur-xl border border-amber-200/80 rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col items-center justify-center text-center space-y-6"
           >
+            {/* Primary Action: Admin / Technical Team Login */}
+            {/* <div className="w-full space-y-3">
+              <Link
+                to="/login"
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-church-royal-blue hover:bg-blue-900 text-white font-bold text-sm sm:text-base shadow-xl hover:shadow-blue-900/30 transition-all cursor-pointer border border-blue-800"
+              >
+                <FiShield className="text-amber-400 text-lg" />
+                <span>Admin / Technical Team Login</span>
+                <FiArrowRight className="text-amber-400 text-base" />
+              </Link>
+              <p className="text-[11px] text-slate-500">
+                Restricted portal access for authorised parish administrators and tech team.
+              </p>
+            </div> */}
+
             {status?.showCountdown !== false && (
-              <div className="w-full space-y-4">
+              <div className="w-full space-y-4 pt-4 border-t border-amber-100">
                 <div className="flex items-center justify-center gap-2 text-amber-800 text-xs font-bold uppercase tracking-wider">
                   <FiClock className="text-amber-600 text-sm" />
                   <span>Estimated Completion Counter</span>
@@ -220,11 +239,11 @@ export default function Maintenance() {
             )}
 
             {/* Interactive Refresh Action Button */}
-            <div className="w-full pt-2">
+            <div className="w-full pt-1">
               <button
                 onClick={() => fetchStatus(true)}
                 disabled={checking}
-                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-church-gold hover:bg-amber-600 text-white font-bold text-xs sm:text-sm shadow-lg hover:shadow-amber-500/30 transition-all cursor-pointer disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs sm:text-sm border border-amber-300 transition-all cursor-pointer disabled:opacity-50"
               >
                 <FiRefreshCw className={`text-base ${checking ? 'animate-spin' : ''}`} />
                 <span>{checking ? 'Checking Status...' : 'Check If Site Is Live'}</span>

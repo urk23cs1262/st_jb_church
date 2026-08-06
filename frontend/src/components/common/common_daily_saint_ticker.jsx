@@ -7,10 +7,21 @@ import api from '../../services/api';
 
 const FALLBACK_SAINT = {
   name: "St. John de Britto",
-  description: "St. John de Britto (Arul Anandar) was a Portuguese Jesuit missionary and martyr who embraced Tamil culture and gave his life for his faith in 1693.",
+  nameTa: "புனித ஜான் டி பிரி்ட்டோ (அருள் ஆனந்தர்)",
+  description: "St. John de Britto (Arul Anandar) was a Portuguese Jesuit missionary and martyr who embraced Tamil culture and gave his life for his faith in Kalayarkoil in 1693.",
+  descriptionTa: "புனித அருளானந்தர் (ஜான் டி பிரி்ட்டோ) இந்தியாவின் கலையார்கோவிலில் நற்செய்தியைப் போதித்து, தமிழ் கலாச்சாரத்தைத் தழுவி 1693 இல் மறைசாட்சியாக உயிர் நீத்த போர்த்துகீசிய இயேசு சபை புனிதர் ஆவார்.",
   image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bf/St._John_De_Britto.jpg/500px-St._John_De_Britto.jpg",
   link: "https://www.catholic.org/saints/saint.php?saint_id=4025"
 };
+
+function checkIsTamil() {
+  if (typeof document === 'undefined') return false;
+  const cookie = document.cookie || '';
+  const htmlLang = document.documentElement?.lang || '';
+  const hasGoogTransTa = cookie.includes('/ta') || cookie.includes('googtrans=/en/ta') || cookie.includes('googtrans=/auto/ta');
+  const isHtmlTa = htmlLang.toLowerCase().startsWith('ta');
+  return hasGoogTransTa || isHtmlTa;
+}
 
 export default function DailySaintTicker() {
   const { t, i18n } = useTranslation();
@@ -28,6 +39,9 @@ export default function DailySaintTicker() {
       });
   }, []);
 
+  const isTamil = checkIsTamil();
+  const displayName = isTamil && saint.nameTa ? saint.nameTa : saint.name;
+  const displayDescription = isTamil && saint.descriptionTa ? saint.descriptionTa : saint.description;
 
   useEffect(() => {
     if (!showModal) return;
@@ -66,7 +80,7 @@ export default function DailySaintTicker() {
             onClick={() => setShowModal(true)}
             className="flex-shrink-0 bg-church-gold text-white text-[10px] font-bold px-2 py-1 rounded mr-2 z-10 flex items-center gap-1 hover:bg-church-gold/90 transition-colors cursor-pointer uppercase tracking-wider"
           >
-            <FiInfo className="text-xs" /> {t('home.dailySaintTitle', 'SAINT OF THE DAY')}
+            <FiInfo className="text-xs" /> {isTamil ? 'இன்றைய புனிதர்' : 'SAINT OF THE DAY'}
           </button>
 
           <div className="relative flex-1 overflow-hidden h-6">
@@ -84,7 +98,10 @@ export default function DailySaintTicker() {
                 onClick={() => setShowModal(true)}
                 className="text-white font-semibold hover:text-church-gold transition-colors flex items-center gap-2 cursor-pointer"
               >
-                ✝️ {t('home.todaysSaint', "Today's Saint")}: <span className="font-bold">{saint.name}</span> — {saint.description.slice(0, 80)}... <span className="text-church-gold italic text-sm">({t('common.clickForDetails', 'Click for details')} →)</span>
+                ✝️&nbsp;
+                <span className="notranslate" translate="no">
+                  {isTamil ? "இன்றைய புனிதர்" : "Today's Saint"}: <span className="font-bold">{displayName}</span> - {displayDescription.slice(0, 80)}... <span className="text-church-gold italic text-sm">({isTamil ? "முழு விவரம்" : "Click for details"} →)</span>
+                </span>
               </button>
             </motion.div>
           </div>
@@ -164,27 +181,27 @@ export default function DailySaintTicker() {
 
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
 
-                          <div className="absolute bottom-8 left-8 text-white">
+                          <div className="absolute bottom-8 left-8 text-white notranslate" translate="no">
                             <p className="text-church-gold uppercase tracking-[0.35em] text-sm mb-3">
-                              {t('home.dailySaintTitle', 'Saint of the Day')}
+                              {isTamil ? 'இன்றைய புனிதர்' : 'Saint of the Day'}
                             </p>
 
                             <h2 className="text-4xl md:text-5xl font-bold font-display leading-tight">
-                              {saint.name}
+                              {displayName}
                             </h2>
                           </div>
                         </div>
                       )}
 
                       {/* CONTENT */}
-                      <div className="flex-1 p-6 md:p-10 overflow-y-visible md:overflow-y-auto">
+                      <div className="flex-1 p-6 md:p-10 overflow-y-visible md:overflow-y-auto notranslate" translate="no">
                         <div className="mb-6">
                           <p className="text-xs uppercase tracking-[0.3em] text-gray-400 font-bold mb-2">
-                            {t('booking.feastDay', 'Feast Day')}
+                            {isTamil ? 'திருவிழா' : 'Feast Day'}
                           </p>
 
                           <p className="text-2xl font-bold text-church-gold capitalize">
-                            {new Date().toLocaleDateString(i18n.language === 'ta' ? 'ta-IN' : 'en-GB', {
+                            {new Date().toLocaleDateString(isTamil ? 'ta-IN' : 'en-GB', {
                               weekday: 'long',
                               day: 'numeric',
                               month: 'long',
@@ -193,8 +210,16 @@ export default function DailySaintTicker() {
                           </p>
                         </div>
 
-                        <div className="text-gray-600 leading-relaxed text-lg mb-4">
-                          <p>{saint.description}</p>
+                        <div 
+                          className="text-gray-600 leading-relaxed text-lg mb-4"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 4,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden'
+                          }}
+                        >
+                          <p>{displayDescription}</p>
                         </div>
 
                         <a
@@ -218,7 +243,7 @@ export default function DailySaintTicker() {
                           "
                         >
                           <FiExternalLink />
-                          {t('common.readFullHistory', 'Read Full History')}
+                          {isTamil ? 'முழு விவரம்' : 'Read Full History'}
                         </a>
                       </div>
                     </div>

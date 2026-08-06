@@ -89,6 +89,7 @@ app.use('/api/daily-reading', require('./routes/dailyReading'));
 app.use('/api/daily-saint', require('./routes/saint'));
 app.use('/api/settings', require('./routes/settings'));
 app.get('/api/daily-verse', require('./controllers/dailyVerseController').getTodayVerse);
+app.post('/api/daily-verse/change', require('./middleware/auth').protect, require('./middleware/auth').adminOnly, require('./controllers/dailyVerseController').changeTodayVerse);
 app.use('/api/bot', require('./routes/bot'));
 
 // Background Services

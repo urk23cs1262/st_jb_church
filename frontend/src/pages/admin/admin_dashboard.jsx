@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { FiUsers, FiBriefcase, FiBookOpen, FiCalendar, FiFileText, FiMessageSquare, FiDollarSign, FiSettings, FiImage, FiBell, FiGift, FiHeart, FiClock, FiTool } from 'react-icons/fi';
+import { FiUsers, FiBriefcase, FiBookOpen, FiCalendar, FiFileText, FiMessageSquare, FiDollarSign, FiSettings, FiImage, FiBell, FiGift, FiHeart, FiClock, FiTool, FiRefreshCw } from 'react-icons/fi';
 import { SiWhatsapp } from 'react-icons/si';
 import { GiChurch, GiCrucifix, GiPrayer } from 'react-icons/gi';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { SectionLoader } from '../../components/common/common_loader';
 import { useNotifications } from '../../context/context_notification_context';
@@ -29,9 +30,9 @@ const NAV_ITEMS = [
 ];
 
 export default function AdminDashboard() {
-  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [changingVerse, setChangingVerse] = useState(false);
   const { adminUnreadCount } = useNotifications();
 
   const fetchDashboardData = () => {
@@ -39,6 +40,24 @@ export default function AdminDashboard() {
       .then(r => setStats(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
+  };
+
+  const handleChangeVerse = async () => {
+    setChangingVerse(true);
+    try {
+      const res = await api.post('/settings/daily-verses/change-today');
+      if (res.data.success && res.data.verse) {
+        setStats(prev => ({
+          ...prev,
+          todayVerse: res.data.verse
+        }));
+        toast.success(`Today's verse changed to ${res.data.verse.ref || res.data.verse.reference}!`);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to change verse');
+    } finally {
+      setChangingVerse(false);
+    }
   };
 
   useEffect(() => {
@@ -199,9 +218,20 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                 </div>
-                <Link to="/bible-verse" className="btn-gold text-xs py-2 px-4 whitespace-nowrap font-bold shadow-gold flex-shrink-0">
-                  Read Full Verse
-                </Link>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleChangeVerse}
+                    disabled={changingVerse}
+                    className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 hover:text-white text-xs py-2 px-3.5 rounded-xl font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  >
+                    <FiRefreshCw className={`text-sm ${changingVerse ? 'animate-spin' : ''}`} />
+                    <span>{changingVerse ? 'Changing...' : 'Change Verse'}</span>
+                  </button>
+                  <Link to="/bible-verse" className="btn-gold text-xs py-2 px-4 whitespace-nowrap font-bold shadow-gold flex-shrink-0">
+                    Read Full Verse
+                  </Link>
+                </div>
               </div>
             )}
 

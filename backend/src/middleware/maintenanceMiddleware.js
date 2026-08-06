@@ -4,19 +4,21 @@ const User = require('../models/User');
 
 const maintenanceMiddleware = async (req, res, next) => {
   try {
-    // Endpoints that MUST always be accessible even during maintenance
-    const allowedPathPrefixes = [
-      '/api/auth',
-      '/api/maintenance'
-    ];
-
-    const isAllowedPath = allowedPathPrefixes.some(prefix => req.originalUrl.startsWith(prefix));
-    if (isAllowedPath) {
+    const settings = await MaintenanceSetting.findOne({ key: 'site_maintenance' });
+    if (!settings || !settings.isEnabled) {
       return next();
     }
 
-    const settings = await MaintenanceSetting.findOne({ key: 'site_maintenance' });
-    if (!settings || !settings.isEnabled) {
+    // Endpoints accessible during maintenance mode (to check status, track attempts, or perform admin/tech login)
+    const allowedPathPrefixes = [
+      '/api/maintenance/status',
+      '/api/maintenance/track-attempt'
+    ];
+
+    const isAllowedPath = allowedPathPrefixes.some(prefix => req.originalUrl.startsWith(prefix));
+    const isLoginPost = req.originalUrl.startsWith('/api/auth/login') && req.method === 'POST';
+
+    if (isAllowedPath || isLoginPost) {
       return next();
     }
 
@@ -32,13 +34,13 @@ const maintenanceMiddleware = async (req, res, next) => {
     if (token && token !== 'null' && token !== 'undefined') {
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'sjdb_secret_key_2024');
-        const user = await User.findById(decoded.id).select('role isTechnicalTeam');
-        if (user) {
+        const user = await User.findById(decoded.id).select('role isTechnicalTeam isActive');
+        if (user && user.isActive !== false) {
           const userRole = (user.role || '').toLowerCase();
           const isAdmin = ['admin', 'priest'].includes(userRole);
-          const isTech = Boolean(user.isTechnicalTeam) || (userRole === 'staff');
+          const isTech = Boolean(user.isTechnicalTeam) || ['staff', 'technical_team', 'tech_team'].includes(userRole);
           
-          if ((isAdmin && settings.allowAdminLogin !== false) || (isTech && settings.allowTechTeam !== false)) {
+          if (isAdmin || isTech) {
             return next();
           }
         }
@@ -50,13 +52,13 @@ const maintenanceMiddleware = async (req, res, next) => {
     // Increment analytics blocked counter asynchronously
     MaintenanceSetting.updateOne({ key: 'site_maintenance' }, { $inc: { accessAttemptsCount: 1 } }).catch(() => {});
 
-    // Return 503 Service Unavailable
+    // Return 503 Service Unavailable for normal users & guests
     return res.status(503).json({
       success: false,
       maintenance: true,
       code: 'SERVICE_UNAVAILABLE',
       title: settings.title || 'Website Under Maintenance',
-      message: settings.message || 'We are making improvements to serve you better. Please visit again shortly.',
+      message: 'Our website is currently undergoing scheduled maintenance to improve performance, security, and user experience. We apologize for the inconvenience. Please check back again shortly. Only Administrators and the Technical Team can access the website during maintenance.',
       category: settings.category,
       expectedCompletion: settings.expectedCompletion,
       contactPhone: settings.contactPhone,
