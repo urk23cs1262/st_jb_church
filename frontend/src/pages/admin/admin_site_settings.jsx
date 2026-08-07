@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiSettings, FiUpload, FiYoutube, FiMusic, FiImage, FiCheck, FiLoader, FiExternalLink, FiTrash2, FiTool } from 'react-icons/fi';
 import { GiCrucifix } from 'react-icons/gi';
@@ -66,7 +66,7 @@ const SETTING_CARDS = [
     icon: <FiTool className="text-2xl" />,
     color: 'bg-indigo-600',
     type: 'text',
-    placeholder: 'https://www.catholic.org/saints/sofd.php',
+    placeholder: 'Enter the link to fetch the Saint Of The Day',
     hint: 'Default: https://www.catholic.org/saints/sofd.php'
   },
 ];
@@ -130,7 +130,7 @@ function SettingCard({ setting, currentValue, onValueUpdate }) {
         if (!textValue.trim()) return toast.error('Please enter a value');
         const valueToSave = setting.key === 'videoAdId' ? extractYouTubeId(textValue) : textValue.trim();
         if (!valueToSave) return toast.error('Could not extract a valid YouTube ID.');
-        
+
         await api.post('/settings/text', { key: setting.key, value: valueToSave, label: setting.label });
         setTextValue(valueToSave);
         setDebouncedValue(valueToSave);
@@ -219,7 +219,7 @@ function SettingCard({ setting, currentValue, onValueUpdate }) {
                   <div className="aspect-video rounded-xl overflow-hidden border border-gray-100 bg-black/5">
                     <iframe
                       key={extractedId}
-                      src={`https://www.youtube.com/embed/${extractedId}?mute=1`}
+                      src={`https://www.youtube-nocookie.com/embed/${extractedId}?mute=1`}
                       className="w-full h-full"
                       title="Preview"
                       loading="lazy"
@@ -266,9 +266,8 @@ function SettingCard({ setting, currentValue, onValueUpdate }) {
         <button
           onClick={handleSave}
           disabled={saving || removing}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-white text-sm transition-all ${
-            saved ? 'bg-green-600' : `${setting.color} hover:brightness-110`
-          } disabled:opacity-60 shadow-xs`}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-white text-sm transition-all ${saved ? 'bg-green-600' : `${setting.color} hover:brightness-110`
+            } disabled:opacity-60 shadow-xs`}
         >
           {saving ? <FiLoader className="animate-spin" /> : saved ? <FiCheck /> : <FiUpload />}
           {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
@@ -297,7 +296,7 @@ export default function SiteSettings() {
   useEffect(() => {
     api.get('/settings')
       .then(r => setCurrentValues(r.data.settings || {}))
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const handleValueUpdate = (key, newValue) => {
@@ -317,13 +316,13 @@ export default function SiteSettings() {
           </div>
         </div>
 
-        <button
-          onClick={() => navigate('/admin/maintenance')}
+        <Link
+          to="/admin/maintenance"
           className="flex items-center justify-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-amber-600 via-red-600 to-amber-700 hover:from-amber-700 hover:via-red-700 hover:to-amber-800 text-white rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
         >
           <FiTool className="text-lg text-amber-200 group-hover:rotate-45 transition-transform duration-300" />
           <span>Maintenance Mode</span>
-        </button>
+        </Link>
       </div>
 
       <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-800 leading-relaxed shadow-xs">

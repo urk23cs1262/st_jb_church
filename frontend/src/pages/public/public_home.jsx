@@ -27,12 +27,12 @@ const BIBLE_VERSES = [
 ];
 
 const QUICK_LINKS = [
-  { icon: <GiPrayerBeads />, label: 'Rosary', path: '/rosary', color: 'from-purple-600 to-indigo-800' },
-  { icon: <GiAngelWings />, label: 'Catholic Calendar', path: '/calendar', color: 'from-amber-600 to-orange-800' },
-  { icon: <GiSpellBook />, label: 'DailyMassReadings', path: '/bible-verse', color: 'from-green-600 to-teal-800' },
-  { icon: <FiCalendar />, label: 'Events', path: '/events', color: 'from-pink-600 to-rose-800' },
-  { icon: <GiPrayer />, label: 'Prayer Wall', path: '/prayers', color: 'from-blue-600 to-royal-800', requireAuth: true },
-  { icon: <FaDonate />, label: 'Donate', path: '/donate', color: 'from-yellow-600 to-gold-800', requireAuth: true },
+  { icon: <GiPrayerBeads />, labelKey: 'nav.rosary', defaultLabel: 'Rosary', path: '/rosary', color: 'from-purple-600 to-indigo-800' },
+  { icon: <GiAngelWings />, labelKey: 'nav.calendar', defaultLabel: 'Catholic Calendar', path: '/calendar', color: 'from-amber-600 to-orange-800' },
+  { icon: <GiSpellBook />, labelKey: 'nav.bibleVerse', defaultLabel: 'Daily Mass Readings', path: '/bible-verse', color: 'from-green-600 to-teal-800' },
+  { icon: <FiCalendar />, labelKey: 'nav.events', defaultLabel: 'Events', path: '/events', color: 'from-pink-600 to-rose-800' },
+  { icon: <GiPrayer />, labelKey: 'nav.prayer', defaultLabel: 'Prayer Wall', path: '/prayers', color: 'from-blue-600 to-royal-800', requireAuth: true },
+  { icon: <FaDonate />, labelKey: 'nav.donate', defaultLabel: 'Donate', path: '/donate', color: 'from-yellow-600 to-gold-800', requireAuth: true },
 ];
 
 
@@ -238,7 +238,9 @@ export default function Home() {
                 className={`flex flex-col items-center gap-2 p-6 rounded-2xl bg-gradient-to-br ${ql.color} bg-opacity-30 backdrop-blur-sm border border-white/20 hover:scale-110 transition-all duration-300 group cursor-pointer`}
               >
                 <span className="text-white text-2xl group-hover:scale-110 transition-transform">{ql.icon}</span>
-                <span className="text-white text-xs font-medium text-center leading-tight">{ql.label}</span>
+                <span className="text-white text-xs font-medium text-center leading-tight notranslate" translate="no">
+                  {t(ql.labelKey, ql.defaultLabel)}
+                </span>
               </Link>
             ))}
           </motion.div>
@@ -295,7 +297,7 @@ export default function Home() {
             {[
               { icon: <GiChurch />, value: 500, suffix: '+', label: t('home.members') },
               { icon: <GiCrucifix />, value: 150, suffix: '+', label: t('home.years') },
-              { icon: <FiClock />, value: 8, suffix: '', label: t('home.masses') },
+              { icon: <FiClock />, value: 6, suffix: '', label: t('home.masses') },
               { icon: <GiDove />, value: 50, suffix: '+', label: t('home.volunteers') },
             ].map((stat, i) => (
               <motion.div
@@ -337,7 +339,8 @@ export default function Home() {
               ))}
             </div>
           ) : events.length === 0 ? (
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 text-center border border-amber-200/70 shadow-xs my-2">
+            <div className="bg-amber-50/50 rounded-2xl p-8 text-center border border-amber-200/60 shadow-xs my-2">
+
               <h3 className="font-display font-bold text-gray-800 text-base mb-1">No Upcoming Events Found</h3>
               <p className="text-gray-500 text-xs max-w-sm mx-auto">
                 There are currently no upcoming events scheduled. Please check back later or explore all church activities.
@@ -446,6 +449,9 @@ export default function Home() {
               ))
             )}
           </div>
+          <div className="mt-6 text-center sm:hidden">
+            <Link to="/announcements" className="btn-outline-gold">{t('common.seeAll')} <FiArrowRight /></Link>
+          </div>
         </div>
       </section>
 
@@ -493,7 +499,7 @@ export default function Home() {
             <h2 className="text-white font-display text-3xl md:text-4xl font-bold mb-4">Come & Be Part of Our Community</h2>
             <p className="text-gray-300 mb-8 text-lg">Join us for Holy Mass, prayer, and fellowship. All are welcome.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link to="/contact" className="btn-gold w-full sm:w-auto py-4 px-8 text-base shadow-gold-lg justify-center text-center">{t('nav.contact')}</Link>
+              <Link to="/contact" className="btn-gold w-full sm:w-auto py-4 px-8 text-base shadow-gold-lg justify-center text-center notranslate" translate="no">{t('nav.contact')}</Link>
               <Link to="/events" className="w-full sm:w-auto px-8 py-4 border-2 border-white/40 text-white rounded-xl hover:bg-white/10 transition-all font-semibold text-base text-center">{t('home.upcomingEvents')}</Link>
             </div>
           </motion.div>

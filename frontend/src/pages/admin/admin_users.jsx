@@ -29,9 +29,9 @@ export default function AdminUsers() {
 
   // Member & Family ID Format State
   const [showFormatModal, setShowFormatModal] = useState(false);
-  const [formatData, setFormatData] = useState({ 
-    prefix: 'SJDB_M', 
-    padLength: 2, 
+  const [formatData, setFormatData] = useState({
+    prefix: 'SJDB_M',
+    padLength: 2,
     sample: 'SJDB_M01',
     familyPrefix: 'SJDB_FAM-',
     familyPadLength: 2,
@@ -301,7 +301,7 @@ export default function AdminUsers() {
             <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Manage Users ({total})</h1>
             <p className="text-gray-500 text-xs sm:text-sm mt-0.5">Parish members registry & enterprise privacy governance</p>
           </div>
-          
+
           <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2">
             {/* <button
               onClick={() => { setShowScanModal(true); setScannedUserResult(null); setScanCodeInput(''); }}
@@ -416,12 +416,11 @@ export default function AdminUsers() {
                           )}
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                            u.memberStatus === 'Deceased' ? 'bg-gray-200 text-gray-800 border border-gray-400' :
-                            u.memberStatus === 'Transferred' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
-                            u.memberStatus === 'Inactive' || !u.isActive ? 'bg-amber-100 text-amber-800 border border-amber-300' :
-                            'bg-green-100 text-green-800 border border-green-300'
-                          }`}>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${u.memberStatus === 'Deceased' ? 'bg-gray-200 text-gray-800 border border-gray-400' :
+                              u.memberStatus === 'Transferred' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                                u.memberStatus === 'Inactive' || !u.isActive ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                  'bg-green-100 text-green-800 border border-green-300'
+                            }`}>
                             {u.memberStatus || (u.isActive ? 'Active' : 'Inactive')}
                           </span>
                         </td>
@@ -504,11 +503,10 @@ export default function AdminUsers() {
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold capitalize ${
-                            req.status === 'approved' ? 'bg-green-100 text-green-700' :
-                            req.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                            'bg-amber-100 text-amber-700'
-                          }`}>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold capitalize ${req.status === 'approved' ? 'bg-green-100 text-green-700' :
+                              req.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                'bg-amber-100 text-amber-700'
+                            }`}>
                             {req.status === 'approved' && <FiCheckCircle />}
                             {req.status === 'rejected' && <FiXCircle />}
                             {req.status === 'pending' && <FiClock />}
@@ -545,7 +543,7 @@ export default function AdminUsers() {
                 </div>
                 <button onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100"><FiX size={20} /></button>
               </div>
-              
+
               <form onSubmit={handleSubmit(onUpdateUser)} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -752,18 +750,18 @@ export default function AdminUsers() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="church-label text-[11px]">Member ID Prefix *</label>
-                      <input 
-                        value={newPrefix} 
-                        onChange={e => setNewPrefix(e.target.value.toUpperCase())} 
-                        className="church-input font-mono font-bold tracking-wider uppercase text-church-royal-blue text-xs" 
+                      <input
+                        value={newPrefix}
+                        onChange={e => setNewPrefix(e.target.value.toUpperCase())}
+                        className="church-input font-mono font-bold tracking-wider uppercase text-church-royal-blue text-xs"
                         placeholder="e.g. SJDB_M, STJDB_"
                       />
                     </div>
                     <div>
                       <label className="church-label text-[11px]">Number Digits Format *</label>
-                      <select 
-                        value={newPadLength} 
-                        onChange={e => setNewPadLength(Number(e.target.value))} 
+                      <select
+                        value={newPadLength}
+                        onChange={e => setNewPadLength(Number(e.target.value))}
                         className="church-select font-mono text-xs"
                       >
                         <option value={2}>2 Digits (01, 02... 99)</option>
@@ -780,18 +778,18 @@ export default function AdminUsers() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="church-label text-[11px]">Family ID Prefix *</label>
-                      <input 
-                        value={newFamilyPrefix} 
-                        onChange={e => setNewFamilyPrefix(e.target.value.toUpperCase())} 
-                        className="church-input font-mono font-bold tracking-wider uppercase text-purple-900 text-xs" 
+                      <input
+                        value={newFamilyPrefix}
+                        onChange={e => setNewFamilyPrefix(e.target.value.toUpperCase())}
+                        className="church-input font-mono font-bold tracking-wider uppercase text-purple-900 text-xs"
                         placeholder="e.g. SJDB_FAM-, FAM-"
                       />
                     </div>
                     <div>
                       <label className="church-label text-[11px]">Number Digits Format *</label>
-                      <select 
-                        value={newFamilyPadLength} 
-                        onChange={e => setNewFamilyPadLength(Number(e.target.value))} 
+                      <select
+                        value={newFamilyPadLength}
+                        onChange={e => setNewFamilyPadLength(Number(e.target.value))}
                         className="church-select font-mono text-xs"
                       >
                         <option value={2}>2 Digits (01, 02... 99)</option>

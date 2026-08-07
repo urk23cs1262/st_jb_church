@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FiBook, FiUpload, FiDownload, FiRefreshCw, FiSearch, FiPlus, 
+  FiBook, FiBookOpen, FiUpload, FiDownload, FiRefreshCw, FiSearch, FiPlus, 
   FiEdit2, FiTrash2, FiEye, FiCheck, FiX, FiFileText, FiTag, FiCalendar, FiClock 
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -222,8 +222,8 @@ export default function DailyVersesManager() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-600 text-white flex items-center justify-center text-2xl shadow-md">
-            <FiBook />
+          <div className="w-12 h-12 rounded-2xl bg-amber-600 text-white flex items-center justify-center shadow-md">
+            <FiBookOpen className="text-3xl text-white drop-shadow-xs" />
           </div>
           <div>
             <h2 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Daily Bible Verses CMS</h2>

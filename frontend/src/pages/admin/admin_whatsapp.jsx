@@ -173,23 +173,23 @@ export default function AdminWhatsApp() {
   return (
     <div className="p-6 w-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-row items-center justify-between gap-3 mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-[#25D366] flex items-center justify-center shadow-lg">
-            <SiWhatsapp className="text-white text-2xl" />
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-[#25D366] flex items-center justify-center shadow-lg shrink-0">
+            <SiWhatsapp className="text-white text-xl sm:text-2xl" />
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold text-church-royal-blue">WhatsApp Bot</h1>
-            <p className="text-sm text-gray-500">SJDB Connect — Manage subscribers & broadcasts</p>
+            <h1 className="font-display text-lg sm:text-2xl font-bold text-church-royal-blue">WhatsApp Bot</h1>
+            <p className="text-xs text-gray-500 hidden sm:block">SJDB Connect — Manage subscribers & broadcasts</p>
           </div>
         </div>
         <button
           onClick={triggerBroadcast}
           disabled={broadcasting}
-          className="btn-gold text-sm py-2.5 flex items-center gap-2"
+          className="btn-gold text-xs sm:text-sm py-2 px-3 sm:px-4 flex items-center gap-1.5 shrink-0"
         >
-          <FiZap />
-          {broadcasting ? 'Broadcasting...' : 'Broadcast Now'}
+          <FiZap className="text-xs sm:text-sm" />
+          <span>{broadcasting ? 'Broadcasting...' : 'Broadcast Now'}</span>
         </button>
       </div>
 

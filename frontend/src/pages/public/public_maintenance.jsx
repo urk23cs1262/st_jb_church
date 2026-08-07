@@ -243,9 +243,9 @@ export default function Maintenance() {
               <button
                 onClick={() => fetchStatus(true)}
                 disabled={checking}
-                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-xs sm:text-sm border border-amber-300 transition-all cursor-pointer disabled:opacity-50"
+                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-church-royal-blue hover:bg-blue-900 text-white font-bold text-xs sm:text-sm border-2 shadow-lg hover:shadow-xl transition-all cursor-pointer disabled:opacity-50 group"
               >
-                <FiRefreshCw className={`text-base ${checking ? 'animate-spin' : ''}`} />
+                <FiRefreshCw className={`text-base text-church-gold ${checking ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
                 <span>{checking ? 'Checking Status...' : 'Check If Site Is Live'}</span>
               </button>
               <p className="text-[11px] text-gray-500 mt-2">

@@ -32,7 +32,7 @@ export default function Contact() {
 
   return (
     <div className="min-h-screen pt-10 bg-church-cream ">
-      <PageHero title={<>{t('nav.contact')}</>} subtitle={<>Get In Touch</>} />
+      <PageHero title={<>{t('nav.contact')}</>} subtitle={<>{t('home.getInTouch')}</>} />
 
       <section className="py-16">
         <div className="max-w-6xl mx-auto px-4">
@@ -66,19 +66,19 @@ export default function Contact() {
               {/* FAQ Quick Link Banner */}
               <Link
                 to="/faq"
-                className="flex items-center justify-between bg-amber-50/90 border border-amber-300/80 p-4 sm:p-5 rounded-2xl hover:bg-amber-100/90 transition-all shadow-xs mb-5 group"
+                className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-amber-50/90 border border-amber-300/80 p-4 sm:p-5 rounded-2xl hover:bg-amber-100/90 transition-all shadow-xs mb-5 group"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-church-gold text-white flex items-center justify-center text-xl shadow-gold flex-shrink-0">
+                <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-church-gold text-white flex items-center justify-center text-xl shadow-gold flex-shrink-0 mt-0.5 sm:mt-0">
                     <FiHelpCircle />
                   </div>
-                  <div>
-                    <h4 className="font-bold text-amber-950 text-sm">Have a Quick Question?</h4>
-                    <p className="text-xs text-amber-800">Check our Frequently Asked Questions (FAQ) for instant answers.</p>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-amber-950 text-sm leading-snug">{t('contact.faqTitle', 'Have a Quick Question?')}</h4>
+                    <p className="text-xs text-amber-800 leading-relaxed mt-0.5">{t('contact.faqDesc', 'Check our Frequently Asked Questions (FAQ) for instant answers.')}</p>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-church-gold group-hover:translate-x-1 transition-transform flex items-center gap-1 flex-shrink-0">
-                  View FAQs <FiArrowRight />
+                <span className="text-xs font-bold text-church-gold group-hover:translate-x-1 transition-transform flex items-center gap-1 shrink-0 self-end sm:self-auto pt-1 sm:pt-0">
+                  {t('common.viewFaqs', 'View FAQs')} <FiArrowRight />
                 </span>
               </Link>
 
@@ -88,18 +88,18 @@ export default function Contact() {
                   href="https://wa.me/917639520006?text=Hello%20St.%20John%20de%20Britto's%20Church" 
                   target="_blank" 
                   rel="noreferrer"
-                  className="flex items-center justify-center gap-2.5 bg-[#25D366] hover:bg-green-600 text-white px-4 py-3.5 rounded-2xl transition-all shadow-lg font-bold text-xs sm:text-sm"
+                  className="flex items-center justify-center gap-2.5 bg-[#25D366] hover:bg-green-600 text-white px-4 py-3.5 rounded-2xl transition-all shadow-lg font-bold text-xs sm:text-sm text-center"
                 >
-                  <FaWhatsapp className="text-xl" /> Chat with us on WhatsApp
+                  <FaWhatsapp className="text-xl flex-shrink-0" /> <span className="truncate">{t('contact.chatWhatsapp', 'Chat with us on WhatsApp')}</span>
                 </a>
 
                 <a 
                   href="https://wa.me/917639520006?text=HI%0A%0A%F0%9F%99%8F%20SJDB%20Connect%0AConnecting%20Faith%20%26%20Community" 
                   target="_blank" 
                   rel="noreferrer"
-                  className="flex items-center justify-center gap-2.5 bg-church-royal-blue hover:bg-blue-900 text-white border-2 border-church-gold px-4 py-3.5 rounded-2xl transition-all shadow-lg font-bold text-xs sm:text-sm"
+                  className="flex items-center justify-center gap-2.5 bg-church-royal-blue hover:bg-blue-900 text-white border-2 border-church-gold px-4 py-3.5 rounded-2xl transition-all shadow-lg font-bold text-xs sm:text-sm text-center"
                 >
-                  <GiChurch className="text-xl text-church-gold" /> Chat with SJDB Connect
+                  <GiChurch className="text-xl text-church-gold flex-shrink-0" /> <span className="truncate">{t('contact.chatSjdbConnect', 'Chat with SJDB Connect')}</span>
                 </a>
               </div>
 
@@ -120,25 +120,22 @@ export default function Contact() {
             <motion.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
               <div className="flex items-center justify-between mb-8">
                 <h2 className="section-title mb-0">Send Us a Message</h2>
-                {/* <Link to="/faq" className="text-xs font-bold text-church-gold hover:underline flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200/80 shadow-xs">
-                  <FiHelpCircle className="text-sm" /> View FAQs
-                </Link> */}
               </div>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 glass-card p-8">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 glass-card p-5 sm:p-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="church-label">Your Name *</label>
-                    <input {...register('name', { required: true })} className="church-input" placeholder="John Paul" />
+                    <input {...register('name', { required: true })} className="church-input" placeholder="Enter your name" />
                     {errors.name && <p className="text-red-500 text-xs mt-1">Required</p>}
                   </div>
                   <div>
                     <label className="church-label">Phone</label>
-                    <input {...register('phone')} className="church-input" placeholder="+91 98765 XXXXX" />
+                    <input {...register('phone')} className="church-input" placeholder="Enter your phone number" />
                   </div>
                 </div>
                 <div>
                   <label className="church-label">Email *</label>
-                  <input {...register('email', { required: true, pattern: /^\S+@\S+$/i })} className="church-input" placeholder="you@example.com" />
+                  <input {...register('email', { required: true, pattern: /^\S+@\S+$/i })} className="church-input" placeholder="Enter your Email" />
                   {errors.email && <p className="text-red-500 text-xs mt-1">Valid email required</p>}
                 </div>
                 <div>

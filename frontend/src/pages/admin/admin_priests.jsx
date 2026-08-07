@@ -44,7 +44,7 @@ export default function AdminPriests() {
               setValue(k, d.toISOString().split('T')[0]);
               return;
             }
-          } catch (e) {}
+          } catch (e) { }
         }
         setValue(k, '');
       } else {
@@ -102,10 +102,14 @@ export default function AdminPriests() {
   return (
     <div className="w-full">
       <div className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Manage Priests</h1>
-          <button onClick={openAdd} className="btn-gold text-xs sm:text-sm py-2 px-4 shadow-sm self-start sm:self-auto flex items-center gap-1">
-            <FiPlus /> Add Priest
+        <div className="flex flex-row items-center justify-between gap-3 mb-6">
+          <h1 className="font-display text-lg sm:text-2xl font-bold text-church-royal-blue">Manage Priests</h1>
+          <button onClick={openAdd} className="btn-gold py-2 sm:py-2 px-3 sm:px-3 shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0">
+            <FiPlus className="text-sm sm:text-base shrink-0 text-white" />
+            <span className="flex flex-col text-left leading-tight text-[12px] sm:text-xs font-bold text-white">
+              <span>Add Priest</span>
+
+            </span>
           </button>
         </div>
 

@@ -63,9 +63,12 @@ export default function Announcements() {
           </div>
 
           {loading ? <SectionLoader /> : announcements.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
-              <MdNotifications className="text-6xl mx-auto mb-4 opacity-30" />
-              <p>{t('common.noData')}</p>
+            <div className="bg-amber-50/50 rounded-2xl p-12 text-center border border-amber-200/60 shadow-xs my-4">
+              <MdNotifications className="text-5xl mx-auto mb-3 text-amber-500/40" />
+              <h3 className="font-display font-bold text-gray-800 text-lg mb-1">No Announcements Found</h3>
+              <p className="text-gray-500 text-sm max-w-sm mx-auto">
+                There are currently no active announcements published. Please check back later for parish updates.
+              </p>
             </div>
           ) : (
             <div className="space-y-5">

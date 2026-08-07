@@ -4,6 +4,8 @@
     "about": "About Church",
     "priests": "Priests",
     "mass": "Mass Timings",
+    "massBooking": "Mass Booking",
+    "services": "Services",
     "events": "Events",
     "gallery": "Gallery",
     "live": "Live Stream",
@@ -20,7 +22,8 @@
     "calendar": "Catholic Calendar",
     "faq": "FAQ",
     "nearby": "Nearby Shrines",
-    "parish-council": "Parish Council"
+    "parish-council": "Parish Council",
+    "whatsappBot": "WhatsApp Bot"
   },
   "home": {
     "welcome": "Welcome to",
@@ -36,7 +39,8 @@
     "announcement": "Important Announcements",
     "importantAnnouncements": "Important!!!!....",
     "gallery": "Our Gallery",
-    "contact": "Get In Touch",
+    "contact": "Contact",
+    "getInTouch": "Get In Touch",
     "statistics": "Parish Statistics",
     "members": "Parish Members",
     "years": "Years of Service",
@@ -186,7 +190,15 @@
     "lightMode": "Light Mode",
     "language": "Language",
     "clickForDetails": "Click for details",
-    "readFullHistory": "Read Full History"
+    "readFullHistory": "Read Full History",
+    "viewFaqs": "View FAQs"
+  },
+  "contact": {
+    "title": "Contact",
+    "faqTitle": "Have a Quick Question?",
+    "faqDesc": "Check our Frequently Asked Questions (FAQ) for instant answers.",
+    "chatWhatsapp": "Chat with us on WhatsApp",
+    "chatSjdbConnect": "Chat with SJDB Connect"
   },
   "footer": {
     "churchName": "St. John de Britto's Church",

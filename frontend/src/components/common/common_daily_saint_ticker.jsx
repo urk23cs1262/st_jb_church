@@ -172,21 +172,21 @@ export default function DailySaintTicker() {
                     <div className="flex flex-col md:flex-row flex-1 overflow-y-auto md:overflow-hidden">
                       {/* IMAGE */}
                       {saint.image && (
-                        <div className="w-full md:w-1/2 relative h-[250px] sm:h-[300px] md:h-full flex-shrink-0">
+                        <div className="w-full md:w-1/2 relative h-[250px] sm:h-[300px] md:h-full flex-shrink-0 bg-slate-900 overflow-hidden">
                           <img
                             src={saint.image}
                             alt={saint.name}
-                            className="absolute inset-0 w-full h-full object-cover"
+                            className="absolute inset-0 w-full h-full object-cover object-top"
                           />
 
                           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
 
-                          <div className="absolute bottom-8 left-8 text-white notranslate" translate="no">
-                            <p className="text-church-gold uppercase tracking-[0.35em] text-sm mb-3">
+                          <div className="absolute bottom-4 left-4 right-4 sm:bottom-8 sm:left-8 text-white">
+                            <p className="text-church-gold uppercase tracking-[0.25em] sm:tracking-[0.35em] text-xs sm:text-sm mb-1.5 sm:mb-3">
                               {isTamil ? 'இன்றைய புனிதர்' : 'Saint of the Day'}
                             </p>
 
-                            <h2 className="text-4xl md:text-5xl font-bold font-display leading-tight">
+                            <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold font-display leading-tight">
                               {displayName}
                             </h2>
                           </div>
@@ -210,7 +210,7 @@ export default function DailySaintTicker() {
                           </p>
                         </div>
 
-                        <div 
+                        <div
                           className="text-gray-600 leading-relaxed text-lg mb-4"
                           style={{
                             display: '-webkit-box',

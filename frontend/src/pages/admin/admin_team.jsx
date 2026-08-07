@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   FiPlus, FiEdit2, FiTrash2, FiEye, FiEyeOff, FiArrowUp, FiArrowDown,
   FiSearch, FiX, FiCheck, FiUser, FiMail, FiPhone, FiTag, FiImage, FiSliders, FiRefreshCw
 } from 'react-icons/fi';
@@ -10,15 +10,15 @@ import { SectionLoader } from '../../components/common/common_loader';
 import { useForm } from 'react-hook-form';
 
 const DEPARTMENTS = [
-  'Leadership', 
-  'Administration', 
-  'Parish Council', 
-  'Catechism', 
-  'Youth Ministry', 
-  'Altar Servers', 
-  'Choir Team', 
-  'Society of St. Vincent de Paul (SSVP)', 
-  'Website Technical Team', 
+  'Leadership',
+  'Administration',
+  'Parish Council',
+  'Catechism',
+  'Youth Ministry',
+  'Altar Servers',
+  'Choir Team',
+  'Society of St. Vincent de Paul (SSVP)',
+  'Website Technical Team',
   'Volunteers'
 ];
 
@@ -350,7 +350,11 @@ export default function TeamAdmin() {
               onClick={openAddModal}
               className="btn-gold text-xs sm:text-sm py-2 px-4 shadow-sm flex items-center gap-1.5 cursor-pointer"
             >
-              <FiPlus /> Add Team Member
+              <FiPlus className="text-sm sm:text-base shrink-0 text-amber-900" />
+              <span className="flex flex-col text-left leading-tight text-[10px] sm:text-xs font-bold">
+                <span>Add</span>
+                <span>Team Member</span>
+              </span>
             </button>
           </div>
         </div>
@@ -360,11 +364,10 @@ export default function TeamAdmin() {
           <button
             type="button"
             onClick={() => setSelectedDept('All')}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize whitespace-nowrap transition-all cursor-pointer ${
-              selectedDept === 'All'
-                ? 'bg-church-gold text-white shadow-gold'
-                : 'bg-white text-gray-600 hover:bg-gold-50 border border-gray-200'
-            }`}
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize whitespace-nowrap transition-all cursor-pointer ${selectedDept === 'All'
+              ? 'bg-church-gold text-white shadow-gold'
+              : 'bg-white text-gray-600 hover:bg-gold-50 border border-gray-200'
+              }`}
           >
             All ({members.length})
           </button>
@@ -375,11 +378,10 @@ export default function TeamAdmin() {
                 key={dept}
                 type="button"
                 onClick={() => setSelectedDept(dept)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize whitespace-nowrap transition-all cursor-pointer ${
-                  selectedDept === dept
-                    ? 'bg-church-gold text-white shadow-gold'
-                    : 'bg-white text-gray-600 hover:bg-gold-50 border border-gray-200'
-                }`}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize whitespace-nowrap transition-all cursor-pointer ${selectedDept === dept
+                  ? 'bg-church-gold text-white shadow-gold'
+                  : 'bg-white text-gray-600 hover:bg-gold-50 border border-gray-200'
+                  }`}
               >
                 {dept} {count > 0 && `(${count})`}
               </button>
@@ -452,11 +454,10 @@ export default function TeamAdmin() {
                     <td className="py-3 px-4">
                       <button
                         onClick={() => toggleActive(m)}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${
-                          m.isActive 
-                            ? 'bg-green-100 text-green-800 border border-green-300' 
-                            : 'bg-gray-100 text-gray-500 border border-gray-300'
-                        }`}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer ${m.isActive
+                          ? 'bg-green-100 text-green-800 border border-green-300'
+                          : 'bg-gray-100 text-gray-500 border border-gray-300'
+                          }`}
                       >
                         {m.isActive ? <FiEye size={12} /> : <FiEyeOff size={12} />}
                         <span>{m.isActive ? 'Active' : 'Hidden'}</span>
@@ -516,177 +517,177 @@ export default function TeamAdmin() {
 
                 {/* ── All other fields — shown only after dept is chosen ── */}
                 <AnimatePresence>
-                {deptSelected && (
-                  <motion.div
-                    key="rest-of-form"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className="space-y-4"
-                  >
+                  {deptSelected && (
+                    <motion.div
+                      key="rest-of-form"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-4"
+                    >
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-                  <div>
-                    <label className="church-label">Sub-Group / Team Section</label>
-                    <select {...register('subGroup')} className="church-select">
-                      <option value="">Standard Group</option>
-                      {currentDeptValue === 'Catechism' ? (
-                        <>
-                          <option value="Leadership">👨‍💼 Leadership (Coordinators / Priests)</option>
-                          <option value="Teachers">👩‍🏫 Teachers (Class &amp; Sacrament Teachers)</option>
-                          <option value="Support Team">🤝 Support Team (Attendance, Exams, Retreats)</option>
-                        </>
-                      ) : currentDeptValue === 'Website Technical Team' ? (
-                        <>
-                          <option value="Development">💻 Full Stack / Backend / Frontend</option>
-                          <option value="UI/UX Design">🎨 UI/UX &amp; Graphic Design</option>
-                          <option value="Infrastructure">⚡ DevOps &amp; Server Security</option>
-                          <option value="Content &amp; Support">📞 Content &amp; Digital Media</option>
-                        </>
-                      ) : currentDeptValue === 'Parish Council' ? (
-                        <>
-                          <option value="Executive Officers">🏛️ Executive Officers</option>
-                          <option value="Committee Chairs">📋 Committee Chairs</option>
-                          <option value="Ward Representatives">🏘️ Ward Representatives</option>
-                        </>
-                      ) : (
-                        <>
-                          <option value="Leadership">👨‍💼 Leadership</option>
-                          <option value="Core Team">⭐ Core Team</option>
-                          <option value="Volunteers">🙌 Volunteers</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
+                        <div>
+                          <label className="church-label">Sub-Group / Team Section</label>
+                          <select {...register('subGroup')} className="church-select">
+                            <option value="">Standard Group</option>
+                            {currentDeptValue === 'Catechism' ? (
+                              <>
+                                <option value="Leadership">👨‍💼 Leadership (Coordinators / Priests)</option>
+                                <option value="Teachers">👩‍🏫 Teachers (Class &amp; Sacrament Teachers)</option>
+                                <option value="Support Team">🤝 Support Team (Attendance, Exams, Retreats)</option>
+                              </>
+                            ) : currentDeptValue === 'Website Technical Team' ? (
+                              <>
+                                <option value="Development">💻 Full Stack / Backend / Frontend</option>
+                                <option value="UI/UX Design">🎨 UI/UX &amp; Graphic Design</option>
+                                <option value="Infrastructure">⚡ DevOps &amp; Server Security</option>
+                                <option value="Content &amp; Support">📞 Content &amp; Digital Media</option>
+                              </>
+                            ) : currentDeptValue === 'Parish Council' ? (
+                              <>
+                                <option value="Executive Officers">🏛️ Executive Officers</option>
+                                <option value="Committee Chairs">📋 Committee Chairs</option>
+                                <option value="Ward Representatives">🏘️ Ward Representatives</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="Leadership">👨‍💼 Leadership</option>
+                                <option value="Core Team">⭐ Core Team</option>
+                                <option value="Volunteers">🙌 Volunteers</option>
+                              </>
+                            )}
+                          </select>
+                        </div>
 
-                  <div>
-                    <label className="church-label">Full Name *</label>
-                    <input {...register('name', { required: 'Name is required' })} className="church-input" placeholder="e.g. Antony Raj / Rev. Fr. John" />
-                  </div>
+                        <div>
+                          <label className="church-label">Full Name *</label>
+                          <input {...register('name', { required: 'Name is required' })} className="church-input" placeholder="e.g. Antony Raj / Rev. Fr. John" />
+                        </div>
 
-                  <div>
-                    <label className="church-label">Role / Title *</label>
-                    <input {...register('role', { required: 'Role is required' })} list="positions-list" className="church-input" placeholder={`Select or type ${currentDeptValue} role...`} />
-                    <datalist id="positions-list">
-                      {positionsForSelectedDept.map(pos => (
-                        <option key={pos} value={pos} />
-                      ))}
-                    </datalist>
-                  </div>
+                        <div>
+                          <label className="church-label">Role / Title *</label>
+                          <input {...register('role', { required: 'Role is required' })} list="positions-list" className="church-input" placeholder={`Select or type ${currentDeptValue} role...`} />
+                          <datalist id="positions-list">
+                            {positionsForSelectedDept.map(pos => (
+                              <option key={pos} value={pos} />
+                            ))}
+                          </datalist>
+                        </div>
 
-                  {/* Department-Specific Dynamic Inputs */}
-                  {currentDeptValue === 'Catechism' && (
-                    <>
-                      <div>
-                        <label className="church-label">Assigned Class (Optional)</label>
-                        <input {...register('assignedClass')} className="church-input" placeholder="e.g. First Holy Communion, Class V" />
+                        {/* Department-Specific Dynamic Inputs */}
+                        {currentDeptValue === 'Catechism' && (
+                          <>
+                            <div>
+                              <label className="church-label">Assigned Class (Optional)</label>
+                              <input {...register('assignedClass')} className="church-input" placeholder="e.g. First Holy Communion, Class V" />
+                            </div>
+
+                            <div>
+                              <label className="church-label">Qualification (Optional)</label>
+                              <input {...register('qualification')} className="church-input" placeholder="e.g. M.A., B.Ed., Diploma in Catechetics" />
+                            </div>
+
+                            <div>
+                              <label className="church-label">Years of Service (Optional)</label>
+                              <input {...register('yearsOfService')} className="church-input" placeholder="e.g. 5 Years" />
+                            </div>
+                          </>
+                        )}
+
+                        {currentDeptValue === 'Website Technical Team' && (
+                          <>
+                            <div>
+                              <label className="church-label">Specialization / Tech Stack (Optional)</label>
+                              <input {...register('qualification')} className="church-input" placeholder="e.g. React, Node.js, MongoDB, Figma" />
+                            </div>
+
+                            <div>
+                              <label className="church-label">Years of Experience (Optional)</label>
+                              <input {...register('yearsOfService')} className="church-input" placeholder="e.g. 3 Years" />
+                            </div>
+                          </>
+                        )}
+
+                        {currentDeptValue === 'Choir Team' && (
+                          <div>
+                            <label className="church-label">Musical Instrument / Voice (Optional)</label>
+                            <input {...register('assignedClass')} className="church-input" placeholder="e.g. Pipe Organ, Keyboard, Soprano" />
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="church-label">Badge Label (Optional)</label>
+                          <input {...register('badge')} className="church-input" placeholder="e.g. Parish Priest, Coordinator" />
+                        </div>
+
+                        <div>
+                          <label className="church-label">Email Address</label>
+                          <input type="email" {...register('email')} className="church-input" placeholder="e.g. email@sjdbchurch.org" />
+                        </div>
+
+                        <div>
+                          <label className="church-label">Phone Number</label>
+                          <input {...register('phone')} className="church-input" placeholder="e.g. +91 98765 43210" />
+                        </div>
+
+                        <div>
+                          <label className="church-label">Display Order Index</label>
+                          <input type="number" {...register('order')} className="church-input" placeholder="1" />
+                        </div>
+
+                        <div>
+                          <label className="church-label">Visibility Status</label>
+                          <select {...register('isActive')} className="church-select">
+                            <option value="true">Active (Visible on Website)</option>
+                            <option value="false">Hidden (Draft / Internal)</option>
+                          </select>
+                        </div>
+
+                        <div className="md:col-span-2">
+                          <label className="church-label">Description / Bio Quote</label>
+                          <textarea {...register('description')} rows={3} className="church-input py-2 resize-none" placeholder="Short bio or quote describing responsibilities..." />
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="church-label">Qualification (Optional)</label>
-                        <input {...register('qualification')} className="church-input" placeholder="e.g. M.A., B.Ed., Diploma in Catechetics" />
+                      {/* Photo Preview & File Input */}
+                      <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-2xl border border-gray-200">
+                        <div className="w-16 h-16 rounded-xl overflow-hidden bg-church-royal-blue text-white font-bold flex items-center justify-center flex-shrink-0 border border-church-gold">
+                          {photoPreview ? (
+                            <img src={photoPreview} alt="preview" className="w-full h-full object-cover" />
+                          ) : (
+                            <FiImage size={24} />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <label className="church-label">Profile Photo</label>
+                          <input type="file" accept="image/*" onChange={handlePhotoChange} className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-church-gold file:text-white hover:file:bg-church-gold-light cursor-pointer" />
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="church-label">Years of Service (Optional)</label>
-                        <input {...register('yearsOfService')} className="church-input" placeholder="e.g. 5 Years" />
+                      {/* Social Links */}
+                      <div className="pt-3 border-t border-gray-100 space-y-3">
+                        <p className="font-bold text-gray-700 text-xs flex items-center gap-1.5"><FiSliders /> Social Media Profiles (Optional)</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <input {...register('facebook')} className="church-input text-xs" placeholder="Facebook URL" />
+                          <input {...register('instagram')} className="church-input text-xs" placeholder="Instagram URL" />
+                          <input {...register('linkedin')} className="church-input text-xs" placeholder="LinkedIn URL" />
+                        </div>
                       </div>
-                    </>
+
+                      <div className="pt-4 flex gap-3">
+                        <button type="button" onClick={closeModal} className="btn-ghost flex-1 justify-center py-2.5 text-xs font-bold cursor-pointer">
+                          Cancel
+                        </button>
+                        <button type="submit" disabled={isSubmitting} className="btn-gold flex-1 justify-center py-2.5 text-xs font-bold shadow-gold cursor-pointer">
+                          {isSubmitting ? 'Saving...' : (editingMember ? 'Save Changes' : 'Add Team Member')}
+                        </button>
+                      </div>
+
+                    </motion.div>
                   )}
-
-                  {currentDeptValue === 'Website Technical Team' && (
-                    <>
-                      <div>
-                        <label className="church-label">Specialization / Tech Stack (Optional)</label>
-                        <input {...register('qualification')} className="church-input" placeholder="e.g. React, Node.js, MongoDB, Figma" />
-                      </div>
-
-                      <div>
-                        <label className="church-label">Years of Experience (Optional)</label>
-                        <input {...register('yearsOfService')} className="church-input" placeholder="e.g. 3 Years" />
-                      </div>
-                    </>
-                  )}
-
-                  {currentDeptValue === 'Choir Team' && (
-                    <div>
-                      <label className="church-label">Musical Instrument / Voice (Optional)</label>
-                      <input {...register('assignedClass')} className="church-input" placeholder="e.g. Pipe Organ, Keyboard, Soprano" />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="church-label">Badge Label (Optional)</label>
-                    <input {...register('badge')} className="church-input" placeholder="e.g. Parish Priest, Coordinator" />
-                  </div>
-
-                  <div>
-                    <label className="church-label">Email Address</label>
-                    <input type="email" {...register('email')} className="church-input" placeholder="e.g. email@sjdbchurch.org" />
-                  </div>
-
-                  <div>
-                    <label className="church-label">Phone Number</label>
-                    <input {...register('phone')} className="church-input" placeholder="e.g. +91 98765 43210" />
-                  </div>
-
-                  <div>
-                    <label className="church-label">Display Order Index</label>
-                    <input type="number" {...register('order')} className="church-input" placeholder="1" />
-                  </div>
-
-                  <div>
-                    <label className="church-label">Visibility Status</label>
-                    <select {...register('isActive')} className="church-select">
-                      <option value="true">Active (Visible on Website)</option>
-                      <option value="false">Hidden (Draft / Internal)</option>
-                    </select>
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="church-label">Description / Bio Quote</label>
-                    <textarea {...register('description')} rows={3} className="church-input py-2 resize-none" placeholder="Short bio or quote describing responsibilities..." />
-                  </div>
-                </div>
-
-                {/* Photo Preview & File Input */}
-                <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-2xl border border-gray-200">
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-church-royal-blue text-white font-bold flex items-center justify-center flex-shrink-0 border border-church-gold">
-                    {photoPreview ? (
-                      <img src={photoPreview} alt="preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <FiImage size={24} />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <label className="church-label">Profile Photo</label>
-                    <input type="file" accept="image/*" onChange={handlePhotoChange} className="text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-church-gold file:text-white hover:file:bg-church-gold-light cursor-pointer" />
-                  </div>
-                </div>
-
-                {/* Social Links */}
-                <div className="pt-3 border-t border-gray-100 space-y-3">
-                  <p className="font-bold text-gray-700 text-xs flex items-center gap-1.5"><FiSliders /> Social Media Profiles (Optional)</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <input {...register('facebook')} className="church-input text-xs" placeholder="Facebook URL" />
-                    <input {...register('instagram')} className="church-input text-xs" placeholder="Instagram URL" />
-                    <input {...register('linkedin')} className="church-input text-xs" placeholder="LinkedIn URL" />
-                  </div>
-                </div>
-
-                <div className="pt-4 flex gap-3">
-                  <button type="button" onClick={closeModal} className="btn-ghost flex-1 justify-center py-2.5 text-xs font-bold cursor-pointer">
-                    Cancel
-                  </button>
-                  <button type="submit" disabled={isSubmitting} className="btn-gold flex-1 justify-center py-2.5 text-xs font-bold shadow-gold cursor-pointer">
-                    {isSubmitting ? 'Saving...' : (editingMember ? 'Save Changes' : 'Add Team Member')}
-                  </button>
-                </div>
-
-                  </motion.div>
-                )}
                 </AnimatePresence>
 
                 {/* Always-visible Cancel when no dept selected yet */}

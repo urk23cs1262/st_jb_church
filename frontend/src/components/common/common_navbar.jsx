@@ -30,6 +30,7 @@ const MORE_LINKS = [
   { key: 'live', path: '/live', label: 'Live Stream' },
   { key: 'nearby_parishes', path: '/nearby-parishes', label: 'Nearby Shrines' },
   { key: 'team', path: '/team', label: 'Our Team' },
+  { key: 'whatsapp_bot', external: 'https://wa.me/917639520006?text=HI%0A%0A%F0%9F%99%8F%20SJDB%20Connect%0AConnecting%20Faith%20%26%20Community', label: 'WhatsApp Bot' },
 ];
 
 
@@ -408,16 +409,29 @@ export default function Navbar() {
                 <div className="pt-1">
                   <p className="px-4 text-[10px] text-church-gold/70 font-bold uppercase tracking-widest mb-1 notranslate" translate="no">{isTamil ? 'மேலும் தகவல்' : 'More Info'}</p>
                   {MORE_LINKS.map(item => (
-                    <NavLink
-                      key={item.key}
-                      to={item.path}
-                      onClick={() => setMobileOpen(false)}
-                      className={({ isActive }) =>
-                        `block px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-church-gold text-white' : 'text-gray-200 hover:text-church-gold hover:bg-white/10'}`
-                      }
-                    >
-                      <span className="notranslate" translate="no">{t(`nav.${item.key}`, item.label)}</span>
-                    </NavLink>
+                    item.external ? (
+                      <a
+                        key={item.key}
+                        href={item.external}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setMobileOpen(false)}
+                        className="block px-4 py-3 rounded-xl text-sm font-medium transition-all text-gray-200 hover:text-church-gold hover:bg-white/10"
+                      >
+                        <span className="notranslate" translate="no">{t(`nav.${item.key}`, item.label)}</span>
+                      </a>
+                    ) : (
+                      <NavLink
+                        key={item.key}
+                        to={item.path}
+                        onClick={() => setMobileOpen(false)}
+                        className={({ isActive }) =>
+                          `block px-4 py-3 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-church-gold text-white' : 'text-gray-200 hover:text-church-gold hover:bg-white/10'}`
+                        }
+                      >
+                        <span className="notranslate" translate="no">{t(`nav.${item.key}`, item.label)}</span>
+                      </NavLink>
+                    )
                   ))}
                 </div>
 

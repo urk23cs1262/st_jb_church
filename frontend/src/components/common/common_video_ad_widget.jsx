@@ -64,7 +64,7 @@ export default function VideoAdWidget({ onOpenChange }) {
           <iframe
             key={`max-${videoId}-${openKey}`}
             className="w-full h-full"
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0&start=0&rel=0&modestbranding=1&playsinline=1`}
+            src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0&start=0&rel=0&modestbranding=1&playsinline=1`}
             title="YouTube video player"
             frameBorder="0"
             allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -117,7 +117,7 @@ export default function VideoAdWidget({ onOpenChange }) {
               <iframe
                 key={videoId + '-mini'}
                 className="w-full h-full pointer-events-none"
-                src={`https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&modestbranding=1`}
+                src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&modestbranding=1`}
                 title="YouTube video player"
                 frameBorder="0"
                 allow="autoplay; accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

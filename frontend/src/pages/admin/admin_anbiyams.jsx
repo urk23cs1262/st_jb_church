@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  FiUsers, FiPlus, FiEdit2, FiTrash2, FiSearch, FiX, FiCheck, FiDownload, 
-  FiCalendar, FiClock, FiMapPin, FiRefreshCw, FiUserCheck, FiUserPlus, 
+import {
+  FiUsers, FiPlus, FiEdit2, FiTrash2, FiSearch, FiX, FiCheck, FiDownload,
+  FiCalendar, FiClock, FiMapPin, FiRefreshCw, FiUserCheck, FiUserPlus,
   FiGift, FiHeart, FiMove, FiCheckSquare, FiFilter, FiImage, FiFileText
 } from 'react-icons/fi';
 import { GiChurch, GiBookmark } from 'react-icons/gi';
 import toast from 'react-hot-toast';
 import { useForm } from 'react-hook-form';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import api, { getMediaUrl } from '../../services/api';
 import { SectionLoader } from '../../components/common/common_loader';
 
@@ -304,8 +306,8 @@ export default function AnbiyamAdmin() {
       return;
     }
     const headers = [
-      'Member ID', 'Full Name', 'Anbiyam', 'Role', 'Gender', 'DOB', 'Age', 
-      'Phone', 'Email', 'Address', 'Family Name', 'Family ID', 'Head of Family', 
+      'Member ID', 'Full Name', 'Anbiyam', 'Role', 'Gender', 'DOB', 'Age',
+      'Phone', 'Email', 'Address', 'Family Name', 'Family ID', 'Head of Family',
       'Spouse Name', 'No. of Family Members', 'Wedding Anniversary', 'Emergency Contact', 'Status'
     ];
 
@@ -345,13 +347,88 @@ export default function AnbiyamAdmin() {
     toast.success('CSV exported successfully!');
   };
 
+  // ── PDF Export ─────────────────────────────────────────────────────────────
+  const exportToPDF = () => {
+    if (filteredMembers.length === 0) {
+      toast.error('No members to export');
+      return;
+    }
+
+    try {
+      const doc = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const exportDate = new Date().toLocaleString();
+
+      doc.setTextColor(30, 58, 138); // Royal blue
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text("St. John de Britto's Church • Kalayarkoil", pageWidth / 2, 14, { align: 'center' });
+
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text("ANBIYAM WARD MEMBERS DIRECTORY REPORT", pageWidth / 2, 21, { align: 'center' });
+
+      doc.setDrawColor(212, 160, 23); // Gold border line
+      doc.setLineWidth(0.8);
+      doc.line(14, 25, pageWidth - 14, 25);
+
+      doc.setFontSize(9);
+      doc.setTextColor(50, 50, 50);
+      doc.text(`Total Exported Records: ${filteredMembers.length}`, 14, 31);
+      doc.text(`Exported On: ${exportDate}`, pageWidth - 14, 31, { align: 'right' });
+
+      const tableHeaders = [['#', 'Member ID', 'Full Name', 'Anbiyam Group', 'Role', 'Gender', 'Phone', 'Family Name', 'Status']];
+
+      const tableData = filteredMembers.map((m, i) => [
+        i + 1,
+        m.memberId || 'N/A',
+        m.fullName || 'N/A',
+        m.anbiyam?.name || 'N/A',
+        m.role || 'Member',
+        m.gender || 'N/A',
+        m.phone || 'N/A',
+        m.familyName || 'N/A',
+        m.isActive ? 'Active' : 'Inactive'
+      ]);
+
+      autoTable(doc, {
+        startY: 35,
+        head: tableHeaders,
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [30, 58, 138],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5,
+          halign: 'left'
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [40, 40, 40]
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        margin: { top: 35, left: 14, right: 14 }
+      });
+
+      doc.save(`Anbiyam_Members_Directory_${new Date().toISOString().split('T')[0]}.pdf`);
+      toast.success('PDF report exported successfully!');
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+      toast.error('Failed to export PDF report');
+    }
+  };
+
   // Filtered members list
   const filteredMembers = members.filter(m => {
     const matchesGroup = filterGroup === 'All' || m.anbiyam?._id === filterGroup || m.anbiyam === filterGroup;
     const matchesRole = filterRole === 'All' || m.role === filterRole;
     const matchesGender = filterGender === 'All' || m.gender === filterGender;
     const matchesStatus = filterStatus === 'All' || (filterStatus === 'active' ? m.isActive : !m.isActive);
-    const matchesSearch = !search || 
+    const matchesSearch = !search ||
       m.fullName?.toLowerCase().includes(search.toLowerCase()) ||
       m.memberId?.toLowerCase().includes(search.toLowerCase()) ||
       m.familyId?.toLowerCase().includes(search.toLowerCase()) ||
@@ -364,16 +441,16 @@ export default function AnbiyamAdmin() {
   return (
     <div className="w-full">
       <div className="p-4 sm:p-6 space-y-6">
-        
+
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue flex items-center gap-2">
               <GiChurch className="text-church-gold" /> ANBIYAM MANAGEMENT
             </h1>
-            <p className="text-xs text-gray-500 mt-0.5">
+            {/* <p className="text-xs text-gray-500 mt-0.5">
               Comprehensive control panel for all Basic Ecclesial Community wards, leadership & parish members
-            </p>
+            </p> */}
           </div>
 
           <div className="flex items-center gap-3">
@@ -450,21 +527,19 @@ export default function AnbiyamAdmin() {
         <div className="flex border-b border-gray-200 gap-6">
           <button
             onClick={() => setActiveTab('groups')}
-            className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
-              activeTab === 'groups'
+            className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${activeTab === 'groups'
                 ? 'border-church-gold text-church-royal-blue'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <GiChurch className="text-lg" /> Anbiyam Units / Wards ({groups.length})
           </button>
           <button
             onClick={() => setActiveTab('members')}
-            className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${
-              activeTab === 'members'
+            className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer flex items-center gap-2 ${activeTab === 'members'
                 ? 'border-church-gold text-church-royal-blue'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
+              }`}
           >
             <FiUsers className="text-lg" /> Member Directory ({members.length})
           </button>
@@ -555,7 +630,7 @@ export default function AnbiyamAdmin() {
         ) : (
           /* ── TAB 2: MEMBER DIRECTORY ──────────────────────────────────────── */
           <div className="space-y-4">
-            
+
             {/* Search & Filter Controls */}
             <div className="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs space-y-3">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -574,8 +649,16 @@ export default function AnbiyamAdmin() {
                   <button
                     onClick={exportToCSV}
                     className="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    title="Export Members to CSV File"
                   >
                     <FiDownload /> Export CSV
+                  </button>
+                  <button
+                    onClick={exportToPDF}
+                    className="flex-1 sm:flex-none px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    title="Export Members Directory PDF Report"
+                  >
+                    <FiFileText /> Export PDF
                   </button>
                 </div>
               </div>
@@ -680,9 +763,8 @@ export default function AnbiyamAdmin() {
                         </td>
 
                         <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                            m.isActive ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-gray-100 text-gray-500 border border-gray-300'
-                          }`}>
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${m.isActive ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-gray-100 text-gray-500 border border-gray-300'
+                            }`}>
                             {m.isActive ? 'Active' : 'Inactive'}
                           </span>
                         </td>
@@ -849,7 +931,7 @@ export default function AnbiyamAdmin() {
               </div>
 
               <form onSubmit={subMember(onSaveMember)} className="space-y-6 text-xs sm:text-sm">
-                
+
                 {/* SECTION 1: Personal Information */}
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
                   <h3 className="font-bold text-church-royal-blue text-xs uppercase tracking-wider border-b border-slate-200 pb-2">

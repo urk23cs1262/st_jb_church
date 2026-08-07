@@ -109,9 +109,11 @@ export default function AdminCRUD({ resource, title, fields, hasImage, categorie
   return (
     <div className="w-full">
       <div className="p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Manage {title} ({total})</h1>
-          <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex flex-row items-center justify-between gap-2 mb-6">
+          <h1 className="font-display text-sm sm:text-2xl font-bold text-church-royal-blue uppercase tracking-tight">
+            Manage {title} <span className="normal-case opacity-75">({total})</span>
+          </h1>
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {onDeleteAll && items.length > 0 && (
               <button
                 type="button"
@@ -120,12 +122,25 @@ export default function AdminCRUD({ resource, title, fields, hasImage, categorie
                     onDeleteAll(selectedCategory);
                   }
                 }}
-                className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-bold shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-[11px] sm:text-sm font-bold shadow-xs transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap"
               >
-                <FiTrash2 className="text-base" /> Delete All
+                <FiTrash2 className="text-xs sm:text-base" /> <span className="hidden sm:inline">Delete All</span>
               </button>
             )}
-            <button onClick={openAdd} className="btn-gold text-xs sm:text-sm py-2 px-4 shadow-sm flex items-center gap-1.5 cursor-pointer"><FiPlus /> Add {singularTitle}</button>
+            <button 
+              onClick={openAdd} 
+              className="btn-gold py-1.5 sm:py-2 px-3 sm:px-4 shadow-xs flex items-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <FiPlus className="text-[16px] sm:text-base shrink-0 text-white" />
+              {singularTitle.length > 7 ? (
+                <span className="flex flex-col text-left leading-tight text-[13px] sm:text-xs font-bold">
+                  <span>Add</span>
+                  <span>{singularTitle}</span>
+                </span>
+              ) : (
+                <span className="text-xs sm:text-sm font-bold whitespace-nowrap">Add {singularTitle}</span>
+              )}
+            </button>
           </div>
         </div>
 

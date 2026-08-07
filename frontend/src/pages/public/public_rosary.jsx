@@ -119,9 +119,7 @@ export default function Rosary() {
                   <FiVolume2 className="text-church-maroon" /> தமிழ் ஜெபமாலை ஆடியோ
                 </h3>
                 <div className="bg-white/50 p-2 rounded-xl border border-church-maroon/10">
-                  <audio key={tamilAudioSrc} controls className="w-full h-10">
-                    <source src={tamilAudioSrc} type="audio/mpeg" />
-                  </audio>
+                  <audio key={tamilAudioSrc} src={tamilAudioSrc} controls className="w-full h-10" />
                 </div>
                 <p className="text-[10px] text-gray-400 mt-3 italic uppercase tracking-widest font-tamil">மகிழ்ச்சி நிறை இரகசியங்கள்</p>
               </div>

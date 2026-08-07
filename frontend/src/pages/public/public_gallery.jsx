@@ -74,7 +74,7 @@ export default function Gallery() {
               </p>
             </div>
           ) : (
-            <motion.div layout className="columns-2 sm:columns-3 lg:columns-4 gap-4 space-y-4">
+            <motion.div layout className="columns-1 sm:columns-3 lg:columns-4 gap-4 space-y-4">
               {filtered.map((item, i) => (
                 <motion.div
                   key={item._id}

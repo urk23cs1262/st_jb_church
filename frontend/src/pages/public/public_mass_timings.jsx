@@ -37,16 +37,16 @@ export default function MassTimings() {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.08 }}
-                  className={`flex items-center gap-6 p-5 rounded-2xl border-l-4 ${colorMap[m.type]}`}
+                  className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-6 p-4 sm:p-5 rounded-2xl border-l-4 ${colorMap[m.type]}`}
                 >
-                  <div className="min-w-[100px]">
-                    <p className="font-bold text-gray-800  text-sm">{m.day}</p>
+                  <div className="min-w-0">
+                    <p className="font-bold text-gray-800 text-sm sm:text-base">{m.day}</p>
                     {m.note && <p className="text-xs text-gray-500 mt-0.5">{m.note}</p>}
                   </div>
-                  <div className="flex items-center gap-2 text-church-gold font-display text-2xl font-bold">
-                    <FiClock className="text-base" /> {m.time}
+                  <div className="flex items-center gap-2 text-church-gold font-display text-lg sm:text-2xl font-bold">
+                    <FiClock className="text-base flex-shrink-0" /> <span>{m.time}</span>
                   </div>
-                  <span className="badge badge-blue ml-auto">{m.lang}</span>
+                  <span className="badge badge-blue self-end sm:self-auto">{m.lang}</span>
                 </motion.div>
               ))}
             </div>

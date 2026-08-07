@@ -9,8 +9,8 @@ const WHATSAPP_MESSAGE = encodeURIComponent('HI\n\n🙏 SJDB Connect\nConnecting
 export default function WhatsAppWidget({ videoAdOpen = false }) {
   const location = useLocation();
 
-  // Show WhatsApp widget ONLY on the home page ('/')
-  if (location.pathname !== '/') {
+  // Hide WhatsApp widget only on admin & user portal routes
+  if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/user')) {
     return null;
   }
 

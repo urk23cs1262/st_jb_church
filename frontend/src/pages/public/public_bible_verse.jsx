@@ -116,7 +116,15 @@ export default function BibleVerse() {
   const verseCardRef = useRef(null);
 
   const shareVerse = () => {
-    const text = `📖 *Daily Verse*\n\n"${isTamil ? verse.ta : verse.en}"\n— ${verse.ref}`;
+    if (!verse) return;
+    let text = `📖 *Daily Verse / தினசரி விவிலிய வசனம்*\n\n`;
+    if (verse.en) {
+      text += `"${verse.en}"\n`;
+    }
+    if (verse.ta && verse.ta !== verse.en) {
+      text += `\n"${verse.ta}"\n`;
+    }
+    text += `\n— ${verse.ref}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   };
 
@@ -214,11 +222,15 @@ export default function BibleVerse() {
                         {verse.category}
                       </span>
                     )}
-                    <blockquote className="text-2xl md:text-3xl text-gray-800 font-serif italic leading-relaxed mb-6">
-                      "{isTamil ? verse.ta : verse.en}"
-                    </blockquote>
-                    {!isTamil && verse.ta !== verse.en && (
-                      <p className="text-gray-500 font-tamil text-base mb-4">{verse.ta}</p>
+                    {verse.en && (
+                      <blockquote className="text-2xl md:text-3xl text-gray-800 font-serif italic leading-relaxed mb-4">
+                        "{verse.en}"
+                      </blockquote>
+                    )}
+                    {verse.ta && verse.ta !== verse.en && (
+                      <p className="text-xl md:text-2xl text-church-royal-blue font-tamil font-bold italic mb-6 leading-relaxed">
+                        "{verse.ta}"
+                      </p>
                     )}
                     <p className="text-church-gold font-bold text-lg">— {verse.ref}</p>
                   </>

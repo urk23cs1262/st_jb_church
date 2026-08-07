@@ -161,9 +161,12 @@ export default function Events() {
           </div>
 
           {loading ? <SectionLoader /> : events.length === 0 ? (
-            <div className="text-center py-20 text-gray-400">
-              <GiChurch className="text-6xl mx-auto mb-4 opacity-30" />
-              <p className="text-lg">{t('common.noData')}</p>
+            <div className="bg-amber-50/50 rounded-2xl p-12 text-center border border-amber-200/60 shadow-xs my-4">
+              <GiChurch className="text-5xl mx-auto mb-3 text-amber-500/40" />
+              <h3 className="font-display font-bold text-gray-800 text-lg mb-1">No Events Found</h3>
+              <p className="text-gray-500 text-sm max-w-sm mx-auto">
+                There are currently no {view === 'upcoming' ? 'upcoming' : 'past'} events scheduled. Please check back later or explore other categories.
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

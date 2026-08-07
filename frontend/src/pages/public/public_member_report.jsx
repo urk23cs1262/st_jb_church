@@ -32,8 +32,12 @@ export default function MemberReport() {
           setMemberData(res.data.member);
           toast.success(`Member record verified: ${res.data.member.name}`);
 
-          // AUTOMATIC INSTANT PDF DOWNLOAD WITHOUT CLICKING ANY BUTTON
-          autoDownloadPdf(res.data.member._id, res.data.member.name);
+          // ONE TIME ONLY: Download PDF report once after scanning QR and viewing report
+          const sessionKey = `downloaded_report_${token}`;
+          if (!sessionStorage.getItem(sessionKey)) {
+            sessionStorage.setItem(sessionKey, 'true');
+            triggerSinglePdfDownload(res.data.member._id, res.data.member.name);
+          }
         }
       } catch (err) {
         if (!isMounted) return;
@@ -67,28 +71,17 @@ export default function MemberReport() {
     return () => { isMounted = false; };
   }, [token, isAuthenticated]);
 
-  const autoDownloadPdf = async (memberId, memberName) => {
+  const triggerSinglePdfDownload = async (memberId, memberName) => {
+    if (downloadingPdf) return;
     setDownloadingPdf(true);
     const safeName = (memberName || 'Report').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const fileName = `User_${safeName}_Report.pdf`;
+    const fileName = `Member_${safeName}_Report.pdf`;
 
-    // Strategy 1: Native Hidden Iframe Stream (Triggers instant automatic download on Mobile & Desktop)
-    try {
-      const authToken = localStorage.getItem('token') || '';
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      iframe.src = `${API_URL}/users/member-report/${token}/pdf?token=${encodeURIComponent(authToken)}`;
-      document.body.appendChild(iframe);
-      setTimeout(() => iframe.remove(), 12000);
-    } catch (e) {}
-
-    // Strategy 2: Blob API Download
     try {
       const res = await api.get(`/users/${memberId}/pdf`, { responseType: 'blob' });
       const blob = new Blob([res.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.style.display = 'none';
       link.href = url;
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
@@ -96,9 +89,18 @@ export default function MemberReport() {
       setTimeout(() => {
         link.remove();
         window.URL.revokeObjectURL(url);
-      }, 4000);
+      }, 3000);
+      toast.success('Member report PDF downloaded!');
     } catch (e) {
-      console.error('Blob auto-download fallback error:', e);
+      console.error('PDF download fallback error:', e);
+      try {
+        const authToken = localStorage.getItem('token') || '';
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = `${API_URL}/users/member-report/${token}/pdf?token=${encodeURIComponent(authToken)}`;
+        document.body.appendChild(iframe);
+        setTimeout(() => iframe.remove(), 6000);
+      } catch (err) {}
     } finally {
       setDownloadingPdf(false);
     }
@@ -106,7 +108,7 @@ export default function MemberReport() {
 
   const handleManualDownload = () => {
     if (memberData && !downloadingPdf) {
-      autoDownloadPdf(memberData._id, memberData.name);
+      triggerSinglePdfDownload(memberData._id, memberData.name);
     }
   };
 

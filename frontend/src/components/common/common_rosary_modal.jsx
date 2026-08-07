@@ -65,12 +65,11 @@ export default function RosaryModal({ isOpen, onClose, t }) {
 
               <audio
                 key={audioSrc}
+                src={audioSrc}
                 autoPlay
                 controls
                 className="w-full h-12 custom-audio-player"
-              >
-                <source src={audioSrc} type="audio/mpeg" />
-              </audio>
+              />
 
               <div className="mt-6 flex flex-col items-center gap-1">
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-[0.2em]">Tamil Audio Guide</p>

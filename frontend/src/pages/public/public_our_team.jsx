@@ -21,8 +21,8 @@ const DEPARTMENTS = [
   { id: 'Altar Servers', label: 'Altar Servers', icon: <GiCrucifix /> },
   { id: 'Choir Team', label: 'Choir Team', icon: <FiMusic /> },
   { id: 'Society of St. Vincent de Paul (SSVP)', label: 'St. Vincent de Paul Team', icon: <FiHeart /> },
-  { id: 'Website Technical Team', label: 'Tech Team', icon: <FiCode /> },
-  { id: 'Volunteers', label: 'Volunteers', icon: <FiAward /> }
+  { id: 'Volunteers', label: 'Volunteers', icon: <FiAward /> },
+  { id: 'Website Technical Team', label: 'Tech Team', icon: <FiCode /> }
 ];
 
 const VOLUNTEER_MINISTRIES = [

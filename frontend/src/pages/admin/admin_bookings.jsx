@@ -55,16 +55,15 @@ export default function AdminBookings() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">Manage Mass Bookings</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Review, approve, or suggest alternative dates for Holy Mass intentions</p>
+            {/* <p className="text-xs text-gray-400 mt-0.5">Review, approve, or suggest alternative dates for Holy Mass intentions</p> */}
           </div>
           <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 max-w-full">
             {['pending', 'approved', 'completed', 'rejected'].map(s => (
               <button
                 key={s}
                 onClick={() => setStatus(s)}
-                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold capitalize whitespace-nowrap transition-all ${
-                  status === s ? 'bg-church-gold text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'
-                }`}
+                className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold capitalize whitespace-nowrap transition-all ${status === s ? 'bg-church-gold text-white shadow-sm' : 'bg-white text-gray-500 border border-gray-200'
+                  }`}
               >
                 {s}
               </button>

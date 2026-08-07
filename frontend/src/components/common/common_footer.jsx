@@ -15,6 +15,7 @@ const quickLinks = [
   { label: 'nav.mass', name: 'Mass Timings', path: '/mass-timings' },
   { label: 'nav.events', name: 'Events', path: '/events' },
   { label: 'nav.gallery', name: 'Gallery', path: '/gallery' },
+  { label: 'nav.contact', name: 'Contact', path: '/contact' },
   { label: 'nav.nearby', name: 'Nearby Shrines', path: '/nearby-parishes' },
   { label: 'nav.team', name: 'Our Team', path: '/team' },
   { label: 'nav.council', name: 'Parish Council', path: '/parish-council' },
@@ -22,15 +23,16 @@ const quickLinks = [
 ];
 
 const serviceLinks = [
-  { label: 'booking.title', name: 'Book a Holy Mass', path: '/dashboard/booking' },
-  { label: 'document.title', name: 'Request Documents', path: '/dashboard/documents' },
-  { label: 'prayer.title', name: 'Prayer Requests', path: '/prayer-requests' },
+  { label: 'nav.bookings', name: 'Book a Holy Mass', path: '/bookings' },
+  { label: 'nav.documents', name: 'Request Documents', path: '/documents' },
+  { label: 'nav.prayers', name: 'Prayer Requests', path: '/prayers' },
   { label: 'nav.announcements', name: 'Announcements', path: '/announcements' },
   { label: 'nav.donate', name: 'Donate', path: '/donate' },
   { label: 'nav.live', name: 'Live Stream', path: '/live' },
   { label: 'nav.rosary', name: 'Rosary', path: '/rosary' },
   { label: 'nav.calendar', name: 'Catholic Calendar', path: '/calendar' },
   { label: 'nav.bibleVerse', name: 'Daily Bible Verse', path: '/bible-verse' },
+  { label: 'nav.whatsappBot', name: 'WhatsApp Bot', external: 'https://wa.me/917639520006?text=HI%0A%0A%F0%9F%99%8F%20SJDB%20Connect%0AConnecting%20Faith%20%26%20Community' },
 ];
 
 export default function Footer() {
@@ -47,7 +49,7 @@ export default function Footer() {
     <footer className="bg-church-dark text-white">
       {/* Centered Large Premium Title Banner */}
       <div className="w-full text-center py-6 md:py-4 px-4 overflow-hidden bg-church-dark notranslate" translate="no">
-        <h1 className="text-white text-6xl sm:text-7xl gap-10 md:text-8xl lg:text-[7.5rem] font-premium-banner font-extrabold tracking-tight text-center leading-none text-white/95 drop-shadow-2xl select-none">
+        <h1 className="text-white text-4xl sm:text-7xl md:text-8xl lg:text-[7.5rem] font-premium-banner font-extrabold tracking-tight text-center leading-none text-white/95 drop-shadow-2xl select-none">
           St. John De Britto
         </h1>
       </div>
@@ -114,7 +116,7 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-xs">
               {quickLinks.map(link => (
-                <li key={link.path}>
+                <li key={`ql-${link.label}`}>
                   <Link to={link.path} className="text-gray-300 hover:text-gold-300 transition-colors duration-200 hover:translate-x-1 inline-block">
                     <span className="notranslate" translate="no">{t(link.label, link.name)}</span>
                   </Link>
@@ -130,10 +132,21 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-xs">
               {serviceLinks.map(link => (
-                <li key={link.path}>
-                  <Link to={link.path} className="text-gray-300 hover:text-gold-300 transition-colors duration-200 hover:translate-x-1 inline-block">
-                    <span className="notranslate" translate="no">{t(link.label, link.name)}</span>
-                  </Link>
+                <li key={`sl-${link.label}`}>
+                  {link.external ? (
+                    <a
+                      href={link.external}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-gray-300 hover:text-gold-300 transition-colors duration-200 hover:translate-x-1 inline-block"
+                    >
+                      <span className="notranslate" translate="no">{t(link.label, link.name)}</span>
+                    </a>
+                  ) : (
+                    <Link to={link.path} className="text-gray-300 hover:text-gold-300 transition-colors duration-200 hover:translate-x-1 inline-block">
+                      <span className="notranslate" translate="no">{t(link.label, link.name)}</span>
+                    </Link>
+                  )}
                 </li>
               ))}
             </ul>

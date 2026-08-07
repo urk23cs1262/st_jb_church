@@ -307,7 +307,7 @@ export default function FAQ() {
                         transition={{ duration: 0.25 }}
                         className="overflow-hidden"
                       >
-                        <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-gray-600 leading-relaxed border-t border-amber-50 ml-9">
+                        <div className="px-3 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-gray-600 leading-relaxed border-t border-amber-50 ml-2 sm:ml-9">
                           <p>{faq.a}</p>
                           <div className="flex flex-wrap gap-1.5 mt-3 pt-2">
                             {faq.tags.map(t => (

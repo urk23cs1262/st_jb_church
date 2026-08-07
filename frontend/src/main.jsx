@@ -8,13 +8,11 @@ if (typeof window !== 'undefined') {
   const originalRemoveChild = Node.prototype.removeChild;
   Node.prototype.removeChild = function (child) {
     if (child && child.parentNode !== this) {
-      if (console) console.warn('GoogleTranslate: Node.removeChild parent mismatch handled', child);
       return child;
     }
     try {
       return originalRemoveChild.apply(this, arguments);
     } catch (err) {
-      if (console) console.warn('GoogleTranslate: Node.removeChild error caught', err);
       return child;
     }
   };
@@ -22,16 +20,38 @@ if (typeof window !== 'undefined') {
   const originalInsertBefore = Node.prototype.insertBefore;
   Node.prototype.insertBefore = function (newNode, referenceNode) {
     if (referenceNode && referenceNode.parentNode !== this) {
-      if (console) console.warn('GoogleTranslate: Node.insertBefore parent mismatch handled', referenceNode);
       return newNode;
     }
     try {
       return originalInsertBefore.apply(this, arguments);
     } catch (err) {
-      if (console) console.warn('GoogleTranslate: Node.insertBefore error caught', err);
       return newNode;
     }
   };
+
+  const originalReplaceChild = Node.prototype.replaceChild;
+  Node.prototype.replaceChild = function (newChild, oldChild) {
+    if (oldChild && oldChild.parentNode !== this) {
+      return oldChild;
+    }
+    try {
+      return originalReplaceChild.apply(this, arguments);
+    } catch (err) {
+      return oldChild;
+    }
+  };
+
+  window.addEventListener('error', (event) => {
+    if (
+      event?.message?.includes('removeChild') ||
+      event?.message?.includes('insertBefore') ||
+      event?.message?.includes('Node cannot be found') ||
+      event?.message?.includes('not a child of this node')
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }, true);
 }
 
 class ErrorBoundary extends Component {

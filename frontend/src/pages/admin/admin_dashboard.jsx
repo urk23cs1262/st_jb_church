@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { FiUsers, FiBriefcase, FiBookOpen, FiCalendar, FiFileText, FiMessageSquare, FiDollarSign, FiSettings, FiImage, FiBell, FiGift, FiHeart, FiClock, FiTool, FiRefreshCw } from 'react-icons/fi';
+import { FiUsers, FiBriefcase, FiVolume2, FiBookOpen, FiCalendar, FiFileText, FiMessageSquare, FiDollarSign, FiSettings, FiImage, FiBell, FiGift, FiHeart, FiClock, FiTool, FiRefreshCw } from 'react-icons/fi';
 import { SiWhatsapp } from 'react-icons/si';
 import { GiChurch, GiCrucifix, GiPrayer } from 'react-icons/gi';
 import toast from 'react-hot-toast';
@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { icon: <GiChurch />, label: 'Priests', path: '/admin/priests', color: 'bg-amber-600' },
   { icon: <FiCalendar />, label: 'Events', path: '/admin/events', color: 'bg-green-600' },
   { icon: <FiImage />, label: 'Gallery', path: '/admin/gallery', color: 'bg-purple-600' },
-  { icon: <FiBell />, label: 'Announcements', path: '/admin/announcements', color: 'bg-orange-500' },
+  { icon: <FiVolume2 />, label: 'Announcements', path: '/admin/announcements', color: 'bg-orange-500' },
   { icon: <FiBookOpen />, label: 'Bookings', path: '/admin/bookings', color: 'bg-indigo-600' },
   { icon: <FiFileText />, label: 'Documents', path: '/admin/documents', color: 'bg-teal-600' },
   { icon: <FiDollarSign />, label: 'Donations', path: '/admin/donations', color: 'bg-yellow-600' },
@@ -170,13 +170,14 @@ export default function AdminDashboard() {
       <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between shadow-xs">
         <h1 className="font-display text-xl sm:text-2xl font-bold text-church-royal-blue">SJDB Admin Dashboard</h1>
         <div className="flex items-center gap-2">
-        <button
-          onClick={() => navigate('/admin/maintenance')}
+        <Link
+          to="/admin/maintenance"
           className="flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-amber-600 via-red-600 to-amber-700 hover:from-amber-700 hover:via-red-700 hover:to-amber-800 text-white rounded-2xl font-bold text-sm shadow-lg hover:shadow-xl transition-all active:scale-95 cursor-pointer whitespace-nowrap group"
+          title="Maintenance Mode Control"
         >
           <FiTool className="text-lg text-amber-200 group-hover:rotate-45 transition-transform duration-300" />
           <span className="hidden sm:inline">Maintenance Mode</span>
-        </button>
+        </Link>
         
           <Link
             to="/admin/notifications"
