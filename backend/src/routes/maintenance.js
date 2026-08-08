@@ -9,7 +9,8 @@ const {
   updateMaintenanceSettings,
   sendMaintenanceNotices,
   getMaintenanceHistory,
-  trackAccessAttempt
+  trackAccessAttempt,
+  showcaseNoticeBanner
 } = require('../controllers/maintenanceController');
 
 // Public endpoints
@@ -20,6 +21,7 @@ router.post('/track-attempt', trackAccessAttempt);
 router.get('/settings', protect, adminOnly, getMaintenanceSettings);
 router.post('/toggle', protect, adminOnly, toggleMaintenanceMode);
 router.post('/emergency', protect, adminOnly, triggerEmergencyShutdown);
+router.post('/showcase-banner', protect, adminOnly, showcaseNoticeBanner);
 router.put('/settings', protect, adminOnly, updateMaintenanceSettings);
 router.post('/notify', protect, adminOnly, sendMaintenanceNotices);
 router.get('/history', protect, adminOnly, getMaintenanceHistory);

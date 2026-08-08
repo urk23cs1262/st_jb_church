@@ -40,12 +40,15 @@ function formatVerseMessage(verse, lang) {
   const dateStr = new Date().toLocaleDateString('en-IN', { weekday: 'long', month: 'long', day: 'numeric' });
   let text = `📖 *Daily Bible Verse*\n📅 ${dateStr}\n\n`;
 
+  const enText = verse.verseTextEn || verse.english || '';
+  const taText = verse.verseTextTa || verse.tamil || enText;
+  const refText = verse.verseRef || verse.ref || verse.reference || '';
+
   if (lang === 'en' || lang === 'both') {
-    text += `_"${verse.verseTextEn}"_\n— *${verse.verseRef}*\n\n`;
+    text += `_"${enText}"_\n— *${refText}*\n\n`;
   }
   if (lang === 'ta' || lang === 'both') {
-    // Tamil verse placeholder (would need a Tamil Bible API in production)
-    text += `📖 *தினசரி வேத வாக்கியம்*\n_"${verse.verseTextEn}"_\n— *${verse.verseRef}*\n\n`;
+    text += `📖 *தினசரி வேத வாக்கியம்*\n_"${taText}"_\n— *${refText}*\n\n`;
   }
 
   text += `🙏 _SJDB Connect — Connecting Faith & Community_`;

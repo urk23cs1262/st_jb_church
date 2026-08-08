@@ -11,7 +11,7 @@ import constructionImg from '../../assets/construction.png';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-export default function Maintenance() {
+export default function Maintenance({ isPreview = false }) {
   const navigate = useNavigate();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,7 @@ export default function Maintenance() {
       const res = await api.get('/maintenance/status');
       if (res.data.success) {
         setStatus(res.data);
-        if (!res.data.isEnabled) {
+        if (!res.data.isEnabled && !isPreview) {
           if (showToast) toast.success('Maintenance completed! Redirecting to home...');
           navigate('/', { replace: true });
         } else if (showToast) {
@@ -41,21 +41,24 @@ export default function Maintenance() {
 
   useEffect(() => {
     fetchStatus();
-    // Track access attempt for analytics
-    api.post('/maintenance/track-attempt').catch(() => { });
 
-    // Periodic check every 15s to auto-redirect when admin disables maintenance
-    const autoCheckInterval = setInterval(() => {
-      api.get('/maintenance/status').then(res => {
-        if (res.data.success && !res.data.isEnabled) {
-          toast.success('Website is back online! Redirecting to home...');
-          navigate('/', { replace: true });
-        }
-      }).catch(() => { });
-    }, 15000);
+    if (!isPreview) {
+      // Track access attempt for analytics
+      api.post('/maintenance/track-attempt').catch(() => { });
 
-    return () => clearInterval(autoCheckInterval);
-  }, [navigate]);
+      // Periodic check every 15s to auto-redirect when admin disables maintenance
+      const autoCheckInterval = setInterval(() => {
+        api.get('/maintenance/status').then(res => {
+          if (res.data.success && !res.data.isEnabled) {
+            toast.success('Website is back online! Redirecting to home...');
+            navigate('/', { replace: true });
+          }
+        }).catch(() => { });
+      }, 15000);
+
+      return () => clearInterval(autoCheckInterval);
+    }
+  }, [navigate, isPreview]);
 
   // Countdown timer calculations with Auto-Redirect on completion
   useEffect(() => {
@@ -70,11 +73,12 @@ export default function Maintenance() {
       if (difference <= 0) {
         setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         clearInterval(interval);
-        // Automatically redirect to home page when countdown finishes
-        toast.success('Maintenance period completed! Redirecting to home page...', { id: 'maint-complete' });
-        setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 1500);
+        if (!isPreview) {
+          toast.success('Maintenance period completed! Redirecting to home page...', { id: 'maint-complete' });
+          setTimeout(() => {
+            navigate('/', { replace: true });
+          }, 1500);
+        }
       } else {
         const days = Math.floor(difference / (1000 * 60 * 60 * 24));
         const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));

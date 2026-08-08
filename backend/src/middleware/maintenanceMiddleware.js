@@ -5,14 +5,17 @@ const User = require('../models/User');
 const maintenanceMiddleware = async (req, res, next) => {
   try {
     const settings = await MaintenanceSetting.findOne({ key: 'site_maintenance' });
-    if (!settings || !settings.isEnabled) {
+    const currentStatus = settings ? (settings.status || (settings.isEnabled ? (settings.isEmergency ? 'emergency' : 'maintenance') : 'live')) : 'live';
+
+    if (!settings || currentStatus === 'live') {
       return next();
     }
 
-    // Endpoints accessible during maintenance mode (to check status, track attempts, or perform admin/tech login)
+    // Endpoints accessible during maintenance mode
     const allowedPathPrefixes = [
       '/api/maintenance/status',
-      '/api/maintenance/track-attempt'
+      '/api/maintenance/track-attempt',
+      '/api/health'
     ];
 
     const isAllowedPath = allowedPathPrefixes.some(prefix => req.originalUrl.startsWith(prefix));
@@ -22,7 +25,7 @@ const maintenanceMiddleware = async (req, res, next) => {
       return next();
     }
 
-    // Check if request carries admin/technical team JWT auth token
+    // Server-side JWT authentication check for admin/technical team role bypass
     let token;
     const authHeader = req.headers.authorization || req.headers.Authorization;
     if (authHeader && typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
@@ -38,27 +41,28 @@ const maintenanceMiddleware = async (req, res, next) => {
         if (user && user.isActive !== false) {
           const userRole = (user.role || '').toLowerCase();
           const isAdmin = ['admin', 'priest'].includes(userRole);
-          const isTech = Boolean(user.isTechnicalTeam) || ['staff', 'technical_team', 'tech_team'].includes(userRole);
+          const isTech = Boolean(user.isTechnicalTeam) || ['staff', 'technical_team', 'tech_team', 'technical'].includes(userRole);
           
           if (isAdmin || isTech) {
             return next();
           }
         }
       } catch (authErr) {
-        // Invalid token, proceed to block
+        // Invalid or expired token — proceed to block
       }
     }
 
-    // Increment analytics blocked counter asynchronously
+    // Increment access attempt analytics counter asynchronously
     MaintenanceSetting.updateOne({ key: 'site_maintenance' }, { $inc: { accessAttemptsCount: 1 } }).catch(() => {});
 
-    // Return 503 Service Unavailable for normal users & guests
+    // Return HTTP 503 Service Unavailable for public users & guests
     return res.status(503).json({
       success: false,
       maintenance: true,
       code: 'SERVICE_UNAVAILABLE',
-      title: settings.title || 'Website Under Maintenance',
-      message: 'Our website is currently undergoing scheduled maintenance to improve performance, security, and user experience. We apologize for the inconvenience. Please check back again shortly. Only Administrators and the Technical Team can access the website during maintenance.',
+      status: currentStatus,
+      title: settings.title || (currentStatus === 'emergency' ? 'EMERGENCY MAINTENANCE IN PROGRESS' : 'Website Under Maintenance'),
+      message: settings.message || 'Our website is currently undergoing maintenance. Please check back shortly.',
       category: settings.category,
       expectedCompletion: settings.expectedCompletion,
       contactPhone: settings.contactPhone,

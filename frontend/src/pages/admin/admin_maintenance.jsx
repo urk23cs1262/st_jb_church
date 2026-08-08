@@ -22,6 +22,8 @@ export default function MaintenanceAdmin() {
   const [emergencyModalOpen, setEmergencyModalOpen] = useState(false);
   const [emergencyReason, setEmergencyReason] = useState('Emergency System Crash / Security Patch');
 
+  const [activeEvent, setActiveEvent] = useState(null);
+
   const fetchSettings = async () => {
     try {
       const [settRes, histRes] = await Promise.all([
@@ -31,6 +33,7 @@ export default function MaintenanceAdmin() {
 
       if (settRes.data.success) {
         setSettings(settRes.data.settings);
+        setActiveEvent(settRes.data.activeEvent || null);
       }
 
       if (histRes.data.success) {
@@ -67,17 +70,16 @@ export default function MaintenanceAdmin() {
   const handleShowcaseBanner = async () => {
     setSaving(true);
     try {
-      const updatedSettings = {
-        ...settings,
-        noticeBanner: {
-          ...(settings?.noticeBanner || {}),
-          isEnabled: true
-        }
+      const payload = {
+        message: settings?.noticeBanner?.message || 'Scheduled website maintenance today.',
+        scheduledStartTime: settings?.noticeBanner?.scheduledStartTime,
+        scheduledEndTime: settings?.noticeBanner?.scheduledEndTime,
+        noticeLeadTime: settings?.noticeBanner?.noticeLeadTime || '1h'
       };
-      const res = await api.put('/maintenance/settings', updatedSettings);
+      const res = await api.post('/maintenance/showcase-banner', payload);
       if (res.data.success) {
         setSettings(res.data.settings);
-        toast.success('Pre-Maintenance Notice Banner is now Showcase Live! 📢');
+        toast.success('Pre-Maintenance Notice Banner is now Showcase Live! 📢 (Upcoming notices dispatched)');
         fetchSettings();
       }
     } catch (err) {
@@ -236,6 +238,60 @@ export default function MaintenanceAdmin() {
           </span>
         </div>
       </div>
+
+      {/* Multi-Channel Notification Status Widget */}
+      {activeEvent && (
+        <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b pb-2">
+            <span className="text-xs font-bold text-gray-900 flex items-center gap-2">
+              <FiSend className="text-church-royal-blue" /> Latest State Transition Notification Status ({activeEvent.previousStatus?.toUpperCase()} → {activeEvent.newStatus?.toUpperCase()})
+            </span>
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+              activeEvent.notificationSent ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+            }`}>
+              {activeEvent.notificationSent ? '✓ Dispatch Complete' : '⏳ Pending Dispatch'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-medium">
+            <div className="p-2.5 rounded-xl bg-blue-50/60 border border-blue-100 flex items-center justify-between">
+              <span className="text-blue-950 font-semibold flex items-center gap-1.5">
+                ✉️ Mail
+              </span>
+              <span className="font-bold text-blue-900 bg-white px-2 py-0.5 rounded-md border border-blue-200 text-[11px]">
+                {activeEvent.deliveries?.email?.count || activeEvent.emailSentCount || 0} sent
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-purple-50/60 border border-purple-100 flex items-center justify-between">
+              <span className="text-purple-950 font-semibold flex items-center gap-1.5">
+                🔔 Web Push
+              </span>
+              <span className="font-bold text-purple-900 bg-white px-2 py-0.5 rounded-md border border-purple-200 text-[11px]">
+                {activeEvent.deliveries?.push?.count || 0} sent
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-amber-50/60 border border-amber-100 flex items-center justify-between">
+              <span className="text-amber-950 font-semibold flex items-center gap-1.5">
+                📱 In-App
+              </span>
+              <span className="font-bold text-amber-900 bg-white px-2 py-0.5 rounded-md border border-amber-200 text-[11px]">
+                {activeEvent.deliveries?.inApp?.count || activeEvent.notifSentCount || 0} sent
+              </span>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100 flex items-center justify-between">
+              <span className="text-emerald-950 font-semibold flex items-center gap-1.5">
+                💬 WhatsApp
+              </span>
+              <span className="font-bold text-emerald-900 bg-white px-2 py-0.5 rounded-md border border-emerald-200 text-[11px]">
+                {activeEvent.deliveries?.whatsApp?.count || 0} sent
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs Navigation */}
       <div className="flex border-b border-gray-200 overflow-x-auto gap-2">
@@ -536,6 +592,26 @@ export default function MaintenanceAdmin() {
                     className="church-input bg-white border-amber-300 w-full"
                   />
                 </div>
+
+                <div>
+                  <label className="church-label text-amber-950">Notify Users Before Maintenance *</label>
+                  <select
+                    value={settings.noticeBanner?.noticeLeadTime || '1h'}
+                    onChange={(e) => setSettings({
+                      ...settings,
+                      noticeBanner: { ...(settings.noticeBanner || {}), noticeLeadTime: e.target.value }
+                    })}
+                    className="church-select bg-white border-amber-300 w-full"
+                  >
+                    <option value="15m">15 minutes before</option>
+                    <option value="30m">30 minutes before</option>
+                    <option value="1h">1 hour before</option>
+                    <option value="2h">2 hours before</option>
+                    <option value="6h">6 hours before</option>
+                    <option value="12h">12 hours before</option>
+                    <option value="24h">24 hours before</option>
+                  </select>
+                </div>
               </div>
 
               <div className="pt-3 border-t border-amber-200/60 space-y-3">
@@ -645,6 +721,26 @@ export default function MaintenanceAdmin() {
                 className="church-input"
               />
             </div>
+
+            <div className="sm:col-span-2">
+              <label className="church-label">Notify Users Before Maintenance *</label>
+              <select
+                value={settings.scheduler?.noticeLeadTime || '1h'}
+                onChange={(e) => setSettings({
+                  ...settings,
+                  scheduler: { ...(settings.scheduler || {}), noticeLeadTime: e.target.value }
+                })}
+                className="church-select"
+              >
+                <option value="15m">15 minutes before</option>
+                <option value="30m">30 minutes before</option>
+                <option value="1h">1 hour before</option>
+                <option value="2h">2 hours before</option>
+                <option value="6h">6 hours before</option>
+                <option value="12h">12 hours before</option>
+                <option value="24h">24 hours before</option>
+              </select>
+            </div>
           </div>
 
           <div className="pt-2">
@@ -689,14 +785,12 @@ export default function MaintenanceAdmin() {
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="bg-gray-50 text-gray-600 font-bold border-b border-gray-200">
-                    <th className="p-3">Trigger Type</th>
-                    <th className="p-3">Enabled By</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3">Reason</th>
-                    <th className="p-3">Start Time</th>
-                    <th className="p-3">End Time</th>
-                    <th className="p-3">Duration</th>
-                    <th className="p-3">Notices Sent</th>
+                    <th className="p-3">Event Transition</th>
+                    <th className="p-3">Triggered By</th>
+                    <th className="p-3">Category / Reason</th>
+                    <th className="p-3">Date & Time</th>
+                    <th className="p-3">Deliveries (Mail | Push | In-App | WA)</th>
+                    <th className="p-3">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-medium">
@@ -704,29 +798,36 @@ export default function MaintenanceAdmin() {
                     <tr key={log._id || idx} className="hover:bg-gray-50/80 transition-colors">
                       <td className="p-3">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          log.triggerType === 'Emergency'
+                          log.newStatus === 'emergency' || log.eventType === 'emergency'
                             ? 'bg-red-100 text-red-800 border border-red-200'
-                            : log.triggerType === 'Scheduled'
-                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                            : log.newStatus === 'live' || log.eventType === 'live'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                               : 'bg-amber-100 text-amber-800 border border-amber-200'
                         }`}>
-                          {log.triggerType || 'Manual'}
+                          {(log.previousStatus || 'LIVE').toUpperCase()} → {(log.newStatus || log.eventType || 'MAINTENANCE').toUpperCase()}
                         </span>
                       </td>
                       <td className="p-3 font-bold text-gray-900">{log.enabledBy || 'Admin'}</td>
-                      <td className="p-3 text-gray-600">{log.category || 'Scheduled Update'}</td>
-                      <td className="p-3 text-gray-800 max-w-xs truncate">{log.reason}</td>
-                      <td className="p-3 text-gray-600 whitespace-nowrap">
-                        {log.startTime ? new Date(log.startTime).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}
+                      <td className="p-3 text-gray-800 max-w-xs truncate font-medium">
+                        <span className="block text-gray-900 font-bold">{log.category || 'Scheduled Update'}</span>
+                        <span className="text-[11px] text-gray-500">{log.reason}</span>
                       </td>
                       <td className="p-3 text-gray-600 whitespace-nowrap">
-                        {log.endTime ? new Date(log.endTime).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : 'Active Now'}
+                        {log.startedAt || log.startTime ? new Date(log.startedAt || log.startTime).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }) : 'N/A'}
                       </td>
-                      <td className="p-3 font-mono font-bold text-church-royal-blue">
-                        {log.durationMinutes ? `${log.durationMinutes} mins` : 'Ongoing'}
+                      <td className="p-3 text-gray-700 whitespace-nowrap font-mono text-[11px]">
+                        ✉️ {log.deliveries?.email?.count || log.emailSentCount || 0} | 🔔 {log.deliveries?.push?.count || 0} | 📱 {log.deliveries?.inApp?.count || log.notifSentCount || 0} | 💬 {log.deliveries?.whatsApp?.count || 0}
                       </td>
-                      <td className="p-3 text-gray-600">
-                        📧 {log.emailSentCount || 0} | 📱 {log.smsSentCount || 0}
+                      <td className="p-3 whitespace-nowrap">
+                        {log.notificationSent ? (
+                          <span className="text-emerald-700 font-bold text-[10px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            ✓ Sent
+                          </span>
+                        ) : (
+                          <span className="text-amber-700 font-bold text-[10px] bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                            Pending
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -811,7 +912,7 @@ export default function MaintenanceAdmin() {
               </div>
 
               <div className="max-h-[80vh] overflow-y-auto">
-                <Maintenance />
+                <Maintenance isPreview={true} />
               </div>
             </div>
           </div>

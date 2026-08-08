@@ -1,4 +1,18 @@
 const MaintenanceSetting = require('../models/MaintenanceSetting');
+const { transitionMaintenanceState, dispatchPreMaintenanceNotice } = require('../controllers/maintenanceController');
+
+const getLeadTimeMinutes = (leadTimeStr) => {
+  switch (leadTimeStr) {
+    case '15m': return 15;
+    case '30m': return 30;
+    case '1h': return 60;
+    case '2h': return 120;
+    case '6h': return 360;
+    case '12h': return 720;
+    case '24h': return 1440;
+    default: return 60; // Default 1 hour
+  }
+};
 
 const checkMaintenanceSchedule = async () => {
   try {
@@ -13,50 +27,46 @@ const checkMaintenanceSchedule = async () => {
     const scheduledEnd = schedulerEnabled && settings.scheduler.scheduledEnd ? new Date(settings.scheduler.scheduledEnd) : null;
     const expectedCompletion = settings.expectedCompletion ? new Date(settings.expectedCompletion) : null;
 
-    // 1. Auto Start Maintenance
-    if (scheduledStart && now >= scheduledStart && (!scheduledEnd || now < scheduledEnd)) {
-      if (!settings.isEnabled) {
-        settings.isEnabled = true;
-        settings.history.push({
-          enabledBy: 'Automated Scheduler',
-          reason: 'Scheduled Maintenance Auto-Start',
-          category: settings.category || 'Scheduled Update',
-          startTime: now,
-          triggerType: 'Scheduled'
-        });
-        await settings.save();
-        console.log('⏰ Scheduled Maintenance automatically ENABLED at:', now.toISOString());
+    const currentStatus = settings.status || (settings.isEnabled ? (settings.isEmergency ? 'emergency' : 'maintenance') : 'live');
+
+    // 1. Pre-Maintenance Notice Trigger (Lead Time before Maintenance Start)
+    if (scheduledStart && currentStatus === 'live') {
+      const leadTimeStr = settings.scheduler?.noticeLeadTime || settings.noticeBanner?.noticeLeadTime || '1h';
+      const leadTimeMs = getLeadTimeMinutes(leadTimeStr) * 60 * 1000;
+      const noticeTriggerTime = new Date(scheduledStart.getTime() - leadTimeMs);
+
+      if (now >= noticeTriggerTime && now < scheduledStart) {
+        if (!settings.noticeBanner?.isEnabled || !settings.noticeSentForEventId) {
+          console.log(`📢 Pre-maintenance notice auto-trigger activated (${leadTimeStr} before start) at:`, now.toISOString());
+          await dispatchPreMaintenanceNotice(settings, {
+            reason: `Scheduled Pre-Maintenance Notice Auto-Trigger (${leadTimeStr} lead time)`,
+            changedBy: 'Automated Scheduler'
+          });
+        }
       }
     }
 
-    // 2. Auto End Maintenance (countdown timer finished OR scheduled end time reached)
+    // 2. Auto Start Maintenance
+    if (scheduledStart && now >= scheduledStart && (!scheduledEnd || now < scheduledEnd)) {
+      if (currentStatus === 'live') {
+        console.log('⏰ Scheduled Maintenance auto-start triggered at:', now.toISOString());
+        await transitionMaintenanceState('maintenance', {
+          reason: 'Scheduled Maintenance Auto-Start',
+          changedBy: 'Automated Scheduler'
+        });
+      }
+    }
+
+    // 3. Auto End Maintenance (scheduled end OR expected completion reached)
     const isScheduledEndReached = scheduledEnd && now >= scheduledEnd;
     const isCountdownFinished = expectedCompletion && now >= expectedCompletion;
 
-    if (settings.isEnabled && (isScheduledEndReached || isCountdownFinished)) {
-      settings.isEnabled = false;
-      settings.isEmergency = false;
-      if (settings.scheduler) settings.scheduler.isEnabled = false; // Reset scheduler once completed
-
-      if (settings.history && settings.history.length > 0) {
-        const lastLog = settings.history[settings.history.length - 1];
-        if (!lastLog.endTime) {
-          lastLog.endTime = now;
-          const startMs = new Date(lastLog.startTime).getTime();
-          lastLog.durationMinutes = Math.max(1, Math.round((now.getTime() - startMs) / (1000 * 60)));
-        }
-      }
-
-      await settings.save();
-      console.log('✅ Scheduled Maintenance automatically COMPLETED & DISABLED at:', now.toISOString());
-
-      // Dispatch Mail & SMS notifications informing parishioners that website is LIVE!
-      try {
-        const { dispatchWebsiteLiveNotices } = require('../controllers/maintenanceController');
-        await dispatchWebsiteLiveNotices(settings);
-      } catch (noticeErr) {
-        console.error('Error dispatching live notices from scheduler:', noticeErr.message);
-      }
+    if (currentStatus !== 'live' && (isScheduledEndReached || isCountdownFinished)) {
+      console.log('✅ Scheduled Maintenance auto-end triggered at:', now.toISOString());
+      await transitionMaintenanceState('live', {
+        reason: 'Scheduled Maintenance Auto-End',
+        changedBy: 'Automated Scheduler'
+      });
     }
   } catch (err) {
     console.error('Error running maintenance scheduler check:', err.message);
@@ -67,4 +77,3 @@ const checkMaintenanceSchedule = async () => {
 setInterval(checkMaintenanceSchedule, 60 * 1000);
 
 module.exports = { checkMaintenanceSchedule };
-

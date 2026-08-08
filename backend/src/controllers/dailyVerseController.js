@@ -1,11 +1,39 @@
 const DailyVerse = require('../models/DailyVerse');
 const DEFAULT_VERSES = require('../data/defaultVerses');
 const axios = require('axios');
+const mongoose = require('mongoose');
 
-// Helper to compute Day of Year (1 - 366)
+// Helper to safely build query for verse lookup by numeric id or MongoDB _id without CastError
+function buildVerseIdFilter(identifier) {
+  if (identifier === null || identifier === undefined || identifier === '') return null;
+
+  const conditions = [];
+
+  // Check numeric id
+  const num = Number(identifier);
+  if (!isNaN(num) && num > 0) {
+    conditions.push({ id: num });
+  }
+
+  // Check MongoDB _id only if it's a valid 24-character hex string or ObjectId instance
+  if (typeof identifier === 'string' && identifier.length === 24 && mongoose.Types.ObjectId.isValid(identifier)) {
+    conditions.push({ _id: identifier });
+  } else if (identifier instanceof mongoose.Types.ObjectId) {
+    conditions.push({ _id: identifier });
+  }
+
+  if (conditions.length === 0) return null;
+  if (conditions.length === 1) return conditions[0];
+  return { $or: conditions };
+}
+
+// Helper to compute Day of Year (1 - 366) in IST timezone
 function getDayOfYear(date = new Date()) {
-  const start = new Date(date.getFullYear(), 0, 0);
-  return Math.floor((date - start) / 86400000);
+  const dateStr = getTodayDateStr(date);
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const current = new Date(year, month - 1, day);
+  const start = new Date(year, 0, 0);
+  return Math.floor((current - start) / 86400000);
 }
 
 // Helper to drop stale legacy date_1 index from MongoDB
@@ -28,13 +56,13 @@ async function ensureDefaultVerses() {
   }
 }
 
-// Helper to get today date string e.g. "2026-08-06"
-function getTodayDateStr() {
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+// Helper to get today date string in Asia/Kolkata timezone e.g. "2026-08-08"
+function getTodayDateStr(date = new Date()) {
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' });
+  return formatter.format(date);
 }
 
-// Helper to fetch today's verse data
+// Helper to fetch today's verse data with automatic daily rotation at 12:00 AM IST
 const getTodayVerseData = async () => {
   await ensureDefaultVerses();
   const total = await DailyVerse.countDocuments();
@@ -43,19 +71,26 @@ const getTodayVerseData = async () => {
 
   let verse = null;
 
-  // Check if admin override exists for today
+  // Check if admin override exists specifically for today
   try {
     const SiteSettings = require('../models/SiteSettings');
     const overrideSetting = await SiteSettings.findOne({ key: 'today_verse_override' }).lean();
     if (overrideSetting && overrideSetting.value) {
       const parsed = JSON.parse(overrideSetting.value);
-      if (parsed && (parsed.date === todayDateStr || parsed.date === 'manual' || parsed.persistent !== false)) {
+      // Valid ONLY if set for today's date or explicitly marked persistent
+      if (parsed && (parsed.date === todayDateStr || parsed.persistent === true)) {
         if (parsed.verseMongoId) {
-          verse = await DailyVerse.findById(parsed.verseMongoId);
+          const filter = buildVerseIdFilter(parsed.verseMongoId);
+          if (filter) verse = await DailyVerse.findOne(filter);
         }
         if (!verse && parsed.id) {
-          verse = await DailyVerse.findOne({ id: Number(parsed.id) });
+          const filter = buildVerseIdFilter(parsed.id);
+          if (filter) verse = await DailyVerse.findOne(filter);
         }
+      } else {
+        // Stale override from previous day -> remove so auto daily rotation takes over at 12:00 AM
+        console.log(`🧹 Stale today_verse_override detected (${parsed?.date} != ${todayDateStr}). Resetting to daily automatic rotation.`);
+        await SiteSettings.deleteOne({ key: 'today_verse_override' });
       }
     }
   } catch (e) {
@@ -84,17 +119,23 @@ const getTodayVerseData = async () => {
     }
   }
 
+  const refStr = verse?.ref || 'John 3:16';
+  const textEn = verse?.verseTextEn || 'For God so loved the world...';
+  const textTa = verse?.verseTextTa || '';
+
   return {
     id: verse?.id || 1,
-    ref: verse?.ref || 'John 3:16',
-    reference: verse?.ref || 'John 3:16',
-    english: verse?.verseTextEn || 'For God so loved the world...',
-    verseTextEn: verse?.verseTextEn || 'For God so loved the world...',
-    tamil: verse?.verseTextTa || '',
-    verseTextTa: verse?.verseTextTa || '',
+    ref: refStr,
+    reference: refStr,
+    verseRef: refStr,
+    english: textEn,
+    verseTextEn: textEn,
+    tamil: textTa,
+    verseTextTa: textTa,
     category: verse?.category || 'General',
     dayOfYear,
-    totalVerses: total
+    totalVerses: total,
+    dateStr: todayDateStr
   };
 };
 
@@ -248,7 +289,11 @@ const updateVerse = async (req, res) => {
     const { id } = req.params;
     const { ref, category, verseTextEn, verseTextTa } = req.body;
 
-    let verse = await DailyVerse.findOne({ $or: [{ id: Number(id) || -1 }, { _id: id }] });
+    const filter = buildVerseIdFilter(id);
+    if (!filter) {
+      return res.status(404).json({ success: false, message: 'Verse not found' });
+    }
+    let verse = await DailyVerse.findOne(filter);
     if (!verse) {
       return res.status(404).json({ success: false, message: 'Verse not found' });
     }
@@ -269,7 +314,11 @@ const updateVerse = async (req, res) => {
 const deleteVerse = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await DailyVerse.findOneAndDelete({ $or: [{ id: Number(id) || -1 }, { _id: id }] });
+    const filter = buildVerseIdFilter(id);
+    if (!filter) {
+      return res.status(404).json({ success: false, message: 'Verse not found' });
+    }
+    const deleted = await DailyVerse.findOneAndDelete(filter);
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Verse not found' });
     }
@@ -346,7 +395,8 @@ const changeTodayVerse = async (req, res) => {
     let targetVerse = null;
 
     if (verseId) {
-      targetVerse = await DailyVerse.findOne({ $or: [{ id: Number(verseId) || -1 }, { _id: verseId }] });
+      const filter = buildVerseIdFilter(verseId);
+      if (filter) targetVerse = await DailyVerse.findOne(filter);
     }
 
     if (!targetVerse) {
@@ -374,7 +424,8 @@ const changeTodayVerse = async (req, res) => {
           verseMongoId: String(targetVerse._id),
           id: targetVerse.id,
           ref: targetVerse.ref,
-          date: todayDateStr
+          date: todayDateStr,
+          persistent: false
         }),
         label: 'Today Bible Verse Override',
         type: 'text'

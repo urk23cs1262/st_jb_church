@@ -6,6 +6,18 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+// Network-first strategy for navigation requests to ensure PWA clients always respect server-side maintenance state
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+  }
+});
+
 self.addEventListener('push', (event) => {
   let data = { title: "St. John de Britto's Church ⛪", body: "New parish update received.", url: "/dashboard" };
   if (event.data) {

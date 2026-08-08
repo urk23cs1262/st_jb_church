@@ -20,6 +20,8 @@ const auditLogSchema = new mongoose.Schema({
 
 const maintenanceSettingSchema = new mongoose.Schema({
   key: { type: String, default: 'site_maintenance', unique: true },
+  status: { type: String, enum: ['live', 'maintenance', 'emergency'], default: 'live' },
+  activeEventId: { type: mongoose.Schema.Types.ObjectId, ref: 'MaintenanceEvent' },
   isEnabled: { type: Boolean, default: false },
   isEmergency: { type: Boolean, default: false },
   emergencyReason: { type: String, default: '' },
@@ -61,7 +63,8 @@ const maintenanceSettingSchema = new mongoose.Schema({
     isEnabled: { type: Boolean, default: false },
     message: { type: String, default: 'Scheduled website maintenance today.' },
     scheduledStartTime: { type: Date },
-    scheduledEndTime: { type: Date }
+    scheduledEndTime: { type: Date },
+    noticeLeadTime: { type: String, enum: ['15m', '30m', '1h', '2h', '6h', '12h', '24h'], default: '1h' }
   },
 
   // Scheduler Configuration
@@ -69,8 +72,11 @@ const maintenanceSettingSchema = new mongoose.Schema({
     isEnabled: { type: Boolean, default: false },
     scheduledStart: { type: Date },
     scheduledEnd: { type: Date },
+    noticeLeadTime: { type: String, enum: ['15m', '30m', '1h', '2h', '6h', '12h', '24h'], default: '1h' },
     autoNotify: { type: Boolean, default: true }
   },
+
+  noticeSentForEventId: { type: mongoose.Schema.Types.ObjectId, ref: 'MaintenanceEvent' },
 
   // Notification Template Defaults
   notificationTemplate: {

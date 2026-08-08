@@ -30,7 +30,7 @@ const MORE_LINKS = [
   { key: 'live', path: '/live', label: 'Live Stream' },
   { key: 'nearby_parishes', path: '/nearby-parishes', label: 'Nearby Shrines' },
   { key: 'team', path: '/team', label: 'Our Team' },
-  { key: 'whatsapp_bot', external: 'https://wa.me/917639520006?text=HI%0A%0A%F0%9F%99%8F%20SJDB%20Connect%0AConnecting%20Faith%20%26%20Community', label: 'WhatsApp Bot' },
+  // { key: 'whatsapp_bot', external: 'https://wa.me/917639520006?text=HI%0A%0A%F0%9F%99%8F%20SJDB%20Connect%0AConnecting%20Faith%20%26%20Community', label: 'WhatsApp Bot' },
 ];
 
 
